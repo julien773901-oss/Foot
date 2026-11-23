@@ -17,7 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Reprendre la base de la dernière mise à jour
-        run: git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db || echo "Pas encore de base : remplissage complet"
+        run: |
+          git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db || echo "Pas encore de base : remplissage complet"
       - run: python3 foot.py
       - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
         run: |
