@@ -1,0 +1,8 @@
+.claude/
+.graph-indexer/
+__pycache__/
+_site/
+# produits par foot.py, publiés sur la branche "site"
+foot.db*
+matchs*.json
+joueurs*.json

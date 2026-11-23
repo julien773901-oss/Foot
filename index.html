@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base Foot</title>
+<script>/* thème choisi appliqué avant l'affichage, pour éviter un flash de la mauvaise couleur */
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --txt:#16181d; --mut:#6b7280; --line:#e5e7eb; --acc:#0a7c4a; --accbg:#e7f5ee;
+          --warn:#c2410c; --live:#dc2626; --v:#16a34a; --n:#9ca3af; --d:#dc2626; --dom:#0a7c4a; --ext:#2563eb; --star:#eab308; }
+  /* sombre : automatique (réglage de l'appareil) sauf si le visiteur a choisi "clair", ou forcé s'il a choisi "sombre" */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111317; --card:#1a1d23; --txt:#e8eaed; --mut:#9aa0a6; --line:#2a2e36;
+          --acc:#3ccf8e; --accbg:#16301f; --warn:#fb923c; --live:#f87171; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#111317; --card:#1a1d23; --txt:#e8eaed; --mut:#9aa0a6; --line:#2a2e36;
+          --acc:#3ccf8e; --accbg:#16301f; --warn:#fb923c; --live:#f87171; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; color-scheme:dark; }
+  :root[data-theme="light"] { color-scheme:light; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.4 system-ui, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  h1 { margin:8px 0 4px; font-size:24px; } h1 a { color:inherit; text-decoration:none; }
+  .mut { color:var(--mut); font-size:13px; }
+  button { font:inherit; color:var(--txt); }
+  .onglets { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 8px; }
+  .pill, .onglets button { padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--txt); cursor:pointer; text-decoration:none; display:inline-block; }
+  .onglets button[aria-selected="true"] { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .filtres { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 12px; }
+  select, input { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--txt); flex:1 1 160px; min-width:0; }
+  .jours { display:flex; gap:6px; align-items:center; margin-bottom:8px; }
+  .jours button { padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); cursor:pointer; }
+  .jours input { flex:1 1 auto; text-align:center; }
+  .jour-titre { text-align:center; font-weight:600; margin:4px 0 0; text-transform:capitalize; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:20px 0 8px; }
+  .m { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:6px; }
+  .m.direct { border-color:var(--live); }
+  .ligne { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
+  .eq { display:flex; align-items:center; gap:8px; min-width:0; color:inherit; text-decoration:none; }
+  .eq:hover span { text-decoration:underline; }
+  .eq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .eq.d { justify-content:flex-end; text-align:right; }
+  .eq.fav span::after { content:" ★"; color:var(--star); }
+  img.logo { width:22px; height:22px; object-fit:contain; flex:none; }
+  a.s { font-weight:700; min-width:64px; text-align:center; font-variant-numeric:tabular-nums; color:inherit; text-decoration:none;
+        border:1px solid var(--line); border-radius:8px; padding:2px 8px; }
+  a.s:hover { border-color:var(--acc); }
+  .buts { display:grid; grid-template-columns:1fr 1fr; gap:2px 24px; font-size:12px; color:var(--mut); margin-top:6px; }
+  .buts .d { text-align:right; }
+  .pa { opacity:.8; font-style:italic; }
+  .info { color:var(--mut); font-size:12px; margin-top:6px; text-align:center; }
+  .live { color:var(--live); font-weight:700; }
+  .plus { display:block; margin:12px auto; padding:8px 16px; border:1px solid var(--line); border-radius:8px; background:var(--card); cursor:pointer; }
+  details.src { font-size:12px; color:var(--mut); margin-top:4px; text-align:center; }
+  details.src summary { cursor:pointer; color:var(--acc); list-style-position:inside; }
+  details.src.ko summary { color:var(--warn); font-weight:600; }
+  .tab-wrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { padding:8px 6px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-size:12px; color:var(--mut); font-weight:600; }
+  td.g { text-align:left; } td.g .eq { justify-content:flex-start; }
+  td.pts { font-weight:700; }
+  tr:last-child td { border-bottom:0; }
+  tr.moi td { background:var(--accbg); }
+  sup.off { font-size:10px; color:var(--warn); margin-left:4px; font-weight:600; }
+  .fiche { display:flex; align-items:center; gap:12px; margin:12px 0; flex-wrap:wrap; }
+  .fiche img { width:56px; height:56px; object-fit:contain; }
+  .fiche h2 { margin:0; font-size:22px; text-transform:none; letter-spacing:0; color:var(--txt); }
+  .etoile { margin-left:auto; padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); cursor:pointer; }
+  .etoile[aria-pressed="true"] { border-color:var(--star); color:var(--star); font-weight:600; }
+  .forme { display:flex; gap:4px; }
+  .forme span { width:24px; height:24px; border-radius:6px; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:700; }
+  .forme .V { background:var(--v); } .forme .N { background:var(--n); } .forme .D { background:var(--d); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:8px; }
+  .stats div { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; text-align:center; }
+  .stats b { display:block; font-size:20px; }
+  /* fiche match */
+  .entete { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:12px 0; text-align:center; }
+  .entete img { width:48px; height:48px; object-fit:contain; display:block; margin:0 auto 6px; }
+  .entete .score { font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .entete a { color:inherit; text-decoration:none; font-weight:600; }
+  .ev { display:grid; grid-template-columns:1fr 48px 1fr; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .ev:last-child { border-bottom:0; }
+  .ev .t { text-align:center; color:var(--mut); font-variant-numeric:tabular-nums; }
+  .ev .dom { text-align:right; }
+  .bloc { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+  .barre { margin:10px 0; }
+  .barre .lib { display:flex; justify-content:space-between; font-size:13px; }
+  .barre .lib span:nth-child(2) { color:var(--mut); }
+  .barre .b { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--line); gap:2px; margin-top:4px; }
+  .barre .b i { display:block; } .barre .b i:first-child { background:var(--dom); } .barre .b i:last-child { background:var(--ext); }
+  .compo { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .compo h3 { font-size:14px; margin:0 0 6px; }
+  .compo ul { list-style:none; padding:0; margin:0; font-size:13px; }
+  .compo li { padding:3px 0; display:flex; gap:6px; }
+  .compo li b { width:22px; text-align:right; color:var(--mut); flex:none; font-variant-numeric:tabular-nums; }
+  .compo .sub { color:var(--mut); }
+  a { color:var(--acc); }
+  a.j { color:inherit; text-decoration:none; } a.j:hover { text-decoration:underline; color:var(--acc); }
+  #sources { padding-left:18px; }
+  /* graphiques (couleurs validées daltonisme + contraste, clair et sombre) */
+  :root { --c-pour:#2a78d6; --c-contre:#e34948; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-pour:#3987e5; --c-contre:#e66767; } }
+  :root[data-theme="dark"] { --c-pour:#3987e5; --c-contre:#e66767; }
+  .graphe { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; }
+  .graphe svg { width:100%; height:auto; display:block; overflow:visible; }
+  .graphe text { font-size:11px; fill:var(--mut); font-family:system-ui, sans-serif; }
+  .legende { display:flex; gap:16px; font-size:12px; color:var(--mut); margin:4px 4px 0; }
+  .legende i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  details.table { margin-top:6px; font-size:13px; } details.table summary { cursor:pointer; color:var(--acc); font-size:12px; }
+  #tip { position:fixed; pointer-events:none; background:var(--txt); color:var(--bg); font-size:12px; padding:6px 8px; border-radius:6px; z-index:10; max-width:240px; }
+  .h2h { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:4px 10px; align-items:center; font-size:14px; }
+  .h2h .d { text-align:right; } .h2h .sc { font-weight:700; text-align:center; font-variant-numeric:tabular-nums; }
+  .h2h .dt { color:var(--mut); font-size:12px; }
+  .entete-site { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .entete-site #maj { flex:1 1 200px; }
+  .entete-site select { flex:0 0 auto; padding:6px 8px; }
+  .entete-site .pill { padding:6px 12px; font-size:14px; }
+  #alertes[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); font-weight:600; }
+  #toast { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); background:var(--acc); color:#fff; padding:12px 16px;
+           border-radius:10px; font-weight:600; z-index:20; max-width:calc(100% - 32px); box-shadow:0 4px 16px rgba(0,0,0,.25); }
+  .comparer { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+  .comparer input { flex:1 1 200px; }
+  .cmp td:nth-child(2) { text-align:center; color:var(--mut); font-size:12px; white-space:normal; }
+  .cmp td:first-child, .cmp td:last-child { width:38%; font-variant-numeric:tabular-nums; }
+  .cmp td:first-child { text-align:right; } .cmp td:last-child { text-align:left; }
+  .cmp .mieux { color:var(--acc); font-weight:700; }
+  .cmp th img { width:40px; height:40px; object-fit:contain; display:block; margin:0 auto 4px; }
+  .recherche { position:relative; margin:10px 0 0; }
+  .recherche input { width:100%; padding:10px 12px; font-size:15px; }
+  #rg-liste { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:15; list-style:none; margin:0; padding:4px;
+              background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.18); max-height:60vh; overflow:auto; }
+  #rg-liste .grp { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); padding:8px 8px 4px; }
+  #rg-liste [role="option"] { display:flex; align-items:center; gap:8px; padding:8px; border-radius:6px; cursor:pointer; }
+  #rg-liste [role="option"][aria-selected="true"], #rg-liste [role="option"]:hover { background:var(--accbg); }
+  #rg-liste .sous { color:var(--mut); font-size:12px; margin-left:auto; text-align:right; }
+  .grille2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+  .grille2 h3 { font-size:14px; margin:0 0 6px; }
+  .prono { margin-top:8px; }
+  .prono .b { display:flex; height:6px; border-radius:3px; overflow:hidden; gap:2px; }
+  .prono .b i { display:block; }
+  .prono .lib { display:flex; justify-content:space-between; font-size:12px; color:var(--mut); margin-top:3px; gap:8px; }
+  .partage { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+  .partage button { padding:6px 12px; font-size:14px; }
+  .photo { width:64px; height:64px; border-radius:50%; object-fit:cover; background:var(--line); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1><a href="#">⚽ Base Foot</a></h1>
+  <div class="entete-site">
+    <span class="mut" id="maj">Chargement…</span>
+    <select id="saison" aria-label="Saison"></select>
+    <button id="alertes" class="pill" aria-pressed="false">🔔 Alertes de buts</button>
+    <button id="theme" class="pill" title="Changer de thème">🌓 Auto</button>
+  </div>
+  <div class="recherche">
+    <input id="rg" type="search" role="combobox" aria-expanded="false" aria-controls="rg-liste" aria-autocomplete="list"
+           placeholder="🔎 Chercher une équipe, un joueur ou un match (ex. « Marseille Lyon »)" aria-label="Recherche globale" autocomplete="off">
+    <ul id="rg-liste" role="listbox" hidden></ul>
+  </div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <div id="accueil">
+    <div class="onglets" role="tablist">
+      <button role="tab" data-o="matchs" aria-selected="true">Matchs</button>
+      <button role="tab" data-o="class" aria-selected="false">Classements</button>
+      <button role="tab" data-o="buteurs" aria-selected="false">Buteurs</button>
+      <button role="tab" data-o="passeurs" aria-selected="false">Passeurs</button>
+      <button role="tab" data-o="stats" aria-selected="false">Stats</button>
+    </div>
+    <div class="filtres">
+      <select id="ligue" aria-label="Compétition"><option value="">Toutes les compétitions</option><option value="__fav">⭐ Mes équipes</option></select>
+      <input id="equipe" type="search" placeholder="Rechercher une équipe ou un joueur" aria-label="Rechercher une équipe ou un joueur">
+    </div>
+    <div id="nav-jours">
+      <div class="jours">
+        <button id="prec" aria-label="Jour précédent">◀</button>
+        <input id="jour" type="date" aria-label="Choisir un jour">
+        <button id="auj">Aujourd'hui</button>
+        <button id="suiv" aria-label="Jour suivant">▶</button>
+      </div>
+      <div class="jour-titre" id="jour-titre"></div>
+    </div>
+    <div id="vue"></div>
+  </div>
+  <div id="detail" hidden></div>
+  <div id="tip" hidden></div>
+  <h2>Sources</h2>
+  <ul class="mut" id="sources"></ul>
+  <p class="mut">Les scores ESPN sont recoupés avec les autres sources ; ⚠ = scores différents selon les sources.
+    Pendant les matchs, la page se rafraîchit toute seule chaque minute. Cliquez sur un score pour la fiche du match.
+    Base complète téléchargeable : <a href="foot.db">foot.db</a> (SQLite) · <a href="matchs.json">matchs.json</a></p>
+</main>
+<script>
+let data = { matchs: [], classement: [], ligues: {} }, onglet = "matchs", nbResultats = 30;
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const cleJour = d => { const x = new Date(d); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; };
+const decale = (cle, n) => { const x = new Date(cle + "T12:00:00"); x.setDate(x.getDate() + n); return cleJour(x); };
+let jour = cleJour(new Date());
+const fmt = (d, o) => new Date(d).toLocaleString("fr-FR", o || { weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+const heure = d => fmt(d, { hour:"2-digit", minute:"2-digit" });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const logo = u => u ? `<img class="logo" src="${esc(u)}" alt="" loading="lazy">` : "";
+const cherche = () => $("equipe").value.trim().toLowerCase();
+const PREVU = "STATUS_SCHEDULED";
+const fini = m => /FULL_TIME|FINAL/.test(m.statut);  // FULL_TIME, FINAL_PEN (tirs au but), FINAL_AET (prolongation)
+const enDirect = m => !fini(m) && m.statut !== PREVU && !/POSTPONED|CANCELED|ABANDONED|DELAYED|SUSPENDED/.test(m.statut);
+
+// ---------- favoris (gardés dans ce navigateur) ----------
+let fav = new Set();
+try { fav = new Set(JSON.parse(localStorage.getItem("favoris") || "[]")); } catch (e) {}
+const garderFav = () => { try { localStorage.setItem("favoris", JSON.stringify([...fav])); } catch (e) {} };
+const estFav = m => fav.has(m.domicile) || fav.has(m.exterieur);
+const lienEq = (nom, lg, cote) => `<a class="eq${cote === "d" ? " d" : ""}${fav.has(nom) ? " fav" : ""}" href="#equipe=${encodeURIComponent(nom)}">${cote === "d" ? `<span>${esc(nom)}</span>${logo(lg)}` : `${logo(lg)}<span>${esc(nom)}</span>`}</a>`;
+
+const sansTag = n => n.replace(/ \((pen|csc)\)$/, "");
+const lienJ = (nom, suffixe = "") => `<a class="j" href="#joueur=${encodeURIComponent(sansTag(nom))}">${esc(nom)}</a>${suffixe}`;
+
+// ---------- infobulle des graphiques (souris et toucher) ----------
+function montrerTip(e) {
+  const t = e.target.closest("[data-tip]"), tip = $("tip");
+  if (!t) { tip.hidden = true; return; }
+  tip.textContent = t.dataset.tip; tip.hidden = false;
+  const x = e.clientX ?? 0, y = e.clientY ?? 0;
+  tip.style.left = Math.min(x + 12, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (y + 14) + "px";
+}
+document.addEventListener("mousemove", montrerTip);
+document.addEventListener("click", e => { if (e.target.closest("[data-tip]")) montrerTip(e); else $("tip").hidden = true; });
+
+// ---------- filtres communs ----------
+function filtreLigue(m) { const l = $("ligue").value; return !l || (l === "__fav" ? estFav(m) : m.ligue === l); }
+
+// ---------- cartes de match ----------
+function carte(m) {
+  const direct = enDirect(m);
+  const score = m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`;
+  const etat = fini(m) ? (/PEN/.test(m.statut) ? "Terminé aux tirs au but" : /AET/.test(m.statut) ? "Terminé après prolongation" : "Terminé")
+    : m.statut === PREVU ? "À venir"
+    : direct ? `<span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : "Reporté / annulé";
+  const passe = b => (m.passes || []).find(p => p.cote === b.cote && p.min === b.min);
+  const b = c => [
+    ...m.buteurs.filter(x => x.cote === c).map(x => `⚽ ${lienJ(x.nom)} ${esc(x.min)}${passe(x) ? ` <span class="pa">(${lienJ(passe(x).nom)})</span>` : ""}`),
+    ...(m.cartons || []).filter(x => x.cote === c && x.type === "R").map(x => `🟥 ${lienJ(x.nom)} ${esc(x.min)}`)].join("<br>");
+  const buts = m.buteurs.length || (m.cartons || []).some(x => x.type === "R") ? `<div class="buts"><div class="d">${b("dom")}</div><div>${b("ext")}</div></div>` : "";
+  const src = Object.entries(m.sources || {});
+  const detail = src.map(([n, s]) => `${n} : ${s[0]}-${s[1]}`).join(" · ");
+  const badge = direct || !src.length ? "" : m.ecart
+    ? `<details class="src ko"><summary>⚠ Les sources ne sont pas d'accord</summary>${esc(detail)}</details>`
+    : `<details class="src"><summary>✓ ${src.length} source${src.length > 1 ? "s" : ""}${m.secours ? " (ESPN absent)" : ""}</summary>${esc(detail)}</details>`;
+  return `<div class="m${direct ? " direct" : ""}"><div class="ligne">
+      ${lienEq(m.domicile, m.logo_dom, "d")}<a class="s" href="#match=${esc(m.id)}" title="Fiche du match">${score}</a>${lienEq(m.exterieur, m.logo_ext)}</div>
+    ${buts}${blocProno(m)}<div class="info">${esc(m.ligue)} · ${fmt(m.date_utc)} · ${etat}</div>${badge}</div>`;
+}
+
+function listeMatchs(f, limite) {
+  const now = new Date().toISOString().slice(0, 16);
+  const direct = f.filter(enDirect);
+  const avenir = f.filter(m => m.statut === PREVU && m.date_utc >= now);
+  const passes = f.filter(m => !direct.includes(m) && !avenir.includes(m)).reverse();
+  return (f.length ? "" : '<p class="mut">Aucun match.</p>')
+    + (direct.length ? "<h2>🔴 En direct</h2>" + direct.map(carte).join("") : "")
+    + (avenir.length ? "<h2>À venir</h2>" + avenir.slice(0, 20).map(carte).join("") : "")
+    + (passes.length ? "<h2>Résultats</h2>" + passes.slice(0, limite).map(carte).join("") : "")
+    + (passes.length > limite ? `<button class="plus" id="plus">Voir plus de résultats (${passes.length - limite})</button>` : "");
+}
+
+// ---------- calendrier jour par jour ----------
+function vueJour() {
+  const base = data.matchs.filter(filtreLigue);
+  const direct = base.filter(enDirect);
+  const duJour = base.filter(m => cleJour(m.date_utc) === jour && !enDirect(m));
+  const favs = duJour.filter(estFav);
+  const parLigue = {};
+  for (const m of duJour) if (!favs.includes(m)) (parLigue[m.ligue] ??= []).push(m);
+  let h = direct.length ? "<h2>🔴 En direct</h2>" + direct.map(carte).join("") : "";
+  if (favs.length) h += "<h2>⭐ Mes équipes</h2>" + favs.map(carte).join("");
+  for (const lg of Object.keys(parLigue).sort()) h += `<h2>${esc(lg)}</h2>` + parLigue[lg].map(carte).join("");
+  if (!duJour.length) {
+    const jours = base.map(m => cleJour(m.date_utc)).sort();
+    const prochain = jours.find(k => k > jour), precedent = jours.filter(k => k < jour).at(-1);
+    const bouton = (k, t) => `<button class="plus" data-jour="${k}">${t} (${fmt(k + "T12:00:00", { weekday:"long", day:"numeric", month:"long" })})</button>`;
+    h += `<p class="mut">Aucun match ce jour-là.</p>` + (prochain ? bouton(prochain, "Prochain jour avec des matchs") : "")
+      + (precedent ? bouton(precedent, "Jour précédent avec des matchs") : "");
+  }
+  return h;
+}
+
+function vueMatchs() {
+  const q = cherche();
+  if (!q) return vueJour();
+  return listeMatchs(data.matchs.filter(m => filtreLigue(m) && (m.domicile + " " + m.exterieur).toLowerCase().includes(q)), nbResultats);
+}
+
+// ---------- classements ----------
+function tableClass(rows, surligne) {
+  return `<div class="tab-wrap"><table>
+    <thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th><th>Diff</th></tr></thead><tbody>
+    ${rows.map(c => `<tr class="${surligne(c) ? "moi" : ""}"><td>${c.rang}</td><td class="g">${lienEq(c.equipe, c.logo)}</td>
+      <td class="pts">${c.pts}${c.pts_officiel != null && c.pts_officiel !== c.pts ? `<sup class="off" title="Classement officiel LFP (peut inclure un match en cours)">LFP ${c.pts_officiel}</sup>` : ""}</td>
+      <td>${c.joues}</td><td>${c.g}</td><td>${c.n}</td><td>${c.p}</td><td>${c.bp}</td><td>${c.bc}</td><td>${c.bp - c.bc > 0 ? "+" : ""}${c.bp - c.bc}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+function vueClass() {
+  const l = $("ligue").value, q = cherche();
+  const surligne = c => fav.has(c.equipe) || (q && c.equipe.toLowerCase().includes(q));
+  const ligues = l && l !== "__fav" ? [l] : [...new Set(data.classement.filter(c => l !== "__fav" || fav.has(c.equipe)).map(c => c.ligue))].sort();
+  return ligues.map(lg => {
+    const rows = data.classement.filter(c => c.ligue === lg);
+    return rows.length ? `<h2>${esc(lg)}</h2>` + tableClass(rows, surligne) : "";
+  }).join("") || `<p class="mut">${l === "__fav" ? "Ajoutez des équipes en favori (★ sur leur fiche)." : "Pas de classement pour cette compétition (coupe)."}</p>`;
+}
+
+// ---------- buteurs / passeurs (calculés depuis les matchs) ----------
+function joueurs(matchs, champ) {
+  const t = {};
+  for (const m of matchs) for (const b of m[champ] || []) {
+    if (b.nom.endsWith("(csc)")) continue;  // un csc ne compte pas pour le joueur
+    const nom = b.nom.replace(/ \(pen\)$/, ""), eq = b.cote === "dom" ? m.domicile : m.exterieur;
+    const k = nom + "|" + eq;
+    t[k] ??= { nom, eq, logo: b.cote === "dom" ? m.logo_dom : m.logo_ext, n: 0, pen: 0 };
+    t[k].n++; if (b.nom.endsWith("(pen)")) t[k].pen++;
+  }
+  return Object.values(t).sort((a, b) => b.n - a.n || a.pen - b.pen || a.nom.localeCompare(b.nom));
+}
+
+function tableJoueurs(liste, n, champ) {
+  let rang = 0, prec = null;
+  const buts = champ === "buteurs";
+  return `<div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Joueur</th><th style="text-align:left">Équipe</th><th>${buts ? "Buts" : "Passes D."}</th>${buts ? "<th>Pen.</th>" : ""}</tr></thead><tbody>
+    ${liste.slice(0, n).map((b, i) => { if (b.n !== prec) { rang = i + 1; prec = b.n; }
+      return `<tr class="${fav.has(b.eq) ? "moi" : ""}"><td>${rang}</td><td class="g">${lienJ(b.nom)}</td><td class="g">${lienEq(b.eq, b.logo)}</td><td class="pts">${b.n}</td>${buts ? `<td>${b.pen || ""}</td>` : ""}</tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+
+function vueJoueurs(champ) {
+  const l = $("ligue").value, q = cherche();
+  const ligues = l && l !== "__fav" ? [l] : [...new Set(data.matchs.map(m => m.ligue))].sort();
+  return (ligues.map(lg => {
+    let liste = joueurs(data.matchs.filter(m => m.ligue === lg), champ);
+    if (l === "__fav") liste = liste.filter(b => fav.has(b.eq));
+    if (q) liste = liste.filter(b => (b.nom + " " + b.eq).toLowerCase().includes(q));
+    return liste.length ? `<h2>${esc(lg)}</h2>` + tableJoueurs(liste, l ? 50 : 10, champ) : "";
+  }).join("") || '<p class="mut">Aucun joueur trouvé.</p>')
+    + (champ === "passes" ? '<p class="mut">Passes décisives lues dans la fiche de chaque match (récupérées petit à petit, 400 matchs par mise à jour).</p>' : "");
+}
+
+// ---------- fiche équipe ----------
+function vueEquipe(nom) {
+  const ms = data.matchs.filter(m => m.domicile === nom || m.exterieur === nom);
+  const fin = ms.filter(fini);
+  const res = m => { const [p, c] = m.domicile === nom ? [m.buts_dom, m.buts_ext] : [m.buts_ext, m.buts_dom]; return p > c ? "V" : p < c ? "D" : "N"; };
+  const s = { V:0, N:0, D:0, bp:0, bc:0 };
+  for (const m of fin) { s[res(m)]++; const dom = m.domicile === nom; s.bp += dom ? m.buts_dom : m.buts_ext; s.bc += dom ? m.buts_ext : m.buts_dom; }
+  const lg = ms.map(m => m.domicile === nom ? m.logo_dom : m.logo_ext).find(Boolean);
+  const forme = fin.slice(-5).reverse().map(m => `<span class="${res(m)}" title="${esc(m.domicile)} ${m.buts_dom}-${m.buts_ext} ${esc(m.exterieur)}">${res(m)}</span>`).join("");
+  const classes = [...new Set(data.classement.filter(c => c.equipe === nom).map(c => c.ligue))];
+  const sc = joueurs(fin, "buteurs").filter(b => b.eq === nom), pa = joueurs(fin, "passes").filter(b => b.eq === nom);
+  return `<a class="pill" href="#">← Retour</a>
+    <div class="fiche">${lg ? `<img src="${esc(lg)}" alt="">` : ""}<div><h2>${esc(nom)}</h2>
+      <div class="mut">${[...new Set(ms.map(m => m.ligue))].map(esc).join(" · ")}</div></div>
+      <button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Dans mes équipes" : "☆ Ajouter à mes équipes"}</button></div>
+    ${boutonsPartage("equipe", nom)}
+    ${champComparer("e", nom, [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))], "Comparer avec une autre équipe…")}
+    ${fin.length ? `<h2>Forme (5 derniers, le plus récent à gauche)</h2><div class="forme">${forme}</div>` : ""}
+    <h2>Saison (toutes compétitions)</h2>
+    <div class="stats"><div><b>${fin.length}</b>Joués</div><div><b>${s.V}</b>Victoires</div><div><b>${s.N}</b>Nuls</div>
+      <div><b>${s.D}</b>Défaites</div><div><b>${s.bp}</b>Buts pour</div><div><b>${s.bc}</b>Buts contre</div></div>
+    ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}
+    ${classes.map(l => { const p = positions(nom, l), n = data.classement.filter(c => c.ligue === l).length;
+      return (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, n) : "")
+        + `<h2>Classement ${esc(l)}</h2>` + tableClass(data.classement.filter(c => c.ligue === l), c => c.equipe === nom); }).join("")}
+    ${sc.length ? "<h2>Buteurs</h2>" + tableJoueurs(sc, 50, "buteurs") : ""}
+    ${pa.length ? "<h2>Passeurs</h2>" + tableJoueurs(pa, 50, "passes") : ""}
+    ${listeMatchs(ms, 1000)}`;
+}
+
+// ---------- graphiques ----------
+const court = d => fmt(d, { day:"numeric", month:"short" });
+const adv = (m, nom) => m.domicile === nom ? m.exterieur : m.domicile;
+const largeurGraphe = () => Math.max(300, Math.min(640, innerWidth - 50));  // texte lisible aussi sur téléphone
+
+// Classement recalculé après chaque journée à partir des scores
+// shortcut: départage simplifié (points, diff., buts marqués) ; les vrais règlements varient selon les ligues.
+function positions(nom, ligue) {
+  const ms = data.matchs.filter(m => m.ligue === ligue && fini(m)).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  const t = {}, out = [];
+  for (let i = 0; i < ms.length;) {
+    const k = ms[i].date_utc.slice(0, 10), lot = [];
+    while (i < ms.length && ms[i].date_utc.slice(0, 10) === k) lot.push(ms[i++]);
+    for (const m of lot) for (const [e, p, c] of [[m.domicile, m.buts_dom, m.buts_ext], [m.exterieur, m.buts_ext, m.buts_dom]]) {
+      const x = t[e] ??= { pts: 0, bp: 0, bc: 0 }; x.bp += p; x.bc += c; x.pts += p > c ? 3 : p === c ? 1 : 0; }
+    const joue = lot.find(m => m.domicile === nom || m.exterieur === nom);
+    if (joue) {
+      const cl = Object.entries(t).sort(([a, x], [b, y]) => y.pts - x.pts || (y.bp - y.bc) - (x.bp - x.bc) || y.bp - x.bp || a.localeCompare(b));
+      out.push({ m: joue, rang: cl.findIndex(([e]) => e === nom) + 1, pts: t[nom].pts });
+    }
+  }
+  return out;
+}
+
+function graphePositions(p, nEq) {
+  const W = largeurGraphe(), H = 220, ml = 34, mr = 12, mt = 10, mb = 26, n = p.length;
+  const x = i => ml + i * (W - ml - mr) / Math.max(1, n - 1), y = r => mt + (r - 1) * (H - mt - mb) / Math.max(1, nEq - 1);
+  const graduations = [1, 5, 10, 15, 20, 25, 30, 36].filter(r => r <= nEq);
+  const pas = (W - ml - mr) / Math.max(1, n - 1);
+  const tip = (q, i) => `Match ${i + 1} · ${court(q.m.date_utc)} · ${q.rang}e (${q.pts} pts) · ${q.m.domicile} ${q.m.buts_dom}-${q.m.buts_ext} ${q.m.exterieur}`;
+  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Position au classement après chaque match">
+    ${graduations.map(r => `<line x1="${ml}" x2="${W - mr}" y1="${y(r)}" y2="${y(r)}" stroke="var(--line)"/><text x="${ml - 8}" y="${y(r) + 4}" text-anchor="end">${r}e</text>`).join("")}
+    ${p.map((q, i) => i % Math.ceil(n / 10) === 0 || i === n - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${i + 1}</text>` : "").join("")}
+    <path d="${p.map((q, i) => `${i ? "L" : "M"}${x(i)},${y(q.rang)}`).join("")}" fill="none" stroke="var(--c-pour)" stroke-width="2" stroke-linejoin="round"/>
+    ${p.map((q, i) => `<circle cx="${x(i)}" cy="${y(q.rang)}" r="4" fill="var(--c-pour)" stroke="var(--card)" stroke-width="2"/>`).join("")}
+    <text x="${x(n - 1)}" y="${y(p[n - 1].rang) - 10}" text-anchor="end" style="fill:var(--txt);font-weight:600">${p[n - 1].rang}e</text>
+    ${p.map((q, i) => `<rect x="${x(i) - pas / 2}" y="${mt - 6}" width="${pas}" height="${H - mt - mb + 12}" fill="transparent" data-tip="${esc(tip(q, i))}"/>`).join("")}
+  </svg><div class="mut" style="margin:0 4px">En bas : numéro du match. Position le jour de chaque match, recalculée à partir des scores (départage simplifié) ; elle peut différer du classement actuel si d'autres équipes ont joué depuis.</div>
+  <details class="table"><summary>Voir en tableau</summary><div class="tab-wrap"><table><thead><tr><th>#</th><th>Date</th><th style="text-align:left">Match</th><th>Position</th><th>Pts</th></tr></thead><tbody>
+    ${p.map((q, i) => `<tr><td>${i + 1}</td><td>${court(q.m.date_utc)}</td><td class="g">${esc(q.m.domicile)} ${q.m.buts_dom}-${q.m.buts_ext} ${esc(q.m.exterieur)}</td><td>${q.rang}e</td><td>${q.pts}</td></tr>`).join("")}
+  </tbody></table></div></details></div>`;
+}
+
+function grapheButs(ms, nom) {
+  const W = largeurGraphe(), H = 200, ml = 26, mr = 8, mt = 8, mb = 8, n = ms.length;
+  const pour = m => m.domicile === nom ? m.buts_dom : m.buts_ext, contre = m => m.domicile === nom ? m.buts_ext : m.buts_dom;
+  const max = Math.max(3, ...ms.map(pour), ...ms.map(contre));
+  const y0 = mt + (H - mt - mb) / 2, h = v => v * (H - mt - mb) / 2 / max, pas = (W - ml - mr) / n, bw = Math.min(18, pas * 0.6), r = 3;
+  const barre = (cx, v, haut, coul) => { if (!v) return ""; const x = cx - bw / 2, e = haut ? y0 - h(v) : y0 + h(v), s = haut ? 1 : -1;
+    // extrémité arrondie côté donnée, base droite sur la ligne zéro
+    return `<path d="M${x},${y0} V${e + s * r} Q${x},${e} ${x + r},${e} H${x + bw - r} Q${x + bw},${e} ${x + bw},${e + s * r} V${y0} Z" fill="${coul}"/>`; };
+  const tip = m => `${court(m.date_utc)} · ${m.ligue} · ${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}`;
+  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Buts marqués (vers le haut) et encaissés (vers le bas) par match">
+    ${[max, 0, max].map((v, i) => `<text x="${ml - 6}" y="${[mt + 8, y0 + 4, H - mb][i]}" text-anchor="end">${v}</text>`).join("")}
+    <line x1="${ml}" x2="${W - mr}" y1="${y0}" y2="${y0}" stroke="var(--mut)"/>
+    ${ms.map((m, i) => { const cx = ml + pas * (i + .5); return barre(cx, pour(m), true, "var(--c-pour)") + barre(cx, contre(m), false, "var(--c-contre)")
+      + `<rect x="${cx - pas / 2}" y="${mt}" width="${pas}" height="${H - mt - mb}" fill="transparent" data-tip="${esc(tip(m))}"/>`; }).join("")}
+  </svg><div class="legende"><span><i style="background:var(--c-pour)"></i>Buts marqués (vers le haut)</span><span><i style="background:var(--c-contre)"></i>Buts encaissés (vers le bas)</span></div>
+  <details class="table"><summary>Voir en tableau</summary><div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Adversaire</th><th>Marqués</th><th>Encaissés</th></tr></thead><tbody>
+    ${ms.map(m => `<tr><td>${court(m.date_utc)}</td><td class="g">${esc(adv(m, nom))}</td><td>${pour(m)}</td><td>${contre(m)}</td></tr>`).join("")}
+  </tbody></table></div></details></div>`;
+}
+
+// ---------- fiche joueur ----------
+const joueursP = {};  // un fichier par saison, chargé à la demande
+const chargerJoueurs = () => joueursP[data.saison ?? ""] ??=
+  fetch(data.saison ? `joueurs-${data.saison}.json` : "joueurs.json", { cache: "no-store" }).then(r => r.json()).catch(() => ({}));
+
+async function statsJoueur(nom) {
+  const J = (await chargerJoueurs())[nom];
+  const parId = Object.fromEntries(data.matchs.map(m => [m.id, m]));
+  const lignes = new Map();
+  for (const [mid, cote, role, sorti] of J?.m || []) if (parId[mid]) lignes.set(mid, { m: parId[mid], cote, role, sorti });
+  for (const m of data.matchs) for (const champ of ["buteurs", "passes", "cartons"]) for (const x of m[champ] || [])
+    if (!x.nom.endsWith("(csc)") && sansTag(x.nom) === nom && !lignes.has(m.id)) lignes.set(m.id, { m, cote: x.cote, role: "?" });
+  const L = [...lignes.values()].sort((a, b) => a.m.date_utc.localeCompare(b.m.date_utc));
+  if (!L.length) return null;
+  const de = (l, champ) => (l.m[champ] || []).filter(x => x.cote === l.cote && sansTag(x.nom) === nom && !x.nom.endsWith("(csc)"));
+  for (const l of L) { l.b = de(l, "buteurs"); l.p = de(l, "passes"); l.c = de(l, "cartons"); l.eq = l.cote === "dom" ? l.m.domicile : l.m.exterieur; }
+  const tot = ls => ({ mj: ls.filter(l => l.role !== "?").length, tit: ls.filter(l => l.role === "T").length, b: ls.reduce((s, l) => s + l.b.length, 0),
+    pen: ls.reduce((s, l) => s + l.b.filter(x => x.nom.endsWith("(pen)")).length, 0), p: ls.reduce((s, l) => s + l.p.length, 0),
+    j: ls.reduce((s, l) => s + l.c.filter(x => x.type === "J").length, 0), r: ls.reduce((s, l) => s + l.c.filter(x => x.type === "R").length, 0) });
+  return { J, L, tot, T: tot(L), equipes: [...new Set(L.map(l => l.eq))] };
+}
+
+async function vueJoueur(nom) {
+  const el = $("detail");
+  el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Chargement…</p>`;
+  const st = await statsJoueur(nom);
+  if (route()[1] !== nom) return;
+  if (!st) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur cette saison.</p>`; return; }
+  const { J, L, tot, T, equipes } = st;
+  const comps = [...new Set(L.map(l => l.m.ligue))];
+  const photo = J?.id ? `<img class="photo" src="https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(J.id)}.png" alt="" onerror="this.remove()">` : "";
+  el.innerHTML = `<a class="pill" href="#">← Retour</a>
+    <div class="fiche">${photo}<div><h2>${esc(nom)}</h2><div class="mut">${equipes.map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ")}</div></div></div>
+    ${boutonsPartage("joueur", nom)}
+    ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}
+    <h2>Saison (toutes compétitions)</h2>
+    <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
+      <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div></div>
+    ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
+      ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
+    </tbody></table></div>` : ""}
+    <h2>Ses matchs</h2><div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Match</th><th>Rôle</th><th>⚽</th><th>PD</th><th>Cartons</th></tr></thead><tbody>
+      ${L.slice().reverse().map(l => `<tr><td>${court(l.m.date_utc)}</td>
+        <td class="g"><a class="j" href="#match=${esc(l.m.id)}">${esc(l.m.domicile)} ${l.m.buts_dom ?? ""}-${l.m.buts_ext ?? ""} ${esc(l.m.exterieur)}</a><div class="mut">${esc(l.m.ligue)}</div></td>
+        <td>${l.role === "T" ? "Titulaire" + (l.sorti ? " ↓" : "") : l.role === "E" ? "Entré ↑" : "?"}</td>
+        <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
+  brancherComparer();
+}
+
+// ---------- partage ----------
+let partageCible = null;
+function boutonsPartage(type, cible) {
+  partageCible = { type, cible };
+  return `<div class="partage"><button class="pill" data-partage="lien">🔗 Partager</button>${type === "match" && cible.buts_dom !== null ? '<button class="pill" data-partage="image">🖼 Image du score</button>' : ""}</div>`;
+}
+const lienActuel = () => location.origin + location.pathname + (data.saison && data.saison !== data.courante ? `?saison=${data.saison}` : "") + location.hash;
+async function partagerLien() {
+  const { type, cible } = partageCible, url = lienActuel();
+  const titre = type === "match" ? `${cible.domicile} ${cible.buts_dom ?? ""}${cible.buts_dom === null ? "–" : "-"}${cible.buts_ext ?? ""} ${cible.exterieur}` : cible;
+  if (navigator.share) { try { await navigator.share({ title: titre, text: titre + " · Base Foot", url }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(url); toast("Lien copié : collez-le où vous voulez."); }
+  catch (e) { prompt("Copiez ce lien :", url); }
+}
+async function partagerImage() {
+  const m = partageCible.cible, W = 1080, H = 608, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"), police = (t, p = 400) => `${p} ${t}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+  g.fillStyle = "#0a3d2a"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0f5c3f"; g.fillRect(0, H - 70, W, 70);
+  g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.font = police(30);
+  g.fillText(`${m.ligue} · ${fmt(m.date_utc, { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`, W / 2, 70);
+  // noms d'équipes : réduits si trop longs
+  const nom = (t, x) => { let s = 52; g.font = police(s, 700); while (g.measureText(t).width > 380 && s > 28) g.font = police(s -= 2, 700); g.fillText(t, x, 250); };
+  g.fillStyle = "#fff"; nom(m.domicile, 250); nom(m.exterieur, W - 250);
+  g.font = police(140, 800); g.fillText(`${m.buts_dom} - ${m.buts_ext}`, W / 2, 290);
+  if (enDirect(m)) { g.font = police(30, 700); g.fillStyle = "#f87171"; g.fillText(`EN DIRECT${m.minute ? " · " + m.minute : ""}`, W / 2, 345); }
+  else if (/PEN/.test(m.statut)) { g.font = police(28); g.fillStyle = "#cfe9dc"; g.fillText("après tirs au but", W / 2, 345); }
+  g.font = police(26); g.fillStyle = "#cfe9dc";
+  for (const [cote, x] of [["dom", 250], ["ext", W - 250]])
+    m.buteurs.filter(b => b.cote === cote).slice(0, 5).forEach((b, i) => g.fillText(`⚽ ${b.nom} ${b.min}`, x, 400 + i * 34));
+  g.fillStyle = "#fff"; g.font = police(28, 700); g.fillText("⚽ Base Foot", W / 2, H - 25);
+  const blob = await new Promise(r => c.toBlob(r, "image/png"));
+  const fichier = new File([blob], `${m.domicile}-${m.exterieur}.png`.replace(/[^\w.\-]+/g, "_"), { type: "image/png" });
+  if (navigator.canShare?.({ files: [fichier] })) { try { await navigator.share({ files: [fichier], title: `${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}` }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fichier.name; a.click();  // sinon : téléchargement
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast("Image enregistrée dans vos téléchargements.");
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-partage]"); if (!b || !partageCible) return;
+  b.dataset.partage === "image" ? partagerImage() : partagerLien(); });
+
+// ---------- pronostics (modèle de Poisson sur les buts marqués / encaissés de la saison) ----------
+// shortcut: toutes compétitions mélangées (une équipe de Ligue 2 et une de Premier League sont jugées sur la même échelle) ;
+// suffisant à l'intérieur d'un championnat, approximatif en coupe entre divisions différentes.
+let modele = null;
+const poisson = (l, k) => { let p = Math.exp(-l); for (let i = 1; i <= k; i++) p *= l / i; return p; };
+function probas(lh, la) {
+  let h = 0, n = 0, a = 0, best = [0, 0, 0];
+  for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) {
+    const p = poisson(lh, i) * poisson(la, j);
+    if (i > j) h += p; else if (i === j) n += p; else a += p;
+    if (p > best[2]) best = [i, j, p];
+  }
+  const s = h + n + a;
+  return { p: [h / s, n / s, a / s], score: best.slice(0, 2) };
+}
+function getModele() {
+  if (modele) return modele;
+  const ms = data.matchs.filter(fini).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  const eq = {}, K = 4;  // K = nombre de matchs "moyens" ajoutés à chaque équipe (prudence en début de saison)
+  let gH = 0, gA = 0, nM = 0;
+  const predire = (d, e) => {
+    const avgH = nM ? gH / nM : 1.45, avgA = nM ? gA / nM : 1.15, avg = (avgH + avgA) / 2;
+    const s = n => eq[n] ?? { mj: 0, bp: 0, bc: 0 }, A = s(d), B = s(e);
+    const att = x => (x.bp + K * avg) / (x.mj + K) / avg, def = x => (x.bc + K * avg) / (x.mj + K) / avg;
+    return { ...probas(avgH * att(A) * def(B), avgA * att(B) * def(A)), info: Math.min(A.mj, B.mj) };
+  };
+  const histo = [];  // pronostic fait AVANT chaque match passé, avec seulement les matchs précédents
+  for (const m of ms) {
+    const pr = predire(m.domicile, m.exterieur);
+    if (pr.info >= 3) histo.push({ m, p: pr.p, r: m.buts_dom > m.buts_ext ? 0 : m.buts_dom === m.buts_ext ? 1 : 2 });
+    for (const [n, p, c] of [[m.domicile, m.buts_dom, m.buts_ext], [m.exterieur, m.buts_ext, m.buts_dom]]) {
+      const x = eq[n] ??= { mj: 0, bp: 0, bc: 0 }; x.mj++; x.bp += p; x.bc += c; }
+    gH += m.buts_dom; gA += m.buts_ext; nM++;
+  }
+  return modele = { predire, histo };
+}
+const pct = x => Math.round(x * 100);
+function blocProno(m, detail) {
+  if (m.statut !== PREVU) return "";
+  const pr = getModele().predire(m.domicile, m.exterieur);
+  if (pr.info < 3) return detail ? '<p class="mut">Pas assez de matchs joués par ces équipes pour un pronostic.</p>' : "";
+  const [h, n, a] = pr.p.map(pct);
+  return `<div class="prono"><div class="b" aria-hidden="true"><i style="width:${h}%;background:var(--c-pour)"></i><i style="width:${n}%;background:var(--n)"></i><i style="width:${a}%;background:var(--c-contre)"></i></div>
+    <div class="lib"><span>${detail ? esc(m.domicile) + " " : "1 · "}${h} %</span><span>Nul ${n} %</span><span>${detail ? esc(m.exterieur) + " " : "2 · "}${a} %</span></div>
+    ${detail ? `<p class="mut" style="margin:6px 0 0">Score le plus probable : ${pr.score[0]}-${pr.score[1]}. Calculé à partir des buts marqués et encaissés cette saison et de l'avantage du terrain.</p>` : ""}</div>`;
+}
+function vueJustesse(lg) {
+  const H = getModele().histo, h = H.filter(x => x.m.ligue === lg);
+  const bilan = arr => { if (!arr.length) return null;
+    const bon = arr.filter(x => x.p.indexOf(Math.max(...x.p)) === x.r).length;
+    const brier = arr.reduce((s, x) => s + x.p.reduce((t, p, i) => t + (p - (i === x.r ? 1 : 0)) ** 2, 0), 0) / arr.length;
+    const dom = arr.filter(x => x.r === 0).length;
+    const surs = arr.filter(x => Math.max(...x.p) >= .6), bonSurs = surs.filter(x => x.p.indexOf(Math.max(...x.p)) === x.r).length;
+    return { n: arr.length, bon: pct(bon / arr.length), brier: Math.round(brier * 1000) / 1000, dom: pct(dom / arr.length),
+      surs: surs.length, bonSurs: surs.length ? pct(bonSurs / surs.length) : null }; };
+  const L = bilan(h), T = bilan(H);
+  if (!T) return "";
+  const ligne = (t, b) => b ? `<tr><td class="g">${t}</td><td>${b.n}</td><td class="pts">${b.bon} %</td><td>${b.dom} %</td><td>${b.bonSurs ?? "–"}${b.bonSurs != null ? " %" : ""} <span class="mut">(${b.surs})</span></td><td>${b.brier}</td></tr>` : "";
+  return `<h2>Justesse des pronostics (saison ${esc(nomSaison(data.saison))})</h2>
+    <div class="tab-wrap"><table><thead><tr><th style="text-align:left"></th><th>Matchs</th><th>Bon résultat</th><th>Si on pariait toujours « domicile »</th><th>Quand le favori est donné à 60 % ou plus</th><th>Score de Brier</th></tr></thead><tbody>
+      ${ligne(esc(lg), L)}${ligne("Toutes compétitions", T)}</tbody></table></div>
+    <p class="mut">Chaque match passé a été pronostiqué avec uniquement les matchs joués avant lui. Score de Brier : 0 = parfait, 0,667 = pronostic au hasard (plus bas = meilleur).</p>`;
+}
+
+// ---------- statistiques avancées (calculées depuis les matchs de la compétition) ----------
+function vueStats() {
+  let lg = $("ligue").value;
+  const ligues = [...new Set(data.matchs.map(m => m.ligue))].sort();
+  if (!lg || lg === "__fav") lg = ligues.includes("Ligue 1") ? "Ligue 1" : ligues[0];
+  const fin = data.matchs.filter(m => m.ligue === lg && fini(m)).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  if (!fin.length) return `<p class="mut">Pas encore de match terminé en ${esc(lg)}.</p>`;
+  const eq = {}, logoDe = {};
+  const ligne = n => eq[n] ??= { dom: { j: 0, g: 0, n: 0, p: 0, bp: 0, bc: 0 }, ext: { j: 0, g: 0, n: 0, p: 0, bp: 0, bc: 0 }, res: [], jaunes: 0, rouges: 0 };
+  for (const m of fin) {
+    logoDe[m.domicile] ??= m.logo_dom; logoDe[m.exterieur] ??= m.logo_ext;
+    for (const [n, cote, p, c] of [[m.domicile, "dom", m.buts_dom, m.buts_ext], [m.exterieur, "ext", m.buts_ext, m.buts_dom]]) {
+      const e = ligne(n), x = e[cote];
+      x.j++; x.bp += p; x.bc += c; x[p > c ? "g" : p < c ? "p" : "n"]++;
+      e.res.push({ r: p > c ? "V" : p < c ? "D" : "N", cs: c === 0 });
+      for (const k of m.cartons || []) if (k.cote === cote) k.type === "R" ? e.rouges++ : e.jaunes++;
+    }
+  }
+  const noms = Object.keys(eq);
+  const pts = x => 3 * x.g + x.n;
+  const tableLieu = cote => { const rows = noms.map(nom => ({ nom, ...eq[nom][cote] })).filter(r => r.j)  // "n" = nuls, d'où "nom"
+      .sort((a, b) => pts(b) - pts(a) || (b.bp - b.bc) - (a.bp - a.bc) || b.bp - a.bp || a.nom.localeCompare(b.nom));
+    return `<div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr class="${fav.has(r.nom) ? "moi" : ""}"><td>${i + 1}</td><td class="g">${lienEq(r.nom, logoDe[r.nom])}</td><td class="pts">${pts(r)}</td><td>${r.j}</td><td>${r.g}</td><td>${r.n}</td><td>${r.p}</td><td>${r.bp}</td><td>${r.bc}</td></tr>`).join("")}
+      </tbody></table></div>`; };
+  // séries en cours : on remonte depuis le dernier match tant que la condition tient
+  const serie = (n, ok) => { let k = 0; for (const x of [...eq[n].res].reverse()) { if (!ok(x)) break; k++; } return k; };
+  // croissant = true : le plus petit est le meilleur (ex. buts encaissés)
+  const top = (titre, val, unite, min = 1, croissant = false) => { const rows = noms.map(e => ({ e, v: val(e) })).filter(r => r.v >= min)
+      .sort((a, b) => (croissant ? a.v - b.v : b.v - a.v) || a.e.localeCompare(b.e)).slice(0, 5);
+    return `<div><h3>${titre}</h3>${rows.length ? `<div class="tab-wrap"><table><tbody>${rows.map(r => `<tr class="${fav.has(r.e) ? "moi" : ""}"><td class="g">${lienEq(r.e, logoDe[r.e])}</td><td class="pts">${r.v}${unite}</td></tr>`).join("")}</tbody></table></div>` : '<p class="mut">Aucune en cours.</p>'}</div>`; };
+  const tot = n => { const d = eq[n].dom, x = eq[n].ext; return { j: d.j + x.j, bp: d.bp + x.bp, bc: d.bc + x.bc }; };
+  const moy = v => Math.round(v * 100) / 100;
+  const disc = noms.map(n => ({ n, j: eq[n].jaunes, r: eq[n].rouges, m: tot(n).j })).sort((a, b) => (b.j + 3 * b.r) - (a.j + 3 * a.r) || a.n.localeCompare(b.n));
+  return `<h2>${esc(lg)} · ${fin.length} matchs terminés</h2>
+    ${$("ligue").value !== lg ? `<p class="mut">${esc(lg)} est affichée par défaut ; choisissez une autre compétition dans la liste ci-dessus.</p>` : ""}
+    <h2>Séries en cours</h2><div class="grille2">
+      ${top("Invaincus", n => serie(n, x => x.r !== "D"), " matchs", 2)}${top("Victoires d'affilée", n => serie(n, x => x.r === "V"), " matchs", 2)}
+      ${top("Sans victoire", n => serie(n, x => x.r !== "V"), " matchs", 2)}${top("Sans encaisser de but", n => serie(n, x => x.cs), " matchs", 2)}</div>
+    <h2>Attaques et défenses</h2><div class="grille2">
+      ${top("Meilleures attaques (buts / match)", n => moy(tot(n).bp / tot(n).j), "", 0)}
+      ${top("Meilleures défenses (buts encaissés / match)", n => moy(tot(n).bc / tot(n).j), "", 0, true)}</div>
+    <h2>Classement à domicile</h2>${tableLieu("dom")}
+    <h2>Classement à l'extérieur</h2>${tableLieu("ext")}
+    ${vueJustesse(lg)}
+    <h2>Discipline</h2><div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>🟨</th><th>🟥</th><th>Cartons / match</th></tr></thead><tbody>
+      ${disc.map((r, i) => `<tr class="${fav.has(r.n) ? "moi" : ""}"><td>${i + 1}</td><td class="g">${lienEq(r.n, logoDe[r.n])}</td><td>${r.j}</td><td>${r.r}</td><td>${r.m ? moy((r.j + r.r) / r.m) : 0}</td></tr>`).join("")}
+    </tbody></table></div><p class="mut">Classées de la plus sanctionnée à la moins sanctionnée (un rouge compte comme 3 jaunes). Cartons d'après ESPN, parfois absents pour certains matchs.</p>`;
+}
+
+// ---------- recherche globale ----------
+const sansAccent = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+let rgItems = [], rgActif = -1, rgJoueurs = [];
+async function chercherGlobal(q) {
+  const qn = sansAccent(q.trim()), mots = qn.split(/[\s\-–]+|\bvs\b|\bcontre\b/).filter(Boolean);
+  if (qn.length < 2) return [];
+  const score = n => { const s = sansAccent(n); return s.startsWith(qn) ? 0 : s.split(/[\s\-]+/).some(w => w.startsWith(qn)) ? 1 : s.includes(qn) ? 2 : 9; };
+  const equipes = [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))];
+  const logo = n => data.matchs.map(m => m.domicile === n ? m.logo_dom : m.exterieur === n ? m.logo_ext : null).find(Boolean);
+  const res = [];
+  equipes.map(n => [n, score(n)]).filter(x => x[1] < 9).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])).slice(0, 6)
+    .forEach(([n]) => res.push({ grp: "Équipes", txt: n, img: logo(n), href: "#equipe=" + encodeURIComponent(n),
+      sous: [...new Set(data.matchs.filter(m => m.domicile === n || m.exterieur === n).map(m => m.ligue))].slice(0, 2).join(" · ") }));
+  if (!rgJoueurs.length) rgJoueurs = [...new Set([...Object.keys(await chargerJoueurs()),
+    ...data.matchs.flatMap(m => [...m.buteurs, ...(m.passes || [])].filter(b => !b.nom.endsWith("(csc)")).map(b => sansTag(b.nom)))])];
+  rgJoueurs.map(n => [n, score(n)]).filter(x => x[1] < 9).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])).slice(0, 6)
+    .forEach(([n]) => res.push({ grp: "Joueurs", txt: n, href: "#joueur=" + encodeURIComponent(n) }));
+  if (mots.length >= 2) {  // « marseille lyon » → leurs matchs
+    data.matchs.filter(m => { const a = sansAccent(m.domicile), b = sansAccent(m.exterieur);
+        return mots.every(w => a.includes(w) || b.includes(w)) && mots.some(w => a.includes(w)) && mots.some(w => b.includes(w)); })
+      .sort((a, b) => b.date_utc.localeCompare(a.date_utc)).slice(0, 5)
+      .forEach(m => res.push({ grp: "Matchs", txt: `${m.domicile} ${m.buts_dom ?? ""}${m.buts_dom === null ? "–" : "-"}${m.buts_ext ?? ""} ${m.exterieur}`,
+        href: "#match=" + m.id, sous: `${m.ligue} · ${court(m.date_utc)}` }));
+  }
+  return res;
+}
+function afficherSuggestions() {
+  const ul = $("rg-liste"); let grp = "";
+  ul.innerHTML = rgItems.length ? rgItems.map((it, i) => (it.grp !== grp ? `<li class="grp" role="presentation">${grp = it.grp}</li>` : "")
+      + `<li role="option" id="rg-${i}" aria-selected="${i === rgActif}" data-i="${i}">${it.img ? logo(it.img) : ""}<span>${esc(it.txt)}</span>${it.sous ? `<span class="sous">${esc(it.sous)}</span>` : ""}</li>`).join("")
+    : '<li class="grp" role="presentation">Aucun résultat</li>';
+  ul.hidden = false; $("rg").setAttribute("aria-expanded", "true");
+  $("rg").setAttribute("aria-activedescendant", rgActif >= 0 ? "rg-" + rgActif : "");
+  ul.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+}
+function fermerSuggestions() { $("rg-liste").hidden = true; $("rg").setAttribute("aria-expanded", "false"); rgActif = -1; }
+function allerA(i) { const it = rgItems[i]; if (!it) return; fermerSuggestions(); $("rg").value = ""; $("rg").blur(); location.hash = it.href.slice(1); }
+let rgJeton = 0;
+$("rg").oninput = async () => {
+  const q = $("rg").value, j = ++rgJeton;
+  if (q.trim().length < 2) return fermerSuggestions();
+  const r = await chercherGlobal(q);
+  if (j !== rgJeton) return;  // une frappe plus récente est arrivée entre-temps
+  rgItems = r; rgActif = r.length ? 0 : -1; afficherSuggestions();
+};
+$("rg").onkeydown = e => {
+  if ($("rg-liste").hidden) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); rgActif = (rgActif + (e.key === "ArrowDown" ? 1 : -1) + rgItems.length) % rgItems.length; afficherSuggestions(); }
+  else if (e.key === "Enter") { e.preventDefault(); allerA(rgActif); }
+  else if (e.key === "Escape") fermerSuggestions();
+};
+$("rg-liste").onmousedown = e => { const li = e.target.closest("[data-i]"); if (li) { e.preventDefault(); allerA(+li.dataset.i); } };
+$("rg").onblur = () => setTimeout(fermerSuggestions, 150);
+
+// ---------- comparateur ----------
+function champComparer(type, nom, liste, texte) {
+  return `<div class="comparer"><input id="cmp-in" list="cmp-liste" placeholder="⚖ ${esc(texte)}" aria-label="${esc(texte)}" data-type="${type}" data-nom="${esc(nom)}">
+    <datalist id="cmp-liste">${liste.filter(x => x !== nom).sort().map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>`;
+}
+function brancherComparer() {
+  const i = $("cmp-in"); if (!i) return;
+  const ok = new Set([...$("cmp-liste").options].map(o => o.value));
+  i.onchange = () => { if (ok.has(i.value)) location.hash = "comparer=" + encodeURIComponent(`${i.dataset.type}|${i.dataset.nom}|${i.value}`); };
+}
+
+const titreSaison = () => data.saison ? `saison ${nomSaison(data.saison)}, ` : "";
+
+function statsEquipe(nom) {
+  const fin = data.matchs.filter(m => fini(m) && (m.domicile === nom || m.exterieur === nom));
+  const s = { mj: fin.length, V: 0, N: 0, D: 0, bp: 0, bc: 0, cs: 0, forme: [] };
+  for (const m of fin) {
+    const dom = m.domicile === nom, p = dom ? m.buts_dom : m.buts_ext, c = dom ? m.buts_ext : m.buts_dom;
+    s[p > c ? "V" : p < c ? "D" : "N"]++; s.bp += p; s.bc += c; if (!c) s.cs++;
+    s.forme.push(p > c ? "V" : p < c ? "D" : "N");
+  }
+  s.forme = s.forme.slice(-5).reverse();
+  s.logo = data.matchs.map(m => m.domicile === nom ? m.logo_dom : m.exterieur === nom ? m.logo_ext : null).find(Boolean);
+  return s;
+}
+
+// lignes : [libellé, valeur A, valeur B, sens (1 = plus c'est haut mieux c'est, -1 = l'inverse, 0 = neutre), affichage]
+function tableComparer(ta, tb, lignes) {
+  const f = (v, aff) => aff ? aff(v) : esc(v);
+  return `<div class="tab-wrap"><table class="cmp"><thead><tr><th>${ta}</th><th></th><th>${tb}</th></tr></thead><tbody>
+    ${lignes.map(([lib, a, b, sens, aff]) => { const ma = sens && a !== b && (sens > 0 ? a > b : a < b), mb = sens && a !== b && !ma;
+      return `<tr><td class="${ma ? "mieux" : ""}">${f(a, aff)}</td><td>${lib}</td><td class="${mb ? "mieux" : ""}">${f(b, aff)}</td></tr>`; }).join("")}
+  </tbody></table></div><p class="mut">En vert : la meilleure valeur.</p>`;
+}
+
+async function vueComparer(type, a, b) {
+  const el = $("detail"), retour = `<a class="pill" href="#${type === "e" ? "equipe" : "joueur"}=${encodeURIComponent(a)}">← Retour</a>`;
+  const r1 = n => Math.round(n * 100) / 100, pct = n => Math.round(n) + " %";
+  if (type === "e") {
+    const A = statsEquipe(a), B = statsEquipe(b);
+    const forme = f => `<span class="forme" style="justify-content:inherit;display:inline-flex">${f.map(r => `<span class="${r}">${r}</span>`).join("")}</span>`;
+    const lignes = [["Matchs joués", A.mj, B.mj, 0], ["Victoires", A.V, B.V, 1], ["Nuls", A.N, B.N, 0], ["Défaites", A.D, B.D, -1],
+      ["% de victoires", A.mj ? 100 * A.V / A.mj : 0, B.mj ? 100 * B.V / B.mj : 0, 1, pct],
+      ["Buts marqués", A.bp, B.bp, 1], ["Buts encaissés", A.bc, B.bc, -1],
+      ["Buts marqués / match", A.mj ? r1(A.bp / A.mj) : 0, B.mj ? r1(B.bp / B.mj) : 0, 1],
+      ["Buts encaissés / match", A.mj ? r1(A.bc / A.mj) : 0, B.mj ? r1(B.bc / B.mj) : 0, -1],
+      ["Matchs sans encaisser", A.cs, B.cs, 1], ["Forme (5 derniers)", A.forme, B.forme, 0, forme]];
+    for (const lg of [...new Set(data.classement.filter(c => c.equipe === a).map(c => c.ligue))]) {
+      const ca = data.classement.find(c => c.ligue === lg && c.equipe === a), cb = data.classement.find(c => c.ligue === lg && c.equipe === b);
+      if (ca && cb) lignes.push([`Classement ${esc(lg)}`, ca.rang, cb.rang, -1, v => v + "e"], [`Points ${esc(lg)}`, ca.pts, cb.pts, 1]);
+    }
+    const tete = (n, s) => `${s.logo ? `<img src="${esc(s.logo)}" alt="">` : ""}<a class="j" href="#equipe=${encodeURIComponent(n)}">${esc(n)}</a>`;
+    const entre = data.matchs.filter(m => (m.domicile === a && m.exterieur === b) || (m.domicile === b && m.exterieur === a));
+    el.innerHTML = retour + `<h2>Comparaison (${titreSaison()}toutes compétitions)</h2>` + tableComparer(tete(a, A), tete(b, B), lignes)
+      + (entre.length ? "<h2>Leurs matchs cette saison</h2>" + entre.map(carte).join("") : "");
+    return;
+  }
+  el.innerHTML = retour + '<p class="mut">Chargement…</p>';
+  const [A, B] = await Promise.all([statsJoueur(a), statsJoueur(b)]);
+  if (route()[0] !== "comparer") return;
+  const vide = { T: { mj: 0, tit: 0, b: 0, pen: 0, p: 0, j: 0, r: 0 }, equipes: [] };
+  const x = A || vide, y = B || vide;
+  const tete = (n, s) => `<a class="j" href="#joueur=${encodeURIComponent(n)}">${esc(n)}</a><div class="mut" style="font-weight:400">${s.equipes.map(esc).join(", ")}</div>`;
+  el.innerHTML = retour + `<h2>Comparaison (${titreSaison()}toutes compétitions)</h2>` + tableComparer(tete(a, x), tete(b, y), [
+    ["Matchs joués", x.T.mj, y.T.mj, 1], ["Titularisations", x.T.tit, y.T.tit, 1], ["Buts", x.T.b, y.T.b, 1],
+    ["dont penaltys", x.T.pen, y.T.pen, 0], ["Passes décisives", x.T.p, y.T.p, 1], ["Buts + passes", x.T.b + x.T.p, y.T.b + y.T.p, 1],
+    ["Buts / match", x.T.mj ? r1(x.T.b / x.T.mj) : 0, y.T.mj ? r1(y.T.b / y.T.mj) : 0, 1],
+    ["Cartons jaunes", x.T.j, y.T.j, -1], ["Cartons rouges", x.T.r, y.T.r, -1]]);
+}
+
+// ---------- alertes de buts (équipes favorites, tant que la page est ouverte) ----------
+let alertes = false;
+try { alertes = localStorage.getItem("alertes") === "1"; } catch (e) {}
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 8000); }
+function majBoutonAlertes() { $("alertes").setAttribute("aria-pressed", alertes); $("alertes").textContent = alertes ? "🔔 Alertes activées" : "🔕 Alertes de buts"; }
+$("alertes").onclick = async () => {
+  if (!alertes) {
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+    if ("Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) {} }
+  }
+  alertes = !alertes;
+  try { localStorage.setItem("alertes", alertes ? "1" : "0"); } catch (e) {}
+  majBoutonAlertes();
+  if (!alertes) return toast("Alertes désactivées.");
+  if (!fav.size) return toast("Alertes activées. Ajoutez des équipes favorites (☆ sur leur fiche) pour être prévenu de leurs buts.");
+  toast(("Notification" in window && Notification.permission === "granted")
+    ? "Alertes activées : notification à chaque but de vos équipes favorites, tant que le site est ouvert."
+    : "Alertes activées dans la page (le navigateur a refusé les notifications).");
+};
+async function alerteBut(m, cote) {
+  const b = [...(m.buteurs || [])].reverse().find(x => x.cote === cote);
+  const titre = `⚽ But pour ${cote === "dom" ? m.domicile : m.exterieur} !`;
+  const corps = `${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}${b ? ` · ${b.nom} ${b.min}` : ""}`;
+  toast(`${titre} ${corps}`);
+  try { navigator.vibrate?.([200, 100, 200]); } catch (e) {}
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    reg ? await reg.showNotification(titre, { body: corps, tag: m.id + "-" + m.buts_dom + "-" + m.buts_ext }) : new Notification(titre, { body: corps });
+  } catch (e) { /* notifications impossibles ici : le bandeau suffit */ }
+}
+function detecterButs(avant) {
+  if (!alertes) return;
+  for (const m of data.matchs) {
+    const a = avant.get(m.id); if (!a || m.buts_dom === null) continue;
+    if (fav.has(m.domicile) && m.buts_dom > (a[0] ?? 0)) alerteBut(m, "dom");
+    if (fav.has(m.exterieur) && m.buts_ext > (a[1] ?? 0)) alerteBut(m, "ext");
+  }
+}
+
+// ---------- fiche match (chargée à la demande chez ESPN) ----------
+const STATS = [["Possession", "Possession (%)"], ["SHOTS", "Tirs"], ["ON GOAL", "Tirs cadrés"], ["Corner Kicks", "Corners"],
+  ["Fouls", "Fautes"], ["Offsides", "Hors-jeu"], ["Yellow Cards", "Cartons jaunes"], ["Red Cards", "Cartons rouges"],
+  ["Saves", "Arrêts"], ["Passes", "Passes"], ["Accurate Passes", "Passes réussies"]];
+let ficheTimer = null;
+
+async function vueMatch(id) {
+  clearTimeout(ficheTimer);
+  const m = data.matchs.find(x => x.id === id);
+  const el = $("detail");
+  if (!m) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Match introuvable.</p>`; return; }
+  const code = Object.keys(data.ligues).find(k => data.ligues[k] === m.ligue);
+  const entete = `<a class="pill" href="#">← Retour</a>
+    <div class="entete"><div><a href="#equipe=${encodeURIComponent(m.domicile)}">${m.logo_dom ? `<img src="${esc(m.logo_dom)}" alt="">` : ""}${esc(m.domicile)}</a></div>
+      <div><div class="score">${m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`}</div>
+        <div class="mut">${esc(m.ligue)}<br>${fmt(m.date_utc)}${enDirect(m) ? `<br><span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : ""}</div></div>
+      <div><a href="#equipe=${encodeURIComponent(m.exterieur)}">${m.logo_ext ? `<img src="${esc(m.logo_ext)}" alt="">` : ""}${esc(m.exterieur)}</a></div></div>`;
+  if (!el.innerHTML.includes(`data-fiche="${id}"`)) el.innerHTML = entete + '<p class="mut">Chargement de la fiche…</p>';
+  let s;
+  try {
+    s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/summary?event=${encodeURIComponent(id)}`, { cache: "no-store" })).json();
+  } catch (e) { el.innerHTML = entete + '<p class="mut">Fiche indisponible pour le moment (ESPN injoignable).</p>'; return; }
+  if (location.hash !== "#match=" + id) return;  // l'utilisateur est parti entre-temps
+  const idDom = s.header?.competitions?.[0]?.competitors?.find(t => t.homeAway === "home")?.team?.id;
+  const cote = teamId => teamId === idDom ? "dom" : "ext";
+
+  // événements
+  const evs = (s.keyEvents || []).filter(k => /Goal|Penalty - Scored|Card|Substitution/.test(k.type?.text || ""));
+  const icone = t => /Red/.test(t) ? "🟥" : /Yellow/.test(t) ? "🟨" : /Substitution/.test(t) ? "🔁" : "⚽";
+  const texte = k => { const p = (k.participants || []).map(x => x.athlete?.displayName ? lienJ(x.athlete.displayName) : "?");
+    if (/Substitution/.test(k.type.text)) return `↑ ${p[0] || "?"}<br><span class="mut">↓ ${p[1] || "?"}</span>`;
+    if (/Own/.test(k.type.text)) return `${p[0] || "?"} <span class="mut">(csc)</span>`;
+    if (/Penalty/.test(k.type.text)) return `${p[0] || "?"} <span class="mut">(pen)</span>`;
+    return (p[0] || "?") + (/Goal/.test(k.type.text) && p[1] ? ` <span class="mut">(passe : ${p[1]})</span>` : ""); };
+  const htmlEv = evs.length ? `<div class="bloc">${evs.map(k => { const c = cote(k.team?.id), t = `${icone(k.type.text)} ${texte(k)}`;
+      return `<div class="ev"><div class="dom">${c === "dom" ? t : ""}</div><div class="t">${esc(k.clock?.displayValue || "")}</div><div>${c === "ext" ? t : ""}</div></div>`; }).join("")}</div>`
+    : '<p class="mut">Pas encore d\'événements.</p>';
+
+  // statistiques
+  const eqs = s.boxscore?.teams || [];
+  const val = (t, lab) => { const x = (t?.statistics || []).find(z => z.label === lab); return x ? parseFloat(x.displayValue) : null; };
+  const tD = eqs.find(t => t.team?.id === idDom), tE = eqs.find(t => t.team?.id !== idDom);
+  const htmlStats = STATS.map(([lab, nom]) => { const a = val(tD, lab), b = val(tE, lab); if (a === null || b === null) return "";
+      const tot = a + b || 1; return `<div class="barre"><div class="lib"><span>${a}</span><span>${nom}</span><span>${b}</span></div>
+        <div class="b"><i style="width:${a / tot * 100}%"></i><i style="width:${b / tot * 100}%"></i></div></div>`; }).join("");
+
+  // compositions
+  const ros = s.rosters || [];
+  const compo = t => { if (!t) return ""; const r = t.roster || [];
+    const li = p => `<li><b>${esc(p.jersey || "")}</b><span>${p.athlete?.displayName ? lienJ(p.athlete.displayName) : "?"}${p.subbedOut ? " ↓" : ""}${p.subbedIn ? " ↑" : ""}</span></li>`;
+    return `<div><h3>${esc(t.team?.displayName)}${t.formation ? ` <span class="mut">${esc(t.formation)}</span>` : ""}</h3>
+      <ul>${r.filter(p => p.starter).map(li).join("")}</ul>
+      ${r.some(p => !p.starter) ? `<p class="mut" style="margin:8px 0 4px">Remplaçants</p><ul class="sub">${r.filter(p => !p.starter).map(li).join("")}</ul>` : ""}</div>`; };
+  const rD = ros.find(t => t.team?.id === idDom), rE = ros.find(t => t.team?.id !== idDom);
+  const htmlCompo = ros.some(t => (t.roster || []).length) ? `<div class="bloc compo">${compo(rD)}${compo(rE)}</div>` : '<p class="mut">Compositions pas encore annoncées.</p>';
+
+  // forme récente (5 derniers matchs de chaque équipe, toutes compétitions)
+  const RES = { W: "V", D: "N", L: "D" };
+  const formes = (s.lastFiveGames || []).slice().sort((a, b) => (b.team?.id === idDom) - (a.team?.id === idDom)).map(t => {
+    const ev = (t.events || []).slice().sort((a, b) => (b.gameDate || "").localeCompare(a.gameDate || "")).slice(0, 5);
+    return ev.length ? `<div style="margin:6px 0"><b>${esc(t.team?.displayName)}</b> <span class="mut">(le plus récent à gauche)</span><div class="forme" style="margin-top:4px">${ev.map(e => {
+      const r = RES[e.gameResult] || "?";
+      return `<span class="${r}" data-tip="${esc(`${court(e.gameDate)} · ${e.atVs === "@" ? "à" : "contre"} ${e.opponent?.displayName || ""} · ${e.score || ""} · ${e.leagueAbbreviation || ""}`)}">${r}</span>`; }).join("")}</div></div>` : ""; }).join("");
+
+  // confrontations directes (5 dernières, d'après ESPN)
+  const serie = (s.seasonseries || []).find(x => x.type === "head-to-head") || (s.seasonseries || [])[0];
+  const h2h = (serie?.events || []).filter(e => e.statusType?.completed && e.competitors?.length === 2).sort((a, b) => b.date.localeCompare(a.date));
+  let htmlH2h = "";
+  if (h2h.length) {
+    const bilan = {}; let nuls = 0;
+    for (const e of h2h) {  // d'après le score (un nul gagné aux tirs au but reste un nul)
+      const [c1, c2] = e.competitors, d = +c1.score - +c2.score, w = d > 0 ? c1 : d < 0 ? c2 : null;
+      w ? bilan[w.team.displayName] = (bilan[w.team.displayName] || 0) + 1 : nuls++; }
+    htmlH2h = `<div class="bloc"><p class="mut" style="margin:4px 0 10px">Bilan : ${Object.entries(bilan).map(([e, n]) => `${esc(e)} ${n} victoire${n > 1 ? "s" : ""}`).join(" · ")}${nuls ? ` · ${nuls} nul${nuls > 1 ? "s" : ""}` : ""}</p>
+      <div class="h2h">${h2h.map(e => { const h = e.competitors.find(c => c.homeAway === "home"), a = e.competitors.find(c => c.homeAway === "away");
+        return `<span class="dt">${fmt(e.date, { day:"numeric", month:"short", year:"numeric" })}</span><span class="d">${esc(h?.team?.displayName)}</span><span class="sc">${esc(h?.score)} - ${esc(a?.score)}</span><span>${esc(a?.team?.displayName)}</span>`; }).join("")}</div></div>`;
+  }
+
+  el.innerHTML = entete.replace('<div class="entete"', `<div data-fiche="${esc(id)}" class="entete"`)
+    + boutonsPartage("match", m)
+    + (m.statut === PREVU ? "<h2>Pronostic</h2><div class=\"bloc\">" + blocProno(m, true) + "</div>" : "")
+    + "<h2>Événements</h2>" + htmlEv
+    + (htmlStats ? "<h2>Statistiques</h2><div class=\"bloc\">" + htmlStats + "</div>" : "")
+    + (formes ? "<h2>Forme récente</h2><div class=\"bloc\">" + formes + "</div>" : "")
+    + "<h2>Confrontations directes</h2>" + (htmlH2h || '<p class="mut">Pas de confrontation récente connue.</p>')
+    + "<h2>Compositions</h2>" + htmlCompo;
+  if (enDirect(m) || (m.statut === PREVU && Math.abs(new Date(m.date_utc) - new Date()) < 3 * 3600e3))
+    ficheTimer = setTimeout(() => location.hash === "#match=" + id && vueMatch(id), 60e3);
+}
+
+// ---------- navigation ----------
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  return h.startsWith("equipe=") ? ["equipe", h.slice(7)] : h.startsWith("match=") ? ["match", h.slice(6)]
+    : h.startsWith("joueur=") ? ["joueur", h.slice(7)] : h.startsWith("comparer=") ? ["comparer", ...h.slice(9).split("|")] : ["accueil"];
+}
+
+function afficher() {
+  const [r, arg, arg2, arg3] = route();
+  $("accueil").hidden = r !== "accueil"; $("detail").hidden = r === "accueil";
+  if (r === "equipe") {
+    $("detail").innerHTML = vueEquipe(arg);
+    $("etoile").onclick = () => { fav.has(arg) ? fav.delete(arg) : fav.add(arg); garderFav(); afficher(); };
+    brancherComparer();
+    return;
+  }
+  if (r === "match") { vueMatch(arg); return; }
+  if (r === "joueur") { vueJoueur(arg); return; }
+  if (r === "comparer") { vueComparer(arg, arg2, arg3); return; }
+  document.querySelectorAll("[data-o]").forEach(b => b.setAttribute("aria-selected", b.dataset.o === onglet));
+  const modeJour = onglet === "matchs" && !cherche();
+  $("nav-jours").hidden = !modeJour;
+  $("jour").value = jour;
+  $("jour-titre").textContent = jour === cleJour(new Date()) ? "Aujourd'hui" : fmt(jour + "T12:00:00", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  $("vue").innerHTML = onglet === "matchs" ? vueMatchs() : onglet === "class" ? vueClass() : onglet === "stats" ? vueStats()
+    : vueJoueurs(onglet === "buteurs" ? "buteurs" : "passes");
+  if ($("plus")) $("plus").onclick = () => { nbResultats += 30; afficher(); };
+  document.querySelectorAll("[data-jour]").forEach(b => b.onclick = () => { jour = b.dataset.jour; afficher(); });
+}
+
+document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { onglet = b.dataset.o; afficher(); });
+$("ligue").onchange = () => { nbResultats = 30; afficher(); };
+$("equipe").oninput = () => { nbResultats = 30; afficher(); };
+$("prec").onclick = () => { jour = decale(jour, -1); afficher(); };
+$("suiv").onclick = () => { jour = decale(jour, 1); afficher(); };
+$("auj").onclick = () => { jour = cleJour(new Date()); afficher(); };
+$("jour").onchange = e => { if (e.target.value) { jour = e.target.value; afficher(); } };
+addEventListener("hashchange", () => { afficher(); scrollTo(0, 0); });
+
+// ---------- direct : la page interroge ESPN elle-même pendant les matchs ----------
+function parseESPN(ev, ligue) {
+  const c = ev.competitions[0], h = c.competitors.find(t => t.homeAway === "home"), a = c.competitors.find(t => t.homeAway === "away");
+  const statut = ev.status.type.name, joue = statut !== PREVU;
+  const sc = t => joue && t.score !== undefined && t.score !== "" ? +t.score : null;
+  const det = c.details || [], cote = d => d.team?.id === h.team.id ? "dom" : "ext", nomDe = d => (d.athletesInvolved || [])[0]?.displayName || "?";
+  return { id: ev.id, ligue, date_utc: ev.date, domicile: h.team.displayName, exterieur: a.team.displayName,
+    buts_dom: sc(h), buts_ext: sc(a), statut, logo_dom: h.team.logo, logo_ext: a.team.logo,
+    buteurs: det.filter(d => d.scoringPlay && !d.shootout).map(d => ({ cote: cote(d), min: d.clock?.displayValue || "",
+      nom: nomDe(d) + (d.ownGoal ? " (csc)" : d.penaltyKick ? " (pen)" : "") })),
+    cartons: det.filter(d => d.redCard || d.yellowCard).map(d => ({ cote: cote(d), min: d.clock?.displayValue || "", nom: nomDe(d), type: d.redCard ? "R" : "J" })),
+    minute: ev.status.type.shortDetail || ev.status.displayClock };
+}
+
+let premierPassage = true;
+async function direct() {
+  const auj = new Date(), proche = d => Math.abs(new Date(d) - auj) < 3 * 3600e3;
+  const saisonPassee = data.saison && data.saison !== data.courante;  // pas de direct sur une ancienne saison
+  const actifs = saisonPassee ? [] : data.matchs.filter(m => enDirect(m) || (m.statut === PREVU && proche(m.date_utc)));
+  const avant = new Map(data.matchs.map(m => [m.id, [m.buts_dom, m.buts_ext]]));
+  if (actifs.length) {
+    const codes = Object.entries(data.ligues).filter(([, n]) => actifs.some(m => m.ligue === n));
+    await Promise.all(codes.map(async ([code, nom]) => {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard`, { cache: "no-store" });
+        for (const ev of (await r.json()).events || []) {
+          const n = parseESPN(ev, nom), i = data.matchs.findIndex(m => m.id === n.id);
+          if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n, sources: fini(n) ? data.matchs[i].sources : {} };
+        }
+      } catch (e) { /* ESPN injoignable : on garde les données du fichier */ }
+    }));
+    modele = null;  // des matchs ont pu se terminer : pronostics à recalculer
+    if (!premierPassage) detecterButs(avant);  // au 1er passage, les "nouveaux" buts datent d'avant l'ouverture de la page
+    // pas de rafraîchissement pendant une saisie ni sur une fiche match (elle a son propre minuteur)
+    if (document.activeElement?.tagName !== "INPUT" && !["match", "comparer"].includes(route()[0])) afficher();
+  }
+  premierPassage = false;
+  setTimeout(direct, actifs.length ? 60e3 : 10 * 60e3);
+}
+
+// ---------- saisons ----------
+const nomSaison = s => s ? `${s}-${String(s + 1).slice(2)}` : "";
+const saisons = {};
+function remplirEntete() {
+  $("maj").textContent = `${data.matchs.length} matchs · base mise à jour ${fmt(data.maj)}`;
+  $("saison").hidden = !(data.saisons?.length > 1);
+  $("saison").innerHTML = (data.saisons || []).map(s => `<option value="${s}"${s === data.saison ? " selected" : ""}>Saison ${nomSaison(s)}</option>`).join("");
+  const choix = $("ligue").value;
+  while ($("ligue").options.length > 2) $("ligue").remove(2);
+  [...new Set(data.matchs.map(m => m.ligue))].sort().forEach(l => $("ligue").add(new Option(l, l)));
+  $("ligue").value = [...$("ligue").options].some(o => o.value === choix) ? choix : "";
+  $("sources").innerHTML = Object.entries(data.sources || {}).map(([n, s]) => `<li><b>${esc(n)}</b> : ${esc(s)}</li>`).join("");
+}
+$("saison").onchange = async e => {
+  const s = +e.target.value;
+  try { saisons[s] ??= await (await fetch(`matchs-${s}.json`, { cache: "no-store" })).json(); }
+  catch (err) { toast("Cette saison n'est pas disponible pour le moment."); e.target.value = data.saison; return; }
+  data = saisons[s];
+  rgJoueurs = []; modele = null;  // la recherche et les pronostics dépendent de la saison
+  history.replaceState(null, "", (s === data.courante ? location.pathname : `?saison=${s}`) + location.hash);
+  // ancienne saison : on se place sur son dernier jour de match
+  jour = s === data.courante ? cleJour(new Date()) : cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date());
+  nbResultats = 30;
+  remplirEntete();
+  if (location.hash.length > 1) location.hash = ""; else afficher();
+};
+
+// ---------- thème : Auto (suit l'appareil) → Clair → Sombre ----------
+const THEMES = { auto: "🌓 Auto", light: "☀️ Clair", dark: "🌙 Sombre" };
+function majTheme() { const t = document.documentElement.dataset.theme || "auto"; $("theme").textContent = THEMES[t]; $("theme").setAttribute("aria-label", "Thème : " + THEMES[t].slice(3) + " (cliquer pour changer)"); }
+$("theme").onclick = () => {
+  const ordre = ["auto", "light", "dark"], t = ordre[(ordre.indexOf(document.documentElement.dataset.theme || "auto") + 1) % 3];
+  if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch (e) {}
+  majTheme();
+};
+majTheme();
+
+majBoutonAlertes();
+if (alertes && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+fetch("matchs.json", { cache: "no-store" }).then(r => r.json()).then(async j => {
+  data = j;
+  if (j.saison) saisons[j.saison] = j;
+  // lien partagé vers une ancienne saison : ?saison=2025
+  const sp = +new URLSearchParams(location.search).get("saison");
+  if (sp && sp !== j.saison && j.saisons?.includes(sp)) {
+    try { data = saisons[sp] = await (await fetch(`matchs-${sp}.json`, { cache: "no-store" })).json();
+      jour = cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date()); } catch (e) { data = j; }
+  }
+  remplirEntete();
+  afficher();
+  direct();
+}).catch(() => $("maj").textContent = "Impossible de charger les données.");
+</script>
+</body>
+</html>

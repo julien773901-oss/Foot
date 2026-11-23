@@ -1,0 +1,27 @@
+name: Mise à jour des matchs
+on:
+  schedule:
+    - cron: "17 * * * *"   # toutes les heures (le direct est géré par la page elle-même)
+  workflow_dispatch:        # bouton "Run workflow" pour lancer à la main
+  push:
+    branches: [main]        # republie le site quand le code change
+permissions:
+  contents: write
+concurrency:
+  group: maj                # jamais deux mises à jour en même temps
+  cancel-in-progress: false
+jobs:
+  maj:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45     # le 1er lancement remplit toute la saison
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reprendre la base de la dernière mise à jour
+        run: git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db || echo "Pas encore de base : remplissage complet"
+      - run: python3 foot.py
+      - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
+        run: |
+          mkdir _site && cp index.html sw.js foot.db matchs*.json joueurs*.json _site/ && touch _site/.nojekyll
+          cd _site && git init -q -b site && git add -A
+          git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Mise à jour $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
