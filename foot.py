@@ -147,7 +147,7 @@ def classement(code, ligue, saison):
 
 def jour(code, ligue, j):
     try:
-        if code == "livescore":  # une seule page par jour pour toutes les ligues lues chez LiveScore
+        if code.startswith("livescore"):  # une seule page par jour pour toutes les ligues lues chez LiveScore
             return S.ls_jour(j), True
         return [parse(ev, ligue) for ev in get(f"{API}/site/v2/sports/soccer/{code}/scoreboard?dates={j}").get("events", [])], True
     except Exception as e:
@@ -199,9 +199,12 @@ def main():
         taches += [(code, ligue, j) for i in range((today + timedelta(days=14) - debut).days + 1)
                    if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
     # pays absents d'ESPN : LiveScore, qui ne garde qu'environ 1 an de matchs
-    deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code='livescore'")}
+    # le code change avec le nombre de ligues : en ajouter fait relire toutes les journées LiveScore une fois
+    ls_code = f"livescore{len(S.LS_LIGUES)}"
+    db.execute("DELETE FROM jours_lus WHERE code LIKE 'livescore%' AND code != ?", (ls_code,))
+    deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code=?", (ls_code,))}
     debut = date.fromisoformat(debut_recent)
-    taches += [("livescore", None, j) for i in range((today + timedelta(days=14) - debut).days + 1)
+    taches += [(ls_code, None, j) for i in range((today + timedelta(days=14) - debut).days + 1)
                if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
     taches.sort(key=lambda t: t[2], reverse=True)  # le plus récent d'abord : les jours récents passent à chaque fois
     print(f"[historique] {len(taches)} journées à lire, {min(len(taches), MAX_JOURS)} ce passage")

@@ -126,7 +126,58 @@ LS_LIGUES = {("switzerland", "super-league"): "Super League (Suisse)", ("switzer
              ("korea-republic", "cup"): "Coupe de Corée du Sud",
              ("morocco", "botola-pro"): "Botola Pro (Maroc)", ("morocco", "cup"): "Coupe du Trône (Maroc)",
              ("egypt", "premier-league"): "Premier League (Égypte)", ("egypt", "2-division-a"): "2e division (Égypte)",
-             ("egypt", "cup"): "Coupe d'Égypte", ("egypt", "league-cup"): "Coupe de la Ligue (Égypte)"}
+             ("egypt", "cup"): "Coupe d'Égypte", ("egypt", "league-cup"): "Coupe de la Ligue (Égypte)",
+             # divisions inférieures des pays couverts par ESPN
+             ("germany", "3-liga"): "3. Liga (Allemagne)", ("france", "ligue-3"): "National (France)",
+             ("italy", "serie-c"): "Serie C (Italie)", ("spain", "primera-division-rfef"): "Primera Federación (Espagne)",
+             ("portugal", "segunda-liga"): "Liga 2 (Portugal)", ("belgium", "challenger-pro-league"): "Challenger Pro League (Belgique)",
+             ("turkey", "1st-lig"): "1. Lig (Turquie)", ("austria", "2-liga"): "2. Liga (Autriche)",
+             ("greece", "super-league-2"): "Super League 2 (Grèce)", ("denmark", "1-division"): "1. Division (Danemark)",
+             ("sweden", "superettan"): "Superettan (Suède)", ("norway", "1-division"): "1. Division (Norvège)",
+             ("scotland", "league-1"): "League One (Écosse)", ("scotland", "league-2"): "League Two (Écosse)",
+             ("japan", "j-league-2"): "J2 League (Japon)", ("japan", "j-league-3"): "J3 League (Japon)",
+             ("china", "china-league-one"): "League One (Chine)",
+             # Europe : premières divisions
+             ("czech-republic", "1st-league"): "Chance Liga (Tchéquie)", ("serbia", "super-liga"): "SuperLiga (Serbie)",
+             ("romania", "liga-1"): "Liga 1 (Roumanie)", ("hungary", "nb-i"): "NB I (Hongrie)",
+             ("bulgaria", "parva-liga"): "Parva Liga (Bulgarie)", ("slovakia", "fortuna-liga"): "Niké Liga (Slovaquie)",
+             ("slovenia", "prva-liga"): "Prva Liga (Slovénie)", ("israel", "premier-league"): "Ligat HaAl (Israël)",
+             ("cyprus", "1-division"): "1re division (Chypre)", ("finland", "veikkausliiga"): "Veikkausliiga (Finlande)",
+             ("ireland", "league-of-ireland-premier-division"): "Premier Division (Irlande)",
+             ("northern-ireland", "premiership"): "Premiership (Irlande du Nord)", ("wales", "cymru-premier"): "Cymru Premier (Pays de Galles)",
+             ("iceland", "urvalsdeild"): "Besta deild (Islande)", ("bosnia", "premier-league"): "Premijer Liga (Bosnie)",
+             ("albania", "kategoria-superiore"): "Kategoria Superiore (Albanie)", ("macedonia", "1st-league"): "Prva Liga (Macédoine du Nord)",
+             ("montenegro", "1-cfl"): "1. CFL (Monténégro)", ("kosovo", "superleague"): "Superliga (Kosovo)",
+             ("georgia", "erovnuli-liga"): "Erovnuli Liga (Géorgie)", ("armenia", "premier-league"): "Premier League (Arménie)",
+             ("azerbaijan", "premier-league"): "Premier League (Azerbaïdjan)", ("kazakhstan", "premier-league"): "Premier League (Kazakhstan)",
+             ("belarus", "premier-league"): "Vysheyshaya Liga (Biélorussie)", ("moldova", "super-liga"): "Super Liga (Moldavie)",
+             ("lithuania", "a-lyga"): "A Lyga (Lituanie)", ("latvia", "virsliga"): "Virslīga (Lettonie)",
+             ("estonia", "meistriliiga"): "Meistriliiga (Estonie)", ("luxembourg", "national-division"): "Division nationale (Luxembourg)",
+             ("malta", "premier-league"): "Premier League (Malte)", ("faroe-islands", "premier-league"): "Premier League (Îles Féroé)",
+             ("andorra", "1st-division"): "Primera Divisió (Andorre)", ("san-marino", "campionato"): "Campionato (Saint-Marin)",
+             ("gibraltar", "national-league"): "National League (Gibraltar)",
+             # Afrique
+             ("algeria", "ligue-1"): "Ligue 1 (Algérie)", ("tunisia", "ligue-i"): "Ligue 1 (Tunisie)", ("nigeria", "npfl"): "NPFL (Nigeria)",
+             ("ghana", "premier-league"): "Premier League (Ghana)", ("cameroon", "elite-1"): "Elite One (Cameroun)",
+             ("kenya", "premier-league"): "Premier League (Kenya)", ("tanzania", "premier-league"): "Premier League (Tanzanie)",
+             ("zambia", "super-league"): "Super League (Zambie)", ("botswana", "premier-league"): "Premier League (Botswana)",
+             ("benin", "ligue-1"): "Ligue 1 (Bénin)", ("burkina-faso", "ligue-1"): "Ligue 1 (Burkina Faso)",
+             ("niger", "super-league"): "Super Ligue (Niger)", ("malawi", "super-league"): "Super League (Malawi)",
+             # Asie
+             ("iran", "persian-gulf-pro-league"): "Pro League (Iran)", ("iran", "pro-league"): "Pro League (Iran)",
+             ("iraq", "iraq-stars-league"): "Stars League (Irak)", ("qatar", "qatar-stars-league"): "Stars League (Qatar)",
+             ("united-arab-emirates", "uae-league"): "Pro League (Émirats arabes unis)", ("jordan", "pro-league"): "Pro League (Jordanie)",
+             ("kuwait", "premier-league"): "Premier League (Koweït)", ("bahrain", "premier-league"): "Premier League (Bahreïn)",
+             ("oman", "professional-league"): "Professional League (Oman)", ("lebanon", "premier-league"): "Premier League (Liban)",
+             ("uzbekistan", "superliga"): "Super League (Ouzbékistan)", ("thailand", "thai-league"): "Thai League 1 (Thaïlande)",
+             ("vietnam", "v-league"): "V.League 1 (Vietnam)", ("indonesia", "super-league"): "Super League (Indonésie)",
+             ("malaysia", "super-league"): "Super League (Malaisie)", ("hong-kong", "premier-league"): "Premier League (Hong Kong)",
+             ("singapore", "sg-premier-league"): "Premier League (Singapour)", ("bangladesh", "premier-league"): "Premier League (Bangladesh)",
+             ("philippines", "pfl"): "PFL (Philippines)",
+             # Amériques, Océanie
+             ("canada", "premier-league"): "Premier League (Canada)", ("jamaica", "premier-league"): "Premier League (Jamaïque)",
+             ("new-zealand", "national-league"): "National League (Nouvelle-Zélande)"}
+LS_VUS = set()  # (Ccd, Scd) réellement vus dans les matchs lus : on lit leurs classements
 LS_STATUT = {"FT": "STATUS_FULL_TIME", "AET": "STATUS_FINAL_AET", "AP": "STATUS_FINAL_PEN", "NS": "STATUS_SCHEDULED",
              "Postp.": "STATUS_POSTPONED", "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED"}
 
@@ -145,6 +196,8 @@ def ls_jour(j):
     out = []
     for s in get(f"{LS_API}/date/soccer/{j}/0?locale=en&MD=1").get("Stages", []):
         ligue = ls_ligue_principale(s.get("Ccd"), s.get("Scd") or "")
+        if ligue:
+            LS_VUS.add((s["Ccd"], s["Scd"]))
         for e in s.get("Events", []) if ligue else []:
             esd, statut = str(e["Esd"]), LS_STATUT.get(e.get("Eps"), "STATUS_IN_PROGRESS")  # sinon c'est une minute : en cours
             joue = statut not in ("STATUS_SCHEDULED", "STATUS_POSTPONED", "STATUS_CANCELED") and e.get("Tr1") not in (None, "")
@@ -178,16 +231,19 @@ def ls_fiche(eid):
 
 
 def ls_classements(courante):
-    """Classements de la saison en cours (et phases finales de la précédente quand le nom porte « 25/26 »)."""
+    """Classements des phases vues dans les matchs lus ce passage (ls_jour remplit LS_VUS) : une ligue à l'arrêt garde
+    son ancien classement. Saison = « 25/26 » dans le nom de la phase, sinon la saison en cours."""
     out = []
-    for (ccd, scd), ligue in LS_LIGUES.items():
-        if scd == "cup":
-            continue
-        for suffixe in ("", "-championship-group", "-relegation-group"):
-            try:
-                st = get(f"{LS_API}/stage/soccer/{ccd}/{scd}{suffixe}/0?locale=en&MD=1", essais=1)["Stages"][0]
-            except Exception:
-                continue  # phase inexistante pour cette ligue
+    def lire(cs):
+        try:
+            return cs, get(f"{LS_API}/stage/soccer/{cs[0]}/{cs[1]}/0?locale=en&MD=1", essais=1)["Stages"][0]
+        except Exception:
+            return cs, None  # phase sans classement (coupe, barrage…)
+    with ThreadPoolExecutor(4) as pool:
+        stages = list(pool.map(lire, sorted(LS_VUS)))
+    for (ccd, scd), st in stages:
+        ligue = ls_ligue_principale(ccd, scd)
+        if st and ligue:
             m = re.search(r"(\d{2})/\d{2}$", st.get("Snm") or "")
             saison = 2000 + int(m.group(1)) if m else courante
             groupe = re.sub(r"\s*\d{2}/\d{2}$", "", st.get("Snm") or ligue)

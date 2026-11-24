@@ -17,7 +17,7 @@
   seulement (`NB_DETAILLEES`), sinon la base devient trop grosse.
 
 - Coupes nationales et barrages de montée/relégation ESPN ajoutés (fin de LIGUES dans foot.py) : 96 compétitions ESPN.
-- Pays absents d'ESPN (Suisse, Pologne, Croatie, Ukraine, Corée du Sud, Maroc, Égypte) : lus chez LiveScore
+- Pays absents d'ESPN (~80 pays : Europe, Afrique, Asie, Canada…) + divisions inférieures (3. Liga, National, Serie C…) : lus chez LiveScore
   (`LS_LIGUES` dans sources.py, ids de match « ls… », codes « ls:pays/ligue » dans la page).
   Limites : ~1 an d'historique seulement, pas de compositions ni de statistiques, pas de direct dans la page
   (mise à jour horaire seulement), buteurs/passeurs arrivent à la mise à jour qui suit la fin du match.
