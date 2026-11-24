@@ -9,9 +9,31 @@
 - `sw.js` : nécessaire pour les notifications sur Android.
 - `.github/workflows/maj.yml` : mise à jour automatique toutes les heures sur GitHub ; le site est publié
   sur une branche `site` (écrasée à chaque fois pour garder le dépôt léger).
-- 65 compétitions (tous les championnats masculins proposés par ESPN + coupes continentales), 2 saisons
-  (`NB_SAISONS = 2` dans foot.py). Le recoupement par d'autres sources ne couvre que les 12 d'origine.
-  Pas chez ESPN : Suisse, Pologne, Croatie, Ukraine, Corée, Maroc, Égypte, etc.
+- 65 compétitions (tous les championnats masculins proposés par ESPN + coupes continentales).
+  Le recoupement par d'autres sources ne couvre que les 12 d'origine.
+- Historique : toutes les saisons depuis 2001-02 (`PREMIERE_SAISON` dans foot.py ; ESPN n'a rien avant,
+  et beaucoup de ligues seulement depuis ~2008). Rempli par étapes : `MAX_JOURS` journées par passage,
+  du plus récent au plus ancien (~20 passages horaires). Passeurs et compositions : 2 dernières saisons
+  seulement (`NB_DETAILLEES`), sinon la base devient trop grosse.
+
+## En pause : pays absents d'ESPN via LiveScore (accord de l'utilisateur le 24 nov.)
+- matchendirect.fr refusé : son robots.txt interdit les robots d'Anthropic.
+- API LiveScore (`prod-public-api.livescore.com/v1/api/app/...`) :
+  - `date/soccer/AAAAMMJJ/0?locale=en&MD=1` : tous les matchs du jour (Stages[].Ccd/Scd, Events[].Eid, Esd en UTC,
+    T1/T2[0].Nm/Img, Tr1/Tr2, Eps = FT / AET / AP / NS / Postp. / Canc.)
+  - `stage/soccer/{Ccd}/{Scd}/0?locale=en&MD=1` : saison en cours + `LeagueTable` (rnk, Tnm, Img, pld, win, drw, lst, gf, ga, pts)
+  - `incidents/soccer/{Eid}?locale=en` : Incs = {période: [...]}, équipe = champ `Nm` (1 ou 2).
+    IT 36 but, 37 penalty marqué, 39 csc (compté pour l'équipe `Nm`, vérifié sur 240 matchs), 63 passe,
+    43 jaune, 44 2e jaune, 45 rouge, 38 penalty raté.
+  - logos : `https://lsm-static-prod.livescore.com/medium/` + Img
+- Codes (Ccd/Scd, les phases « -championship-group », « -relegation-group », « -promotion »… commencent pareil) :
+  switzerland super-league, challenge-league, cup · poland ekstraklasa, i-liga, ii-liga, cup ·
+  croatia 1st-league, 2nd-league · ukraine premier-league, persha-liga, cup · korea-republic k-league-1, k-league-2, cup ·
+  morocco botola-pro · egypt premier-league, 2-division-a, cup, league-cup
+- Reste à faire : lire ces matchs dans foot.py (ids préfixés « ls »), buteurs/cartons/passes via incidents,
+  classements via stage ; dans la page, pas d'appel ESPN pour ces ligues (fiche match = données stockées).
+- Aussi demandé : barrages et coupes nationales ESPN (eng.fa, esp.copa_del_rey, ger.dfb_pokal, ita.coppa_italia,
+  *.promotion.relegation…) : juste des lignes à ajouter dans LIGUES.
 - Sur la branche `site`, la base est stockée compressée (`foot.db.xz`) : GitHub refuse les fichiers > 100 Mo.
 
 ## En ligne depuis le 23 novembre 2026

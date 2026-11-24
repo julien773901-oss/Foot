@@ -108,7 +108,9 @@ def parse(event, ligue):
             json.dumps(cartons(c, h["team"]["id"]), ensure_ascii=False))
 
 
-NB_SAISONS = 2  # saison en cours + la précédente ; augmenter pour remonter plus loin (le 1er remplissage est plus long)
+PREMIERE_SAISON = 2001  # ESPN n'a rien avant (2001-02 pour les grands championnats, ~2008 pour beaucoup d'autres)
+NB_DETAILLEES = 2  # passeurs + compositions seulement pour les saisons récentes (sinon la base dépasse les limites de GitHub)
+MAX_JOURS = 30000  # journées ESPN lues par passage (~25 min) ; l'historique se remplit en ~20 passages, du plus récent au plus ancien
 
 
 def saison_de(d):
@@ -158,7 +160,9 @@ def main():
     maintenant = datetime.now(timezone.utc).isoformat(timespec="seconds")
     today = date.today()
     courante = saison_de(today.isoformat())
-    SAISONS = [courante - i for i in range(NB_SAISONS)]
+    SAISONS = list(range(courante, PREMIERE_SAISON - 1, -1))
+    RECENTES = SAISONS[:NB_DETAILLEES]
+    debut_recent = f"{RECENTES[-1]}-07-01"
     try:
         db.execute("ALTER TABLE classement ADD COLUMN saison INTEGER")
         db.execute("UPDATE classement SET saison=?", (courante,))  # anciennes lignes = saison en cours
@@ -177,6 +181,9 @@ def main():
         # jours récents + toute journée ancienne jamais lue correctement (rattrape les trous)
         taches += [(code, ligue, j) for i in range((today + timedelta(days=14) - debut).days + 1)
                    if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
+    taches.sort(key=lambda t: t[2], reverse=True)  # le plus récent d'abord : les jours récents passent à chaque fois
+    print(f"[historique] {len(taches)} journées à lire, {min(len(taches), MAX_JOURS)} ce passage")
+    taches = taches[:MAX_JOURS]
     t0 = time.time()
     with ThreadPoolExecutor(4) as pool:
         res = list(pool.map(lambda t: jour(*t), taches))
@@ -192,7 +199,8 @@ def main():
 
     # fiche détaillée de chaque match terminé (passeurs + qui a joué), 1500 max par passage (la suite au prochain)
     code_de = {v: k for k, v in LIGUES.items()}
-    a_faire = f"(fiche_lue IS NULL OR fiche_lue < {FICHE_VERSION}) AND (statut LIKE '%FULL_TIME%' OR statut LIKE '%FINAL%')"
+    a_faire = (f"(fiche_lue IS NULL OR fiche_lue < {FICHE_VERSION}) AND (statut LIKE '%FULL_TIME%' OR statut LIKE '%FINAL%')"
+               f" AND date_utc >= '{debut_recent}'")
     a_lire = db.execute(f"SELECT id, ligue FROM matchs WHERE {a_faire} ORDER BY date_utc DESC LIMIT 1500").fetchall()
     def fiche(m):
         try:
@@ -210,10 +218,15 @@ def main():
         db.executemany("INSERT OR IGNORE INTO participations VALUES (?,?,?,?,?,?,?)", [(mid,) + j for j in joueurs])
     reste = db.execute(f"SELECT count(*) FROM matchs WHERE {a_faire}").fetchone()[0]
     print(f"[temps] fiches: {time.time() - t0:.0f} s ({len(lues)} lues, {reste} restantes)")
+    cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
     for saison in SAISONS:
         for code, ligue in LIGUES.items():
+            if (f"cl:{code}", str(saison)) in cl_lus:
+                continue  # saison ancienne déjà lue : son classement ne bouge plus
             try:
                 lignes = classement(code, ligue, saison)
+                if saison < courante - 1:
+                    db.execute("INSERT OR IGNORE INTO jours_lus VALUES (?,?)", (f"cl:{code}", str(saison)))
             except Exception as e:
                 erreurs += 1
                 print(f"[erreur] classement {ligue} {saison}: {e}", file=sys.stderr)
@@ -223,14 +236,15 @@ def main():
                            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [l + (maintenant,) for l in lignes])
 
     # recoupement : chaque source secondaire confirme (ou contredit) les scores
-    jours_lus = sorted({datetime.strptime(t[2], "%Y%m%d").date() for t in taches})
+    # (saisons récentes seulement : les autres sources n'ont pas tout l'historique, et ce serait trop long)
+    jours_lus = sorted({d for t in taches if (d := datetime.strptime(t[2], "%Y%m%d").date()).isoformat() >= debut_recent})
     recents = [(today - timedelta(days=d)).isoformat() for d in range(2)]  # TheSportsDB gratuit est lent : 2 jours
     a_verifier = db.execute("SELECT id, ligue, substr(date_utc,1,10), domicile, exterieur FROM matchs").fetchall()
     etat = {"ESPN": f"{db.execute('SELECT count(*) FROM matchs').fetchone()[0]} matchs (source principale)"}
     for nom, lire in [("LiveScore", lambda: S.livescore(jours_lus)),
                       ("TheSportsDB", lambda: S.thesportsdb(recents)),
-                      ("openfootball", lambda: [r for a in SAISONS for r in S.openfootball(a)]),
-                      ("OpenLigaDB", lambda: [r for a in SAISONS for r in S.openligadb(a)])]:
+                      ("openfootball", lambda: [r for a in RECENTES for r in S.openfootball(a)]),
+                      ("OpenLigaDB", lambda: [r for a in RECENTES for r in S.openligadb(a)])]:
         t0 = time.time()
         try:
             trouves = S.apparier(a_verifier, lire())
