@@ -110,6 +110,94 @@ def livescore(jours):
         return [m for r in pool.map(un_jour, jours) for m in r]
 
 
+# ---------- LiveScore comme source PRINCIPALE pour les pays absents d'ESPN ----------
+# shortcut: l'API ne garde qu'environ 1 an de matchs et la saison en cours pour les classements : pas d'historique ancien.
+LS_API = "https://prod-public-api.livescore.com/v1/api/app"
+LS_LOGO = "https://lsm-static-prod.livescore.com/medium/"
+# (Ccd, Scd) -> nom ; les phases (« super-league-championship-group »…) sont rattachées à leur ligue par le début du code
+LS_LIGUES = {("switzerland", "super-league"): "Super League (Suisse)", ("switzerland", "challenge-league"): "Challenge League (Suisse)",
+             ("switzerland", "cup"): "Coupe de Suisse",
+             ("poland", "ekstraklasa"): "Ekstraklasa (Pologne)", ("poland", "i-liga"): "I Liga (Pologne)",
+             ("poland", "ii-liga"): "II Liga (Pologne)", ("poland", "cup"): "Coupe de Pologne",
+             ("croatia", "1st-league"): "HNL (Croatie)", ("croatia", "2nd-league"): "Prva NL (Croatie)", ("croatia", "cup"): "Coupe de Croatie",
+             ("ukraine", "premier-league"): "Premier League (Ukraine)", ("ukraine", "persha-liga"): "Persha Liga (Ukraine)",
+             ("ukraine", "cup"): "Coupe d'Ukraine",
+             ("korea-republic", "k-league-1"): "K League 1 (Corée du Sud)", ("korea-republic", "k-league-2"): "K League 2 (Corée du Sud)",
+             ("korea-republic", "cup"): "Coupe de Corée du Sud",
+             ("morocco", "botola-pro"): "Botola Pro (Maroc)", ("morocco", "cup"): "Coupe du Trône (Maroc)",
+             ("egypt", "premier-league"): "Premier League (Égypte)", ("egypt", "2-division-a"): "2e division (Égypte)",
+             ("egypt", "cup"): "Coupe d'Égypte", ("egypt", "league-cup"): "Coupe de la Ligue (Égypte)"}
+LS_STATUT = {"FT": "STATUS_FULL_TIME", "AET": "STATUS_FINAL_AET", "AP": "STATUS_FINAL_PEN", "NS": "STATUS_SCHEDULED",
+             "Postp.": "STATUS_POSTPONED", "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED"}
+
+
+def ls_ligue_principale(ccd, scd):
+    return next((nom for (c, s), nom in LS_LIGUES.items() if c == ccd and (scd == s or scd.startswith(s + "-"))), None)
+
+
+def ls_logo(img):
+    return LS_LOGO + img if img else None
+
+
+def ls_jour(j):
+    """Matchs d'un jour (AAAAMMJJ, en UTC) des ligues LS_LIGUES, au format des lignes de foot.parse (sans buteurs/cartons :
+    ils viennent de ls_fiche ; None = on garde ce qui est déjà en base)."""
+    out = []
+    for s in get(f"{LS_API}/date/soccer/{j}/0?locale=en&MD=1").get("Stages", []):
+        ligue = ls_ligue_principale(s.get("Ccd"), s.get("Scd") or "")
+        for e in s.get("Events", []) if ligue else []:
+            esd, statut = str(e["Esd"]), LS_STATUT.get(e.get("Eps"), "STATUS_IN_PROGRESS")  # sinon c'est une minute : en cours
+            joue = statut not in ("STATUS_SCHEDULED", "STATUS_POSTPONED", "STATUS_CANCELED") and e.get("Tr1") not in (None, "")
+            t1, t2 = e["T1"][0], e["T2"][0]
+            out.append(("ls" + str(e["Eid"]), ligue, f"{esd[:4]}-{esd[4:6]}-{esd[6:8]}T{esd[8:10]}:{esd[10:12]}Z",
+                        t1["Nm"], t2["Nm"], int(e["Tr1"]) if joue else None, int(e["Tr2"]) if joue else None, statut,
+                        ls_logo(t1.get("Img")), ls_logo(t2.get("Img")), None, None))
+    return out
+
+
+def ls_fiche(eid):
+    """(buteurs, cartons, passes) d'un match, au format de foot.py. Équipe = champ Nm (1 domicile, 2 extérieur) ;
+    un csc est rangé dans l'équipe qui en profite (vérifié : les buts recomptés donnent le score sur 240 matchs)."""
+    d = get(f"{LS_API}/incidents/soccer/{eid}?locale=en")
+    def plat(lst):
+        for i in lst:
+            yield from (plat(i["Incs"]) if "Incs" in i else [i])
+    but, cart, pas = [], [], []
+    for per in sorted(d.get("Incs") or {}, key=int):
+        for i in plat(d["Incs"][per]):
+            it = i.get("IT")
+            x = {"cote": "dom" if i.get("Nm") == 1 else "ext", "min": f"{i.get('Min', '')}'" + (f"+{i['MinEx']}'" if i.get("MinEx") else ""),
+                 "nom": i.get("Pn") or f"{i.get('Fn', '')} {i.get('Ln', '')}".strip() or "?"}
+            if it in (36, 37, 39):
+                but.append(x | {"nom": x["nom"] + {37: " (pen)", 39: " (csc)"}.get(it, "")})
+            elif it == 63:
+                pas.append(x)
+            elif it in (43, 44, 45):
+                cart.append(x | {"type": "J" if it == 43 else "R"})
+    return but, cart, pas
+
+
+def ls_classements(courante):
+    """Classements de la saison en cours (et phases finales de la précédente quand le nom porte « 25/26 »)."""
+    out = []
+    for (ccd, scd), ligue in LS_LIGUES.items():
+        if scd == "cup":
+            continue
+        for suffixe in ("", "-championship-group", "-relegation-group"):
+            try:
+                st = get(f"{LS_API}/stage/soccer/{ccd}/{scd}{suffixe}/0?locale=en&MD=1", essais=1)["Stages"][0]
+            except Exception:
+                continue  # phase inexistante pour cette ligue
+            m = re.search(r"(\d{2})/\d{2}$", st.get("Snm") or "")
+            saison = 2000 + int(m.group(1)) if m else courante
+            groupe = re.sub(r"\s*\d{2}/\d{2}$", "", st.get("Snm") or ligue)
+            for t in [t for l in (st.get("LeagueTable") or {}).get("L", []) for t in l.get("Tables", []) if t.get("LTT") == 1]:
+                for e in t.get("team", []):
+                    out.append((ligue, groupe, e["rnk"], e["Tnm"], ls_logo(e.get("Img")), e["pld"], e["win"], e["drw"],
+                                e["lst"], e["gf"], e["ga"], e["pts"], saison))
+    return out
+
+
 TSDB = {"Ligue 1": 4334, "Premier League": 4328, "La Liga": 4335, "Serie A": 4332, "Bundesliga": 4331,
         "Ligue des champions": 4480, "Ligue 2": 4401, "Ligue Europa": 4481, "Ligue Conférence": 5071,
         "Coupe de France": 4484, "Liga Portugal": 4344, "Eredivisie": 4337}
@@ -191,6 +279,9 @@ if __name__ == "__main__":
     assert ls_ligue({"CompId": "1079", "Cnm": "Europa League", "Snm": "League Stage", "CompN": "Europa League 25/26"}) == "Ligue Europa"
     assert ls_ligue({"CompId": None, "Cnm": "England", "Snm": "Premier League 2"}) is None
     assert ls_ligue({"CompId": "68"}) == "Ligue 1"
+    assert ls_ligue_principale("switzerland", "super-league-championship-group") == "Super League (Suisse)"
+    assert ls_ligue_principale("poland", "iii-liga-group-1") is None and ls_ligue_principale("poland", "ii-liga") == "II Liga (Pologne)"
+    assert ls_ligue_principale("korea-republic", "k-league-2") == "K League 2 (Corée du Sud)"
     assert consensus((1, 0), {"a": (1, 0)}) == ((1, 0), False)
     assert consensus((1, 0), {"a": (2, 0)}) == ((1, 0), True)
     assert consensus(None, {"a": (2, 0), "b": (2, 0)}) == ((2, 0), False)

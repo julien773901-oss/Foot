@@ -36,7 +36,22 @@ LIGUES = {"fra.1": "Ligue 1", "eng.1": "Premier League", "esp.1": "La Liga",
           # coupes continentales de clubs
           "conmebol.libertadores": "Copa Libertadores", "conmebol.sudamericana": "Copa Sudamericana",
           "concacaf.champions": "Coupe des champions CONCACAF", "afc.champions": "Ligue des champions AFC",
-          "caf.champions": "Ligue des champions CAF", "caf.confed": "Coupe de la Confédération CAF"}
+          "caf.champions": "Ligue des champions CAF", "caf.confed": "Coupe de la Confédération CAF",
+          # coupes nationales
+          "eng.fa": "FA Cup (Angleterre)", "eng.league_cup": "Coupe de la Ligue (Angleterre)", "eng.trophy": "EFL Trophy (Angleterre)",
+          "esp.copa_del_rey": "Coupe du Roi (Espagne)", "ger.dfb_pokal": "Coupe d'Allemagne", "ita.coppa_italia": "Coupe d'Italie",
+          "ned.cup": "Coupe des Pays-Bas", "por.taca.portugal": "Coupe du Portugal", "sco.tennents": "Coupe d'Écosse",
+          "sco.cis": "Coupe de la Ligue (Écosse)", "usa.open": "US Open Cup (États-Unis)", "arg.copa": "Coupe d'Argentine",
+          "bra.copa_do_brazil": "Coupe du Brésil", "chi.copa_chi": "Coupe du Chili", "col.copa": "Coupe de Colombie",
+          "bol.copa": "Coupe de Bolivie", "ksa.kings.cup": "Coupe du Roi (Arabie saoudite)",
+          # barrages de montée / relégation
+          "fra.1.promotion.relegation": "Barrages Ligue 1 / Ligue 2", "ger.playoff.relegation": "Barrages Bundesliga (Allemagne)",
+          "ger.2.promotion.relegation": "Barrages 2. Bundesliga (Allemagne)", "rus.1.promotion.relegation": "Barrages (Russie)",
+          "bel.promotion.relegation": "Barrages (Belgique)", "por.1.promotion.relegation": "Barrages (Portugal)",
+          "sco.1.promotion.relegation": "Barrages Premiership (Écosse)", "sco.2.promotion.relegation": "Barrages Championship (Écosse)",
+          "ned.playoff.relegation": "Barrages (Pays-Bas)", "swe.1.promotion.relegation": "Barrages (Suède)",
+          "nor.1.promotion.relegation": "Barrages (Norvège)", "chi.1.promotion.relegation": "Barrages (Chili)",
+          "bol.ply.rel": "Barrages (Bolivie)", "chn.1.promotion.relegation": "Barrages (Chine)"}
 DB = Path(__file__).with_name("foot.db")
 
 
@@ -132,6 +147,8 @@ def classement(code, ligue, saison):
 
 def jour(code, ligue, j):
     try:
+        if code == "livescore":  # une seule page par jour pour toutes les ligues lues chez LiveScore
+            return S.ls_jour(j), True
         return [parse(ev, ligue) for ev in get(f"{API}/site/v2/sports/soccer/{code}/scoreboard?dates={j}").get("events", [])], True
     except Exception as e:
         print(f"[erreur] {ligue} {j}: {e}", file=sys.stderr)
@@ -181,6 +198,11 @@ def main():
         # jours récents + toute journée ancienne jamais lue correctement (rattrape les trous)
         taches += [(code, ligue, j) for i in range((today + timedelta(days=14) - debut).days + 1)
                    if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
+    # pays absents d'ESPN : LiveScore, qui ne garde qu'environ 1 an de matchs
+    deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code='livescore'")}
+    debut = date.fromisoformat(debut_recent)
+    taches += [("livescore", None, j) for i in range((today + timedelta(days=14) - debut).days + 1)
+               if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
     taches.sort(key=lambda t: t[2], reverse=True)  # le plus récent d'abord : les jours récents passent à chaque fois
     print(f"[historique] {len(taches)} journées à lire, {min(len(taches), MAX_JOURS)} ce passage")
     taches = taches[:MAX_JOURS]
@@ -194,7 +216,7 @@ def main():
                    [(t[0], t[2]) for t, (_, ok) in zip(taches, res) if ok and t[2] < stable])
     # mise à jour sans effacer les passeurs déjà lus
     db.executemany(f"INSERT INTO matchs ({','.join(COLS)}) VALUES ({','.join('?' * len(COLS))}) "
-                   f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=excluded.{c}' for c in COLS[1:])}",
+                   f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=coalesce(excluded.{c}, {c})' if c in ('buteurs', 'cartons') else f'{c}=excluded.{c}' for c in COLS[1:])}",
                    [m + (maintenant,) for m in matchs])
 
     # fiche détaillée de chaque match terminé (passeurs + qui a joué), 1500 max par passage (la suite au prochain)
@@ -204,16 +226,20 @@ def main():
     a_lire = db.execute(f"SELECT id, ligue FROM matchs WHERE {a_faire} ORDER BY date_utc DESC LIMIT 1500").fetchall()
     def fiche(m):
         try:
+            if m[0].startswith("ls"):  # LiveScore : buteurs, cartons et passeurs viennent de la fiche ; pas de compositions
+                b, c, p = S.ls_fiche(m[0][2:])
+                return m[0], p, [], json.dumps(b, ensure_ascii=False), json.dumps(c, ensure_ascii=False)
             s = get(f"{API}/site/v2/sports/soccer/{code_de[m[1]]}/summary?event={m[0]}")
-            return m[0], passes(s), participations(s)
+            return m[0], passes(s), participations(s), None, None
         except Exception as e:
             print(f"[erreur] fiche {m}: {e}", file=sys.stderr)
-            return m[0], None, None
+            return m[0], None, None, None, None
     t0 = time.time()
     with ThreadPoolExecutor(4) as pool:
         lues = [r for r in pool.map(fiche, a_lire) if r[1] is not None]
-    for mid, p, joueurs in lues:
-        db.execute("UPDATE matchs SET passes=?, fiche_lue=? WHERE id=?", (json.dumps(p, ensure_ascii=False), FICHE_VERSION, mid))
+    for mid, p, joueurs, but, cart in lues:
+        db.execute("UPDATE matchs SET passes=?, fiche_lue=?, buteurs=coalesce(?, buteurs), cartons=coalesce(?, cartons) WHERE id=?",
+                   (json.dumps(p, ensure_ascii=False), FICHE_VERSION, but, cart, mid))
         db.execute("DELETE FROM participations WHERE match_id=?", (mid,))
         db.executemany("INSERT OR IGNORE INTO participations VALUES (?,?,?,?,?,?,?)", [(mid,) + j for j in joueurs])
     reste = db.execute(f"SELECT count(*) FROM matchs WHERE {a_faire}").fetchone()[0]
@@ -234,13 +260,23 @@ def main():
             db.execute("DELETE FROM classement WHERE ligue=? AND saison=?", (ligue, saison))
             db.executemany("INSERT INTO classement (ligue, groupe, rang, equipe, logo, joues, g, n, p, bp, bc, pts, saison, maj) "
                            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [l + (maintenant,) for l in lignes])
+    try:
+        lignes = S.ls_classements(courante)
+        for ligue, saison in {(l[0], l[12]) for l in lignes}:
+            db.execute("DELETE FROM classement WHERE ligue=? AND saison=?", (ligue, saison))
+        db.executemany("INSERT INTO classement (ligue, groupe, rang, equipe, logo, joues, g, n, p, bp, bc, pts, saison, maj) "
+                       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [l + (maintenant,) for l in lignes])
+    except Exception as e:
+        erreurs += 1
+        print(f"[erreur] classements LiveScore: {e}", file=sys.stderr)
 
     # recoupement : chaque source secondaire confirme (ou contredit) les scores
     # (saisons récentes seulement : les autres sources n'ont pas tout l'historique, et ce serait trop long)
     jours_lus = sorted({d for t in taches if (d := datetime.strptime(t[2], "%Y%m%d").date()).isoformat() >= debut_recent})
     recents = [(today - timedelta(days=d)).isoformat() for d in range(2)]  # TheSportsDB gratuit est lent : 2 jours
     a_verifier = db.execute("SELECT id, ligue, substr(date_utc,1,10), domicile, exterieur FROM matchs").fetchall()
-    etat = {"ESPN": f"{db.execute('SELECT count(*) FROM matchs').fetchone()[0]} matchs (source principale)"}
+    n_ls, n_tot = db.execute("SELECT sum(id LIKE 'ls%'), count(*) FROM matchs").fetchone()
+    etat = {"ESPN": f"{n_tot - (n_ls or 0)} matchs (source principale)", "LiveScore (pays absents d'ESPN)": f"{n_ls or 0} matchs"}
     for nom, lire in [("LiveScore", lambda: S.livescore(jours_lus)),
                       ("TheSportsDB", lambda: S.thesportsdb(recents)),
                       ("openfootball", lambda: [r for a in RECENTES for r in S.openfootball(a)]),
@@ -286,7 +322,7 @@ def main():
         fini = "FULL_TIME" in x["statut"] or "FINAL" in x["statut"]  # FINAL_PEN = tirs au but, FINAL_AET = prolongation
         espn = [x["buts_dom"], x["buts_ext"]] if fini else None
         score, x["ecart"] = S.consensus(espn, src.get(x["id"], {}))
-        x["sources"] = ({"ESPN": espn} if espn else {}) | src.get(x["id"], {})
+        x["sources"] = ({"LiveScore" if x["id"].startswith("ls") else "ESPN": espn} if espn else {}) | src.get(x["id"], {})
         if not espn and score:  # ESPN n'a pas le score : on prend celui confirmé par 2 autres sources
             x["buts_dom"], x["buts_ext"], x["statut"], x["secours"] = score[0], score[1], "STATUS_FULL_TIME", True
     # un fichier par saison (matchs-2025.json...) ; matchs.json = saison en cours
@@ -300,7 +336,8 @@ def main():
         if saison_match.get(mid) in jou:
             jou[saison_match[mid]].setdefault(nom, {"id": ide, "m": []})["m"].append([mid, cote, "T" if tit else "E", sor])
     for s in SAISONS:
-        donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante, "ligues": LIGUES,
+        donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
+                              "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
                               "sources": etat, "matchs": [x for x in m if saison_match[x["id"]] == s],
                               "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False)
         joueurs = json.dumps(jou[s], ensure_ascii=False, separators=(",", ":"))

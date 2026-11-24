@@ -16,7 +16,13 @@
   du plus récent au plus ancien (~20 passages horaires). Passeurs et compositions : 2 dernières saisons
   seulement (`NB_DETAILLEES`), sinon la base devient trop grosse.
 
-## En pause : pays absents d'ESPN via LiveScore (accord de l'utilisateur le 24 nov.)
+- Coupes nationales et barrages de montée/relégation ESPN ajoutés (fin de LIGUES dans foot.py) : 96 compétitions ESPN.
+- Pays absents d'ESPN (Suisse, Pologne, Croatie, Ukraine, Corée du Sud, Maroc, Égypte) : lus chez LiveScore
+  (`LS_LIGUES` dans sources.py, ids de match « ls… », codes « ls:pays/ligue » dans la page).
+  Limites : ~1 an d'historique seulement, pas de compositions ni de statistiques, pas de direct dans la page
+  (mise à jour horaire seulement), buteurs/passeurs arrivent à la mise à jour qui suit la fin du match.
+
+## Notes LiveScore (24 nov.)
 - matchendirect.fr refusé : son robots.txt interdit les robots d'Anthropic.
 - API LiveScore (`prod-public-api.livescore.com/v1/api/app/...`) :
   - `date/soccer/AAAAMMJJ/0?locale=en&MD=1` : tous les matchs du jour (Stages[].Ccd/Scd, Events[].Eid, Esd en UTC,
@@ -30,10 +36,8 @@
   switzerland super-league, challenge-league, cup · poland ekstraklasa, i-liga, ii-liga, cup ·
   croatia 1st-league, 2nd-league · ukraine premier-league, persha-liga, cup · korea-republic k-league-1, k-league-2, cup ·
   morocco botola-pro · egypt premier-league, 2-division-a, cup, league-cup
-- Reste à faire : lire ces matchs dans foot.py (ids préfixés « ls »), buteurs/cartons/passes via incidents,
-  classements via stage ; dans la page, pas d'appel ESPN pour ces ligues (fiche match = données stockées).
-- Aussi demandé : barrages et coupes nationales ESPN (eng.fa, esp.copa_del_rey, ger.dfb_pokal, ita.coppa_italia,
-  *.promotion.relegation…) : juste des lignes à ajouter dans LIGUES.
+- `LeagueTable` : prendre les tables LTT=1 (2 = domicile, 3 = extérieur). Les phases « -championship-group » d'une
+  saison finie portent « 25/26 » dans leur nom. La page « date » ne renvoie plus rien au-delà d'environ 1 an.
 - Sur la branche `site`, la base est stockée compressée (`foot.db.xz`) : GitHub refuse les fichiers > 100 Mo.
 
 ## En ligne depuis le 23 novembre 2026

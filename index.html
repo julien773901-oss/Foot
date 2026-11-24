@@ -825,6 +825,18 @@ async function vueMatch(id) {
       <div><div class="score">${m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`}</div>
         <div class="mut">${esc(m.ligue)}<br>${fmt(m.date_utc)}${enDirect(m) ? `<br><span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : ""}</div></div>
       <div><a href="#equipe=${encodeURIComponent(m.exterieur)}">${m.logo_ext ? `<img src="${esc(m.logo_ext)}" alt="">` : ""}${esc(m.exterieur)}</a></div></div>`;
+  if (code?.startsWith("ls:")) {  // ligue lue chez LiveScore : pas de fiche ESPN, on montre ce qui est en base
+    const evs = [...(m.buteurs || []).map(e => ({ ...e, i: "⚽" })), ...(m.cartons || []).map(e => ({ ...e, i: e.type === "R" ? "🟥" : "🟨" }))]
+      .sort((a, b) => parseInt(a.min) - parseInt(b.min));
+    el.innerHTML = entete.replace('<div class="entete"', `<div data-fiche="${esc(id)}" class="entete"`)
+      + boutonsPartage("match", m)
+      + (m.statut === PREVU ? "<h2>Pronostic</h2><div class=\"bloc\">" + blocProno(m, true) + "</div>" : "")
+      + "<h2>Événements</h2>" + (evs.length ? `<div class="bloc">${evs.map(e => { const t = `${e.i} ${lienJ(e.nom)}`;
+          return `<div class="ev"><div class="dom">${e.cote === "dom" ? t : ""}</div><div class="t">${esc(e.min)}</div><div>${e.cote === "ext" ? t : ""}</div></div>`; }).join("")}</div>`
+        : '<p class="mut">Pas encore d\'événements (ils arrivent à la mise à jour qui suit la fin du match).</p>')
+      + '<p class="mut">Source : LiveScore. Statistiques et compositions non disponibles pour cette compétition.</p>';
+    return;
+  }
   if (!el.innerHTML.includes(`data-fiche="${id}"`)) el.innerHTML = entete + '<p class="mut">Chargement de la fiche…</p>';
   let s;
   try {
@@ -958,7 +970,8 @@ async function direct() {
   const actifs = saisonPassee ? [] : data.matchs.filter(m => enDirect(m) || (m.statut === PREVU && proche(m.date_utc)));
   const avant = new Map(data.matchs.map(m => [m.id, [m.buts_dom, m.buts_ext]]));
   if (actifs.length) {
-    const codes = Object.entries(data.ligues).filter(([, n]) => actifs.some(m => m.ligue === n));
+    // les ligues LiveScore ne sont pas suivies en direct (seulement à chaque mise à jour horaire)
+    const codes = Object.entries(data.ligues).filter(([c, n]) => !c.startsWith("ls:") && actifs.some(m => m.ligue === n));
     await Promise.all(codes.map(async ([code, nom]) => {
       try {
         const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard`, { cache: "no-store" });
