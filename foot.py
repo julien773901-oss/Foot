@@ -12,7 +12,31 @@ API = "https://site.api.espn.com/apis"
 LIGUES = {"fra.1": "Ligue 1", "eng.1": "Premier League", "esp.1": "La Liga",
           "ita.1": "Serie A", "ger.1": "Bundesliga", "uefa.champions": "Ligue des champions",
           "fra.2": "Ligue 2", "uefa.europa": "Ligue Europa", "uefa.europa.conf": "Ligue Conférence",
-          "fra.coupe_de_france": "Coupe de France", "por.1": "Liga Portugal", "ned.1": "Eredivisie"}
+          "fra.coupe_de_france": "Coupe de France", "por.1": "Liga Portugal", "ned.1": "Eredivisie",
+          # Europe
+          "eng.2": "Championship (Angleterre)", "eng.3": "League One (Angleterre)", "eng.4": "League Two (Angleterre)",
+          "eng.5": "National League (Angleterre)", "esp.2": "LaLiga 2 (Espagne)", "ger.2": "2. Bundesliga (Allemagne)",
+          "ita.2": "Serie B (Italie)", "ned.2": "Eerste Divisie (Pays-Bas)", "sco.1": "Premiership (Écosse)",
+          "sco.2": "Championship (Écosse)", "bel.1": "Pro League (Belgique)", "tur.1": "Süper Lig (Turquie)",
+          "rus.1": "Premier Liga (Russie)", "aut.1": "Bundesliga (Autriche)", "gre.1": "Super League (Grèce)",
+          "swe.1": "Allsvenskan (Suède)", "den.1": "Superliga (Danemark)", "nor.1": "Eliteserien (Norvège)",
+          # Amériques
+          "usa.1": "MLS (États-Unis)", "usa.usl.1": "USL Championship (États-Unis)", "usa.usl.l1": "USL League One (États-Unis)",
+          "mex.1": "Liga MX (Mexique)", "mex.2": "Liga de Expansión (Mexique)", "arg.1": "Liga Profesional (Argentine)",
+          "arg.2": "Primera Nacional (Argentine)", "arg.3": "Primera B (Argentine)", "bra.1": "Série A (Brésil)",
+          "bra.2": "Série B (Brésil)", "chi.1": "Primera División (Chili)", "uru.1": "Primera División (Uruguay)",
+          "col.1": "Primera A (Colombie)", "per.1": "Liga 1 (Pérou)", "par.1": "Primera División (Paraguay)",
+          "ecu.1": "LigaPro (Équateur)", "ven.1": "Primera División (Venezuela)", "bol.1": "División Profesional (Bolivie)",
+          "hon.1": "Liga Nacional (Honduras)", "crc.1": "Primera División (Costa Rica)", "gua.1": "Liga Nacional (Guatemala)",
+          "slv.1": "Primera División (Salvador)",
+          # Asie, Océanie, Afrique
+          "jpn.1": "J1 League (Japon)", "chn.1": "Super League (Chine)", "aus.1": "A-League (Australie)",
+          "ksa.1": "Saudi Pro League (Arabie saoudite)", "ind.1": "Indian Super League (Inde)", "ind.2": "I-League (Inde)",
+          "rsa.1": "Premiership (Afrique du Sud)",
+          # coupes continentales de clubs
+          "conmebol.libertadores": "Copa Libertadores", "conmebol.sudamericana": "Copa Sudamericana",
+          "concacaf.champions": "Coupe des champions CONCACAF", "afc.champions": "Ligue des champions AFC",
+          "caf.champions": "Ligue des champions CAF", "caf.confed": "Coupe de la Confédération CAF"}
 DB = Path(__file__).with_name("foot.db")
 
 
@@ -166,10 +190,10 @@ def main():
                    f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=excluded.{c}' for c in COLS[1:])}",
                    [m + (maintenant,) for m in matchs])
 
-    # fiche détaillée de chaque match terminé (passeurs + qui a joué), 400 max par passage (la suite au prochain)
+    # fiche détaillée de chaque match terminé (passeurs + qui a joué), 1500 max par passage (la suite au prochain)
     code_de = {v: k for k, v in LIGUES.items()}
     a_faire = f"(fiche_lue IS NULL OR fiche_lue < {FICHE_VERSION}) AND (statut LIKE '%FULL_TIME%' OR statut LIKE '%FINAL%')"
-    a_lire = db.execute(f"SELECT id, ligue FROM matchs WHERE {a_faire} ORDER BY date_utc DESC LIMIT 400").fetchall()
+    a_lire = db.execute(f"SELECT id, ligue FROM matchs WHERE {a_faire} ORDER BY date_utc DESC LIMIT 1500").fetchall()
     def fiche(m):
         try:
             s = get(f"{API}/site/v2/sports/soccer/{code_de[m[1]]}/summary?event={m[0]}")

@@ -9,13 +9,16 @@
 - `sw.js` : nécessaire pour les notifications sur Android.
 - `.github/workflows/maj.yml` : mise à jour automatique toutes les heures sur GitHub ; le site est publié
   sur une branche `site` (écrasée à chaque fois pour garder le dépôt léger).
-- 12 compétitions, 2 saisons (`NB_SAISONS = 2` dans foot.py).
+- 65 compétitions (tous les championnats masculins proposés par ESPN + coupes continentales), 2 saisons
+  (`NB_SAISONS = 2` dans foot.py). Le recoupement par d'autres sources ne couvre que les 12 d'origine.
+  Pas chez ESPN : Suisse, Pologne, Croatie, Ukraine, Corée, Maroc, Égypte, etc.
+- Sur la branche `site`, la base est stockée compressée (`foot.db.xz`) : GitHub refuse les fichiers > 100 Mo.
 
-## Prochaine étape : la mise en ligne
-1. Créer un dépôt **public et vide** sur github.com (par exemple `foot`), puis donner son adresse à Claude.
-2. Claude enregistre les fichiers (commit) et les envoie ; c'est toi qui te connectes à GitHub quand la fenêtre s'ouvre.
-3. Sur GitHub : Settings → Pages → branche `site` ; vérifier que Actions est activé.
-4. Le premier lancement prend environ 10 à 15 minutes. Passeurs et compositions sont complets au bout d'environ 11 mises à jour horaires.
+## En ligne depuis le 23 novembre 2026
+- Site : https://julien773901-oss.github.io/Foot/
+- Dépôt : https://github.com/julien773901-oss/Foot (branche `main` = code, `site` = site publié)
+- Mises à jour horaires : onglet Actions du dépôt.
+- Aperçu local : `python -m http.server 8000` dans ce dossier, puis http://localhost:8000
 
 ## Pour relancer la base à la main
     python foot.py

@@ -13,16 +13,18 @@ concurrency:
 jobs:
   maj:
     runs-on: ubuntu-latest
-    timeout-minutes: 45     # le 1er lancement remplit toute la saison
+    timeout-minutes: 150    # le 1er lancement remplit 2 saisons de ~65 compétitions
     steps:
       - uses: actions/checkout@v4
       - name: Reprendre la base de la dernière mise à jour
         run: |
-          git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db || echo "Pas encore de base : remplissage complet"
+          # base compressée (GitHub refuse les fichiers de plus de 100 Mo) ; foot.db seul = ancien format
+          git fetch --depth=1 origin site && { git checkout FETCH_HEAD -- foot.db.xz && xz -d foot.db.xz || git checkout FETCH_HEAD -- foot.db; } || echo "Pas encore de base : remplissage complet"
       - run: python3 foot.py
       - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
         run: |
-          mkdir _site && cp index.html sw.js foot.db matchs*.json joueurs*.json _site/ && touch _site/.nojekyll
+          mkdir _site && cp index.html sw.js matchs*.json joueurs*.json _site/ && touch _site/.nojekyll
+          xz -6 -T0 -c foot.db > _site/foot.db.xz
           cd _site && git init -q -b site && git add -A
           git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Mise à jour $(date -u +%FT%TZ)"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
