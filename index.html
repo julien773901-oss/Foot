@@ -1134,6 +1134,24 @@ $("theme").onclick = () => {
 };
 majTheme();
 
+// page restée ouverte (onglet, téléphone en veille) : on recharge les données dès qu'une mise à jour horaire est publiée,
+// sinon résultats et classements restent ceux de l'ouverture de la page
+let jourVu = jour;
+async function rafraichir() {
+  try {
+    const j = await (await fetch("matchs.json", { cache: "no-store" })).json();
+    if (j.saison) saisons[j.saison] = j;
+    if (data.saison && data.saison !== j.saison || j.maj <= data.maj) return;  // ancienne saison affichée, ou rien de neuf
+    data = j; modele = null; delete joueursP[j.saison];
+    if (jour === jourVu) jour = cleJour(new Date());  // on était sur « aujourd'hui » : on y reste le lendemain
+    jourVu = cleJour(new Date());
+    remplirEntete();
+    if (document.activeElement?.tagName !== "INPUT" && !["match", "comparer"].includes(route()[0])) afficher();
+  } catch (e) { /* hors connexion : on garde ce qu'on a */ }
+}
+setInterval(rafraichir, 10 * 60e3);
+document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && rafraichir());
+
 majBoutonAlertes();
 if (alertes && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 fetch("matchs.json", { cache: "no-store" }).then(r => r.json()).then(async j => {

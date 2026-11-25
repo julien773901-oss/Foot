@@ -86,6 +86,9 @@
   sa lecture (ou après), en cours compris (🔴). Si une équipe a plus de matchs avant la lecture que « J » (play-offs,
   Apertura/Clausura qui portent le nom du championnat), on garde le classement officiel.
 
+- Page restée ouverte : `rafraichir()` relit matchs.json toutes les 10 min et quand l'onglet redevient visible
+  (avant, résultats et classements restaient ceux de l'ouverture de la page ; le lendemain, retour sur « aujourd'hui »).
+
 ## Pour relancer la base à la main
     python foot.py
 
