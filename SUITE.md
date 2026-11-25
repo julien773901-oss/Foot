@@ -22,6 +22,12 @@
   Limites : ~1 an d'historique seulement, pas de compositions ni de statistiques, pas de direct dans la page
   (mise à jour horaire seulement), buteurs/passeurs arrivent à la mise à jour qui suit la fin du match.
 
+- football-data.co.uk (fichiers CSV gratuits, scores seulement) : saisons 1993-94 à 2000-01 pour 22 championnats
+  européens, et 2012 à 2025 pour Suisse, Pologne, Roumanie, Irlande, Finlande (ids « fd… », chaque fichier lu une
+  seule fois) ; sert aussi à recouper les scores ESPN des 2 dernières saisons. Pas de classement pour ces saisons.
+- Refusés : L'Équipe (bloque tout accès automatique), matchendirect.fr (robots.txt interdit Anthropic).
+  A Bola autorise les robots mais ferait doublon avec ESPN pour le Portugal.
+
 ## Notes LiveScore (24 nov.)
 - matchendirect.fr refusé : son robots.txt interdit les robots d'Anthropic.
 - API LiveScore (`prod-public-api.livescore.com/v1/api/app/...`) :

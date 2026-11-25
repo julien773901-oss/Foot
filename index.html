@@ -825,7 +825,8 @@ async function vueMatch(id) {
       <div><div class="score">${m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`}</div>
         <div class="mut">${esc(m.ligue)}<br>${fmt(m.date_utc)}${enDirect(m) ? `<br><span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : ""}</div></div>
       <div><a href="#equipe=${encodeURIComponent(m.exterieur)}">${m.logo_ext ? `<img src="${esc(m.logo_ext)}" alt="">` : ""}${esc(m.exterieur)}</a></div></div>`;
-  if (code?.startsWith("ls:")) {  // ligue lue chez LiveScore : pas de fiche ESPN, on montre ce qui est en base
+  const fd = id.startsWith("fd");  // match historique de football-data.co.uk : score seulement
+  if (fd || code?.startsWith("ls:")) {  // pas de fiche ESPN : on montre ce qui est en base
     const evs = [...(m.buteurs || []).map(e => ({ ...e, i: "⚽" })), ...(m.cartons || []).map(e => ({ ...e, i: e.type === "R" ? "🟥" : "🟨" }))]
       .sort((a, b) => parseInt(a.min) - parseInt(b.min));
     el.innerHTML = entete.replace('<div class="entete"', `<div data-fiche="${esc(id)}" class="entete"`)
@@ -833,8 +834,9 @@ async function vueMatch(id) {
       + (m.statut === PREVU ? "<h2>Pronostic</h2><div class=\"bloc\">" + blocProno(m, true) + "</div>" : "")
       + "<h2>Événements</h2>" + (evs.length ? `<div class="bloc">${evs.map(e => { const t = `${e.i} ${lienJ(e.nom)}`;
           return `<div class="ev"><div class="dom">${e.cote === "dom" ? t : ""}</div><div class="t">${esc(e.min)}</div><div>${e.cote === "ext" ? t : ""}</div></div>`; }).join("")}</div>`
-        : '<p class="mut">Pas encore d\'événements (ils arrivent à la mise à jour qui suit la fin du match).</p>')
-      + '<p class="mut">Source : LiveScore. Statistiques et compositions non disponibles pour cette compétition.</p>';
+        : fd ? "" : '<p class="mut">Pas encore d\'événements (ils arrivent à la mise à jour qui suit la fin du match).</p>')
+      + (fd ? '<p class="mut">Source : football-data.co.uk (archives). Seul le score est connu pour ce match.</p>'
+            : '<p class="mut">Source : LiveScore. Statistiques et compositions non disponibles pour cette compétition.</p>');
     return;
   }
   if (!el.innerHTML.includes(`data-fiche="${id}"`)) el.innerHTML = entete + '<p class="mut">Chargement de la fiche…</p>';

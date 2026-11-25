@@ -177,7 +177,7 @@ def main():
     maintenant = datetime.now(timezone.utc).isoformat(timespec="seconds")
     today = date.today()
     courante = saison_de(today.isoformat())
-    SAISONS = list(range(courante, PREMIERE_SAISON - 1, -1))
+    SAISONS = list(range(courante, S.FD_DEBUT - 1, -1))  # avant 2001 : football-data.co.uk seulement
     RECENTES = SAISONS[:NB_DETAILLEES]
     debut_recent = f"{RECENTES[-1]}-07-01"
     try:
@@ -193,7 +193,7 @@ def main():
         except Exception as e:
             print(f"[erreur] début de saison {ligue}: {e}", file=sys.stderr)
             debut = today - timedelta(days=7)
-        debut = min(debut, date(SAISONS[-1], 7, 1))  # + les saisons précédentes (juillet à juin)
+        debut = min(debut, date(PREMIERE_SAISON, 7, 1))  # + les saisons précédentes (juillet à juin)
         deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code=?", (code,))}
         # jours récents + toute journée ancienne jamais lue correctement (rattrape les trous)
         taches += [(code, ligue, j) for i in range((today + timedelta(days=14) - debut).days + 1)
@@ -218,9 +218,34 @@ def main():
     db.executemany("INSERT OR IGNORE INTO jours_lus VALUES (?,?)",
                    [(t[0], t[2]) for t, (_, ok) in zip(taches, res) if ok and t[2] < stable])
     # mise à jour sans effacer les passeurs déjà lus
-    db.executemany(f"INSERT INTO matchs ({','.join(COLS)}) VALUES ({','.join('?' * len(COLS))}) "
-                   f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=coalesce(excluded.{c}, {c})' if c in ('buteurs', 'cartons') else f'{c}=excluded.{c}' for c in COLS[1:])}",
-                   [m + (maintenant,) for m in matchs])
+    upsert = (f"INSERT INTO matchs ({','.join(COLS)}) VALUES ({','.join('?' * len(COLS))}) "
+              f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=coalesce(excluded.{c}, {c})' if c in ('buteurs', 'cartons') else f'{c}=excluded.{c}' for c in COLS[1:])}")
+    db.executemany(upsert, [m + (maintenant,) for m in matchs])
+
+    # football-data.co.uk comme source principale là où personne d'autre n'a les matchs : avant 2001 (ESPN n'a rien)
+    # et, pour les ligues LiveScore, avant sa fenêtre d'un an. Chaque fichier n'est lu qu'une fois (saisons finies).
+    noms_ls = set(S.LS_LIGUES.values())
+    fd_lus = {c for (c,) in db.execute("SELECT code FROM jours_lus WHERE jour='fd'")}
+    lots = [(f"fd:{d}:{a}", lambda d=d, a=a: S.fd_saison(d, a)) for d in S.FD_DIV for a in range(S.FD_DEBUT, PREMIERE_SAISON)]
+    lots += [(f"fd:{c}", lambda c=c: [r for r in S.fd_pays(c) if r[1] < debut_recent])
+             for c, nom in S.FD_PAYS.items() if nom in noms_ls]
+    lots = [l for l in lots if l[0] not in fd_lus]
+    def lire_lot(lot):
+        try:
+            return lot[0], lot[1]()
+        except Exception as e:
+            print(f"[erreur] football-data {lot[0]}: {e}", file=sys.stderr)
+            return lot[0], None  # nouvel essai au prochain passage
+    with ThreadPoolExecutor(4) as pool:
+        for cle, lignes in pool.map(lire_lot, lots):
+            if lignes is None:
+                continue
+            # shortcut: le fichier n'a pas toujours l'heure ; midi UTC garde la bonne date partout
+            db.executemany(upsert, [(S.fd_id(r), r[0], f"{r[1]}T12:00Z", r[2], r[3], r[4], r[5], "STATUS_FULL_TIME",
+                                     None, None, "[]", "[]", maintenant) for r in lignes])
+            db.execute("INSERT OR IGNORE INTO jours_lus VALUES (?, 'fd')", (cle,))
+    if lots:
+        print(f"[football-data] {len(lots)} fichiers d'historique lus")
 
     # fiche détaillée de chaque match terminé (passeurs + qui a joué), 1500 max par passage (la suite au prochain)
     code_de = {v: k for k, v in LIGUES.items()}
@@ -248,7 +273,7 @@ def main():
     reste = db.execute(f"SELECT count(*) FROM matchs WHERE {a_faire}").fetchone()[0]
     print(f"[temps] fiches: {time.time() - t0:.0f} s ({len(lues)} lues, {reste} restantes)")
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
-    for saison in SAISONS:
+    for saison in [s for s in SAISONS if s >= PREMIERE_SAISON]:
         for code, ligue in LIGUES.items():
             if (f"cl:{code}", str(saison)) in cl_lus:
                 continue  # saison ancienne déjà lue : son classement ne bouge plus
@@ -279,11 +304,14 @@ def main():
     recents = [(today - timedelta(days=d)).isoformat() for d in range(2)]  # TheSportsDB gratuit est lent : 2 jours
     a_verifier = db.execute("SELECT id, ligue, substr(date_utc,1,10), domicile, exterieur FROM matchs").fetchall()
     n_ls, n_tot = db.execute("SELECT sum(id LIKE 'ls%'), count(*) FROM matchs").fetchone()
-    etat = {"ESPN": f"{n_tot - (n_ls or 0)} matchs (source principale)", "LiveScore (pays absents d'ESPN)": f"{n_ls or 0} matchs"}
+    n_fd = db.execute("SELECT count(*) FROM matchs WHERE id LIKE 'fd%'").fetchone()[0]
+    etat = {"ESPN": f"{n_tot - (n_ls or 0) - n_fd} matchs (source principale)", "LiveScore (pays absents d'ESPN)": f"{n_ls or 0} matchs",
+            "football-data.co.uk (historique)": f"{n_fd} matchs"}
     for nom, lire in [("LiveScore", lambda: S.livescore(jours_lus)),
                       ("TheSportsDB", lambda: S.thesportsdb(recents)),
                       ("openfootball", lambda: [r for a in RECENTES for r in S.openfootball(a)]),
-                      ("OpenLigaDB", lambda: [r for a in RECENTES for r in S.openligadb(a)])]:
+                      ("OpenLigaDB", lambda: [r for a in RECENTES for r in S.openligadb(a)]),
+                      ("football-data.co.uk", lambda: [r for a in RECENTES for d in S.FD_DIV for r in S.fd_saison(d, a)])]:
         t0 = time.time()
         try:
             trouves = S.apparier(a_verifier, lire())
@@ -325,7 +353,8 @@ def main():
         fini = "FULL_TIME" in x["statut"] or "FINAL" in x["statut"]  # FINAL_PEN = tirs au but, FINAL_AET = prolongation
         espn = [x["buts_dom"], x["buts_ext"]] if fini else None
         score, x["ecart"] = S.consensus(espn, src.get(x["id"], {}))
-        x["sources"] = ({"LiveScore" if x["id"].startswith("ls") else "ESPN": espn} if espn else {}) | src.get(x["id"], {})
+        principale = {"ls": "LiveScore", "fd": "football-data.co.uk"}.get(x["id"][:2], "ESPN")
+        x["sources"] = ({principale: espn} if espn else {}) | src.get(x["id"], {})
         if not espn and score:  # ESPN n'a pas le score : on prend celui confirmé par 2 autres sources
             x["buts_dom"], x["buts_ext"], x["statut"], x["secours"] = score[0], score[1], "STATUS_FULL_TIME", True
     # un fichier par saison (matchs-2025.json...) ; matchs.json = saison en cours

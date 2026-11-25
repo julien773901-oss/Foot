@@ -1,7 +1,7 @@
 """Sources secondaires pour recouper les scores ESPN.
 Chaque source renvoie des matchs TERMINÉS : (ligue, 'AAAA-MM-JJ', domicile, exterieur, buts_dom, buts_ext).
 shortcut: ce sont des API gratuites non officielles ; une source qui tombe est juste ignorée (le reste continue)."""
-import json, re, sys, time, unicodedata, urllib.request
+import csv, io, json, re, sys, time, unicodedata, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from difflib import SequenceMatcher
@@ -254,6 +254,66 @@ def ls_classements(courante):
     return out
 
 
+# ---------- football-data.co.uk : fichiers CSV gratuits, faits pour être téléchargés ----------
+# Scores seulement (pas de buteurs). Historique depuis 1993-94 (22 championnats) et depuis 2012 (16 autres pays).
+FD = "https://www.football-data.co.uk"
+FD_DEBUT = 1993
+FD_DIV = {"E0": "Premier League", "E1": "Championship (Angleterre)", "E2": "League One (Angleterre)",
+          "E3": "League Two (Angleterre)", "EC": "National League (Angleterre)", "SC0": "Premiership (Écosse)",
+          "SC1": "Championship (Écosse)", "SC2": "League One (Écosse)", "SC3": "League Two (Écosse)", "D1": "Bundesliga",
+          "D2": "2. Bundesliga (Allemagne)", "I1": "Serie A", "I2": "Serie B (Italie)", "SP1": "La Liga", "SP2": "LaLiga 2 (Espagne)",
+          "F1": "Ligue 1", "F2": "Ligue 2", "N1": "Eredivisie", "B1": "Pro League (Belgique)", "P1": "Liga Portugal",
+          "T1": "Süper Lig (Turquie)", "G1": "Super League (Grèce)"}
+FD_PAYS = {"ARG": "Liga Profesional (Argentine)", "AUT": "Bundesliga (Autriche)", "BRA": "Série A (Brésil)",
+           "CHN": "Super League (Chine)", "DNK": "Superliga (Danemark)", "FIN": "Veikkausliiga (Finlande)",
+           "IRL": "Premier Division (Irlande)", "JPN": "J1 League (Japon)", "MEX": "Liga MX (Mexique)",
+           "NOR": "Eliteserien (Norvège)", "POL": "Ekstraklasa (Pologne)", "ROU": "Liga 1 (Roumanie)",
+           "RUS": "Premier Liga (Russie)", "SWE": "Allsvenskan (Suède)", "SWZ": "Super League (Suisse)", "USA": "MLS (États-Unis)"}
+
+
+def fd_csv(url):
+    """Lignes du fichier, ou [] s'il n'existe pas (le site renvoie alors une page HTML)."""
+    try:
+        brut = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60).read()
+    except urllib.error.HTTPError as e:
+        if e.code in (300, 404):
+            return []
+        raise
+    try:
+        txt = brut.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        txt = brut.decode("latin-1")  # vieux fichiers
+    if not txt.startswith(("Div", "Country")):
+        return []
+    return list(csv.DictReader(io.StringIO(txt)))
+
+
+def fd_lignes(rows, ligue):
+    out = []
+    for r in rows:
+        dom, ext = r.get("HomeTeam") or r.get("Home"), r.get("AwayTeam") or r.get("Away")
+        bd, be = r.get("FTHG", r.get("HG")), r.get("FTAG", r.get("AG"))
+        if not (dom and ext and r.get("Date") and bd not in (None, "") and be not in (None, "")):
+            continue
+        j, m, a = r["Date"].split("/")
+        a = ("19" if int(a) > 50 else "20") + a if len(a) == 2 else a
+        out.append((ligue, f"{a}-{m}-{j}", dom, ext, int(float(bd)), int(float(be))))
+    return out
+
+
+def fd_saison(div, annee):
+    return fd_lignes(fd_csv(f"{FD}/mmz4281/{annee % 100:02d}{(annee + 1) % 100:02d}/{div}.csv"), FD_DIV[div])
+
+
+def fd_pays(code):
+    return fd_lignes(fd_csv(f"{FD}/new/{code}.csv"), FD_PAYS[code])
+
+
+def fd_id(r):
+    """Identifiant stable d'un match football-data (ligue, date, équipe à domicile)."""
+    return "fd" + re.sub(r"[^A-Za-z0-9]", "", f"{r[1]}{r[2]}{r[0]}")[:40]  # ASCII : l'id passe dans l'adresse de la page
+
+
 TSDB = {"Ligue 1": 4334, "Premier League": 4328, "La Liga": 4335, "Serie A": 4332, "Bundesliga": 4331,
         "Ligue des champions": 4480, "Ligue 2": 4401, "Ligue Europa": 4481, "Ligue Conférence": 5071,
         "Coupe de France": 4484, "Liga Portugal": 4344, "Eredivisie": 4337}
@@ -338,6 +398,11 @@ if __name__ == "__main__":
     assert ls_ligue_principale("switzerland", "super-league-championship-group") == "Super League (Suisse)"
     assert ls_ligue_principale("poland", "iii-liga-group-1") is None and ls_ligue_principale("poland", "ii-liga") == "II Liga (Pologne)"
     assert ls_ligue_principale("korea-republic", "k-league-2") == "K League 2 (Corée du Sud)"
+    assert fd_lignes([{"Date": "05/08/99", "HomeTeam": "A", "AwayTeam": "B", "FTHG": "2", "FTAG": "1"},
+                      {"Date": "13/07/2012", "Home": "C", "Away": "D", "HG": "0", "AG": "1"},
+                      {"Date": "14/07/2012", "Home": "E", "Away": "F", "HG": "", "AG": ""}], "L") \
+        == [("L", "1999-08-05", "A", "B", 2, 1), ("L", "2012-07-13", "C", "D", 0, 1)]
+    assert fd_id(("Ligue 1", "1993-07-23", "Saint-Étienne")) == "fd19930723SainttienneLigue1"
     assert consensus((1, 0), {"a": (1, 0)}) == ((1, 0), False)
     assert consensus((1, 0), {"a": (2, 0)}) == ((1, 0), True)
     assert consensus(None, {"a": (2, 0), "b": (2, 0)}) == ((2, 0), False)
