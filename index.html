@@ -143,6 +143,8 @@
   .prono .lib { display:flex; justify-content:space-between; font-size:12px; color:var(--mut); margin-top:3px; gap:8px; }
   .partage { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
   .partage button { padding:6px 12px; font-size:14px; }
+  .identite { margin:2px 0; font-size:14px; }
+  .fiche img.drapeau { width:18px; height:auto; vertical-align:-2px; }
   .photo { width:64px; height:64px; border-radius:50%; object-fit:cover; background:var(--line); }
   [hidden] { display:none !important; }
 </style>
@@ -448,6 +450,19 @@ const STATS_J = [["tirs", "Tirs"], ["cadres", "Cadrés"], ["fautes", "Fautes"], 
 const carrieresP = {};
 const paquet = n => [...n].reduce((s, c) => s + c.codePointAt(0), 0) % 64;
 const carriere = nom => (carrieresP[paquet(nom)] ??= fetch(`carrieres/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom] || []);
+// identité : [naissance, nationalité, drapeau, taille cm, poids kg, poste] (même découpage, voir foot.py)
+const identitesP = {};
+const identite = nom => (identitesP[paquet(nom)] ??= fetch(`identites/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom]);
+function ligneIdentite(v) {
+  if (!v) return "";
+  const [naiss, nat, drapeau, taille, poids, poste] = v;
+  const auj = new Date().toISOString().slice(0, 10);
+  const age = naiss && auj.slice(0, 4) - naiss.slice(0, 4) - (auj.slice(5) < naiss.slice(5));
+  return `<div class="identite">${[
+    naiss && `Né le ${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)} (${age} ans)`,
+    nat && `${drapeau ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(drapeau)}.png" alt="" onerror="this.remove()"> ` : ""}${esc(nat)}`,
+    taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`, poids && `${poids} kg`, poste && esc(poste)].filter(Boolean).join(" · ")}</div>`;
+}
 function tableCarriere(C) {
   // ligne : [saison, équipe, compétition, MJ, tit., buts, pen., PD, J, R, tirs, cadrés, fautes, subies, HJ, arrêts, encaissés]
   const cols = [["MJ", 3], ["Tit.", 4], ["Buts", 5], ["PD", 7], ["🟨", 8], ["🟥", 9], ...STATS_J.map(([, t], i) => [t, 10 + i])]
@@ -487,11 +502,11 @@ async function statsJoueur(nom) {
 async function vueJoueur(nom) {
   const el = $("detail");
   el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Chargement…</p>`;
-  const [st, C] = await Promise.all([statsJoueur(nom), carriere(nom)]);
+  const [st, C, idt] = await Promise.all([statsJoueur(nom), carriere(nom), identite(nom)]);
   if (route()[1] !== nom) return;
   if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
   if (!st) {  // rien cette saison, mais une carrière ailleurs
-    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche"><div><h2>${esc(nom)}</h2></div></div>${boutonsPartage("joueur", nom)}
+    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche"><div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}</div></div>${boutonsPartage("joueur", nom)}
       <p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
     return;
   }
@@ -502,7 +517,7 @@ async function vueJoueur(nom) {
   const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
     : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
   el.innerHTML = `<a class="pill" href="#">← Retour</a>
-    <div class="fiche">${photo}<div><h2>${esc(nom)}</h2><div class="mut">${equipes.map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ")}</div></div></div>
+    <div class="fiche">${photo}<div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}<div class="mut">${equipes.map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ")}</div></div></div>
     ${boutonsPartage("joueur", nom)}
     ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}
     <h2>Saison (toutes compétitions)</h2>

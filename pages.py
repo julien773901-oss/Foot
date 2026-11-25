@@ -58,8 +58,22 @@ def val(l, i):
     return "–" if v is None else str(v)
 
 
-def ecrire(racine, m, car, clas, courante, maj):
-    """m : matchs exportés ; car : {joueur: lignes de carrière (format foot.carrieres)} ; clas : classements."""
+def age(naissance, jour):
+    return int(jour[:4]) - int(naissance[:4]) - (jour[5:10] < naissance[5:10])
+
+
+def ligne_identite(v, jour):
+    """[naissance, nationalité, drapeau, taille cm, poids kg, poste] -> « Né le 20/12/1998 (27 ans) · France · 1,78 m · ... »"""
+    naiss, nat, _, taille, poids, poste = v
+    morceaux = [f"Né le {naiss[8:10]}/{naiss[5:7]}/{naiss[:4]} ({age(naiss, jour)} ans)" if naiss else None, nat,
+                f"{taille // 100},{taille % 100:02d} m" if taille else None, f"{poids} kg" if poids else None, poste]
+    return " · ".join(x for x in morceaux if x)
+
+
+def ecrire(racine, m, car, clas, courante, maj, iden=None):
+    """m : matchs exportés ; car : {joueur: lignes de carrière (format foot.carrieres)} ; clas : classements ;
+    iden : {joueur: [naissance, nationalité, drapeau, taille, poids, poste]}."""
+    iden = iden or {}
     for d in ("joueur", "equipe", "competition"):
         shutil.rmtree(racine / d, ignore_errors=True)  # un joueur disparu ne doit pas laisser de page morte
         (racine / d).mkdir()
@@ -88,7 +102,8 @@ def ecrire(racine, m, car, clas, courante, maj):
         saisons = sorted({l[0] for l in ls})
         periode = nom_saison(saisons[0]) if len(saisons) == 1 else f"{nom_saison(saisons[0])} à {nom_saison(saisons[-1])}"
         desc = f"{nom} ({', '.join(clubs[:3])}) : {buts} but{'s' * (buts > 1)} en {len(saisons)} saison{'s' * (len(saisons) > 1)} ({periode}). Statistiques saison par saison, club par club."
-        corps = (f"<h1>{e(nom)}</h1><p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
+        idt = ligne_identite(iden[nom], maj) if nom in iden else ""
+        corps = (f"<h1>{e(nom)}</h1>" + (f"<p>{e(idt)}</p>" if idt else "") + f"<p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
                  f"<p>{e(desc)}</p><h2>Carrière saison par saison</h2>"
                  + table([("Saison", 0), ("Club", 1), ("Compétition", 1)] + [(t, 0) for t, _ in cols], lignes)
                  + "<p class=mut>« – » = inconnu : nombre de matchs et passes décisives seulement sur les saisons récentes.</p>")
@@ -181,4 +196,7 @@ if __name__ == "__main__":
     assert slug("Kylian Mbappé") == "kylian-mbappe" and slug("Ødegaard!") == "degaard" and slug("") == "x"
     assert slugs(["Nacional", "Nacional!"]) == {"Nacional": "nacional", "Nacional!": "nacional-2"}
     assert val([1, 2], 5) == "–" and val([1, None], 1) == "–" and val([0], 0) == "0"
+    assert ligne_identite(["1998-12-20", "France", "fra", 178, 74, "Attaquant"], "2026-11-25") == \
+        "Né le 20/12/1998 (27 ans) · France · 1,78 m · 74 kg · Attaquant"
+    assert ligne_identite(["2000-11-26", None, None, None, None, None], "2026-11-25") == "Né le 26/11/2000 (25 ans)"
     print("auto-tests OK")

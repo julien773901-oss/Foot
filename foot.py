@@ -1,7 +1,7 @@
 """Met à jour foot.db : matchs (avec logos et buteurs) et classements.
 1er lancement : toute la saison. Ensuite : 7 jours avant / 14 jours après + les jours jamais lus correctement.
 Lancer : python foot.py"""
-import json, sqlite3, sys, time
+import json, sqlite3, sys, time, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -166,6 +166,40 @@ def jour(code, ligue, j):
         return [], False
 
 
+MAX_IDENTITES = 6000  # ~0,4 s par joueur sur 4 fils : ~10 min par passage ; ~27 000 joueurs à lire au départ
+
+
+POSTES = {"Goalkeeper": "Gardien", "Defender": "Défenseur", "Midfielder": "Milieu", "Forward": "Attaquant"}
+
+
+def identite(a):
+    """Fiche athlète ESPN -> (naissance AAAA-MM-JJ, nationalité, code drapeau, taille cm, poids kg, poste)."""
+    drapeau = (a.get("flag") or {}).get("href", "").rsplit("/", 1)[-1].removesuffix(".png") or None
+    poste = (a.get("position") or {}).get("name")
+    return ((a.get("dateOfBirth") or "")[:10] or None, a.get("citizenship") or None, drapeau,
+            round(a["height"] * 2.54) if a.get("height") else None,  # ESPN : pouces et livres
+            round(a["weight"] * 0.4536) if a.get("weight") else None, POSTES.get(poste, poste))
+
+
+PAYS_EN_PLUS = {"USA": "États-Unis", "Côte d'Ivoire": "Côte d'Ivoire", "Congo DR": "RD Congo", "Türkiye": "Turquie",
+                "Netherlands": "Pays-Bas", "China PR": "Chine"}  # noms ESPN absents ou mal traduits par Wikidata
+
+
+def pays_fr():
+    """Nom anglais (ESPN) -> nom français, d'après Wikidata (pays avec code ISO + nations du Royaume-Uni).
+    shortcut: un pays inconnu reste en anglais ; ajouter son nom dans PAYS_EN_PLUS."""
+    q = ('SELECT ?en ?fr WHERE { { ?c wdt:P297 [] } UNION { VALUES ?c { wd:Q21 wd:Q22 wd:Q25 wd:Q26 } } ?c rdfs:label ?fr . '
+         'FILTER(lang(?fr)="fr") { ?c rdfs:label ?en } UNION { ?c skos:altLabel ?en } FILTER(lang(?en)="en") }')
+    try:
+        d = {}
+        for b in get("https://query.wikidata.org/sparql?format=json&query=" + urllib.parse.quote(q))["results"]["bindings"]:
+            d.setdefault(b["en"]["value"], b["fr"]["value"])
+        return d | PAYS_EN_PLUS
+    except Exception as e:
+        print(f"[erreur] noms de pays Wikidata : {e}", file=sys.stderr)
+        return PAYS_EN_PLUS
+
+
 NB_PAQUETS = 64  # carrières découpées en 64 fichiers : la fiche joueur n'en charge qu'un
 
 
@@ -234,7 +268,9 @@ def main():
         maj TEXT, PRIMARY KEY (match_id, source));
     CREATE TABLE IF NOT EXISTS jours_lus (code TEXT, jour TEXT, PRIMARY KEY (code, jour));
     CREATE TABLE IF NOT EXISTS participations (match_id TEXT, joueur TEXT, id_espn TEXT, cote TEXT,
-        titulaire INTEGER, entre INTEGER, sorti INTEGER, PRIMARY KEY (match_id, joueur));""")
+        titulaire INTEGER, entre INTEGER, sorti INTEGER, PRIMARY KEY (match_id, joueur));
+    CREATE TABLE IF NOT EXISTS identites (id_espn TEXT PRIMARY KEY, joueur TEXT, lu TEXT, naissance TEXT, nationalite TEXT,
+        drapeau TEXT, taille INTEGER, poids INTEGER, poste TEXT);""")
     for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
             [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]]:  # colonnes ajoutées après coup
         try:
@@ -347,6 +383,20 @@ def main():
                        [(mid,) + j for j in joueurs])
     reste = db.execute(f"SELECT count(*) FROM matchs WHERE {a_faire}").fetchone()[0]
     print(f"[temps] fiches: {time.time() - t0:.0f} s ({len(lues)} lues, {reste} restantes)")
+
+    # identité des joueurs ESPN (naissance, nationalité, taille...), lue une seule fois par joueur, MAX_IDENTITES par passage
+    ids = db.execute("SELECT id_espn, max(joueur) FROM participations WHERE id_espn IS NOT NULL AND id_espn NOT IN "
+                     f"(SELECT id_espn FROM identites) GROUP BY id_espn LIMIT {MAX_IDENTITES}").fetchall()
+    def lire_identite(x):
+        try:
+            return (x[0], x[1], maintenant) + identite(get(f"https://sports.core.api.espn.com/v2/sports/soccer/athletes/{x[0]}"))
+        except Exception as e:
+            print(f"[erreur] identité {x}: {e}", file=sys.stderr)
+            return (x[0], x[1], maintenant) + (None,) * 6  # pas relu à chaque passage
+    t0 = time.time()
+    with ThreadPoolExecutor(4) as pool:
+        db.executemany("INSERT OR REPLACE INTO identites VALUES (?,?,?,?,?,?,?,?,?)", pool.map(lire_identite, ids))
+    print(f"[temps] identités: {time.time() - t0:.0f} s ({len(ids)} lues)")
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
     for saison in [s for s in SAISONS if s >= PREMIERE_SAISON]:
         for code, ligue in LIGUES.items():
@@ -447,6 +497,16 @@ def main():
             if poste:
                 j["p"] = poste
     car = ecrire_carrieres(m, saison_match, parts, debut_recent)
+    # identités par nom (homonymes : le dernier lu l'emporte), même découpage que les carrières
+    pays = pays_fr()
+    iden = {nom: [v[0], pays.get(v[1], v[1])] + v[2:] for nom, *v in db.execute("SELECT joueur, naissance, nationalite, drapeau, taille, poids, poste FROM identites "
+                                            "WHERE coalesce(naissance, nationalite, poste) IS NOT NULL ORDER BY lu")}
+    (dossier := DB.with_name("identites")).mkdir(exist_ok=True)
+    pq = [{} for _ in range(NB_PAQUETS)]
+    for nom, v in iden.items():
+        pq[paquet(nom)][nom] = v
+    for i, d in enumerate(pq):
+        (dossier / f"{i}.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     for s in SAISONS:
         donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
@@ -456,7 +516,7 @@ def main():
         for suffixe in [f"-{s}"] + ([""] if s == courante else []):
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")
             DB.with_name(f"joueurs{suffixe}.json").write_text(joueurs, encoding="utf-8")
-    P.ecrire(DB.parent, m, car, clas, courante, maintenant)
+    P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden)
     print(f"{len(taches)} jours lus, {len(matchs)} matchs mis à jour, {erreurs} erreurs -> {DB}")
 
 
@@ -500,4 +560,8 @@ if __name__ == "__main__":
     assert c == [[2025, "E", "L", 1, 1, 1, 1, 0, 0, 0, 0, None, None, None, None, 3, None],
                  [2010, "E", "L", None, None, 0, 0, None, 1, 0] + [None] * 7], c
     assert paquet("Kylian Mbappé") == sum(map(ord, "Kylian Mbappé")) % 64
+    assert identite({"dateOfBirth": "1998-12-20T08:00Z", "citizenship": "France", "height": 70.0, "weight": 163.0,
+                     "position": {"name": "Forward"}, "flag": {"href": "https://a.espncdn.com/i/teamlogos/countries/500/fra.png"}}) \
+        == ("1998-12-20", "France", "fra", 178, 74, "Attaquant")
+    assert identite({}) == (None,) * 6
     main()

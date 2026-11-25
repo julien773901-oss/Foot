@@ -68,6 +68,14 @@
   s'arrête à 950 Mo (l'ancien site reste en ligne). Si ça arrive : alléger les pages joueurs ou sortir foot.db.xz du site.
 - Reste à faire à la main (compte Google du propriétaire) : inscrire le site dans Google Search Console (sitemap : `sitemap.xml`).
 
+- Search Console : balise de vérification dans index.html (ne pas l'enlever).
+- Identité des joueurs (fiche du site + pages Google) : naissance, âge, nationalité + drapeau, taille, poids, poste.
+  Source : fiche athlète ESPN (`sports.core.api.espn.com/v2/sports/soccer/athletes/{id}`), table `identites`,
+  lue une fois par joueur, `MAX_IDENTITES` par passage (~27 000 joueurs : ~5 passages). Fichiers `identites/0..63.json`.
+  Pays traduits en français via Wikidata (`pays_fr()`, compléments dans `PAYS_EN_PLUS`).
+  Seulement les joueurs avec un id ESPN (compositions des 4 dernières saisons) : rien pour LiveScore / football-data.
+  Wikidata testé : pied fort quasi absent (6 joueurs), photos pour ~3 400 joueurs seulement → pas utilisé.
+
 ## Pour relancer la base à la main
     python foot.py
 

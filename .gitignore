@@ -7,6 +7,7 @@ foot.db*
 matchs*.json
 joueurs*.json
 carrieres/
+identites/
 joueur/
 equipe/
 competition/

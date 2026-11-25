@@ -23,7 +23,7 @@ jobs:
       - run: python3 foot.py
       - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
         run: |
-          mkdir _site && cp -r index.html sw.js matchs*.json joueurs*.json carrieres joueur equipe competition pages.css plan.html sitemap*.xml _site/ && touch _site/.nojekyll
+          mkdir _site && cp -r index.html sw.js matchs*.json joueurs*.json carrieres identites joueur equipe competition pages.css plan.html sitemap*.xml _site/ && touch _site/.nojekyll
           xz -6 -T0 -c foot.db > _site/foot.db.xz
           # GitHub Pages refuse les sites de plus de 1 Go : on s'arrête avant (l'ancien site reste en ligne)
           taille=$(du -sm --apparent-size _site | cut -f1); echo "Taille du site : $taille Mo"
