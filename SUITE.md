@@ -76,9 +76,12 @@
   Seulement les joueurs avec un id ESPN (compositions des 4 dernières saisons) : rien pour LiveScore / football-data.
   Wikidata testé : pied fort quasi absent (6 joueurs), photos pour ~3 400 joueurs seulement → pas utilisé.
 
-- Direct LiveScore : LiveScore refuse les navigateurs (403 avec un en-tête Origin). `direct.py`, lancé toutes les 5 min
-  par `.github/workflows/direct.yml`, publie `direct.json` sur la branche `direct` ; la page le lit via
-  raw.githubusercontent.com (cache 5 min) : 5 à 15 min de retard, scores + minute seulement (pas de buteurs).
+- Direct LiveScore : LiveScore refuse les navigateurs (403 avec un en-tête Origin). La page passe chaque minute par un
+  relais Cloudflare (Worker gratuit du propriétaire, https://foot-direct.julien773901.workers.dev/, code dans
+  `relais-cloudflare.js`, `RELAIS` dans index.html ; 100 000 appels/jour gratuits). S'il ne répond pas : `direct.py`,
+  lancé toutes les 5 min par `.github/workflows/direct.yml`, publie `direct.json` sur la branche `direct`, lu via
+  raw.githubusercontent.com (5 à 15 min de retard). Scores + minute seulement (pas de buteurs en direct).
+  Pour modifier le relais : dash.cloudflare.com > Workers & Pages > foot-direct > Edit code, coller relais-cloudflare.js.
 - Classements en direct (page, `classementDirect`) : ajoute au classement les matchs commencés moins de 1 h 45 avant
   sa lecture (ou après), en cours compris (🔴). Si une équipe a plus de matchs avant la lecture que « J » (play-offs,
   Apertura/Clausura qui portent le nom du championnat), on garde le classement officiel.

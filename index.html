@@ -1044,6 +1044,17 @@ function parseESPN(ev, ligue) {
     minute: ev.status.type.shortDetail || ev.status.displayClock };
 }
 
+const RELAIS = "https://foot-direct.julien773901.workers.dev/";  // relais Cloudflare (code : relais-cloudflare.js)
+// statuts LiveScore -> ESPN : même table que LS_STATUT dans sources.py (sinon c'est une minute : match en cours)
+const LS_STATUT = { FT: "STATUS_FULL_TIME", AET: "STATUS_FINAL_AET", AP: "STATUS_FINAL_PEN", NS: PREVU, "Postp.": "STATUS_POSTPONED",
+  "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED", "Aband.": "STATUS_ABANDONED", AW: "STATUS_FINAL_AWARDED" };
+function lsMatch(eid, t1, t2, eps) {  // même calcul que direct.py
+  const statut = LS_STATUT[eps] || "STATUS_IN_PROGRESS";
+  const joue = t1 != null && t1 !== "" && ![PREVU, "STATUS_POSTPONED", "STATUS_CANCELED"].includes(statut);
+  return { id: "ls" + eid, buts_dom: joue ? +t1 : null, buts_ext: joue ? +t2 : null, statut,
+    minute: eps === "HT" ? "Mi-temps" : statut === "STATUS_IN_PROGRESS" ? eps : "" };
+}
+
 let premierPassage = true;
 async function direct() {
   const auj = new Date(), proche = d => Math.abs(new Date(d) - auj) < 3 * 3600e3;
@@ -1052,16 +1063,21 @@ async function direct() {
   const avant = new Map(data.matchs.map(m => [m.id, [m.buts_dom, m.buts_ext]]));
   if (actifs.length) {
     const codes = Object.entries(data.ligues).filter(([c, n]) => !c.startsWith("ls:") && actifs.some(m => m.ligue === n));
-    // LiveScore refuse les navigateurs : direct.json, refait toutes les 5 min par GitHub (direct.py), donne ces scores
-    // shortcut: 5 à 15 min de retard (GitHub + cache de 5 min de raw.githubusercontent.com) ; un vrai direct demanderait un serveur relais
-    const lsIds = new Set(actifs.filter(m => m.id.startsWith("ls")).map(m => m.id));
+    // LiveScore refuse les navigateurs : on passe par le relais Cloudflare (relais-cloudflare.js, chaque minute) ;
+    // s'il ne répond pas, direct.json, refait toutes les 5 min par GitHub (direct.py : 5 à 15 min de retard)
+    const lsActifs = actifs.filter(m => m.id.startsWith("ls")), lsIds = new Set(lsActifs.map(m => m.id));
+    const majLS = n => { const i = lsIds.has(n.id) ? data.matchs.findIndex(m => m.id === n.id) : -1; if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n }; };
     if (lsIds.size) try {
-      const d = await (await fetch("https://raw.githubusercontent.com/julien773901-oss/Foot/direct/direct.json", { cache: "no-store" })).json();
-      if (!data.maj || d.maj > data.maj) for (const n of d.matchs) {
-        const i = lsIds.has(n.id) ? data.matchs.findIndex(m => m.id === n.id) : -1;
-        if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n };
-      }
-    } catch (e) { /* fichier absent ou injoignable : on garde les données horaires */ }
+      if (!RELAIS) throw 0;
+      const jours = [...new Set(lsActifs.map(m => m.date_utc.slice(0, 10).replace(/-/g, "")))];
+      for (const l of await Promise.all(jours.map(j => fetch(`${RELAIS}?j=${j}`).then(r => r.ok ? r.json() : Promise.reject(r.status)))))
+        for (const [eid, t1, t2, eps] of l) majLS(lsMatch(eid, t1, t2, eps));
+    } catch (e) {
+      try {
+        const d = await (await fetch("https://raw.githubusercontent.com/julien773901-oss/Foot/direct/direct.json", { cache: "no-store" })).json();
+        if (!data.maj || d.maj > data.maj) d.matchs.forEach(majLS);
+      } catch (e) { /* rien de joignable : on garde les données horaires */ }
+    }
     await Promise.all(codes.map(async ([code, nom]) => {
       try {
         const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard`, { cache: "no-store" });
