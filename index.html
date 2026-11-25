@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Base Foot</title>
+<title>Base Foot : résultats, classements et stats de football</title>
+<meta name="description" content="Matchs en direct, résultats, classements, buteurs et carrières des joueurs de plus de 180 compétitions de football, saison par saison.">
+<link rel="canonical" href="https://julien773901-oss.github.io/Foot/">
 <script>/* thème choisi appliqué avant l'affichage, pour éviter un flash de la mauvaise couleur */
   try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
@@ -188,7 +190,8 @@
   <ul class="mut" id="sources"></ul>
   <p class="mut">Les scores ESPN sont recoupés avec les autres sources ; ⚠ = scores différents selon les sources.
     Pendant les matchs, la page se rafraîchit toute seule chaque minute. Cliquez sur un score pour la fiche du match.
-    Base complète téléchargeable : <a href="foot.db">foot.db</a> (SQLite) · <a href="matchs.json">matchs.json</a></p>
+    Base complète téléchargeable : <a href="foot.db.xz">foot.db.xz</a> (SQLite compressé) · <a href="matchs.json">matchs.json</a></p>
+  <p><a href="plan.html">Toutes les compétitions, équipes et joueurs</a></p>
 </main>
 <script>
 let data = { matchs: [], classement: [], ligues: {} }, onglet = "matchs", nbResultats = 30;
@@ -439,6 +442,24 @@ function grapheButs(ms, nom) {
 }
 
 // ---------- fiche joueur ----------
+const STATS_J = [["tirs", "Tirs"], ["cadres", "Cadrés"], ["fautes", "Fautes"], ["subies", "Fautes subies"], ["hj", "Hors-jeu"], ["arrets", "Arrêts"], ["enc", "Buts encaissés"]];
+// carrière toutes saisons : 64 fichiers, même découpage que paquet() dans foot.py
+const carrieresP = {};
+const paquet = n => [...n].reduce((s, c) => s + c.codePointAt(0), 0) % 64;
+const carriere = nom => (carrieresP[paquet(nom)] ??= fetch(`carrieres/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom] || []);
+function tableCarriere(C) {
+  // ligne : [saison, équipe, compétition, MJ, tit., buts, pen., PD, J, R, tirs, cadrés, fautes, subies, HJ, arrêts, encaissés]
+  const cols = [["MJ", 3], ["Tit.", 4], ["Buts", 5], ["PD", 7], ["🟨", 8], ["🟥", 9], ...STATS_J.map(([, t], i) => [t, 10 + i])]
+    .filter(([, i]) => i < 10 ? true : i >= 15 ? C.some(l => l[15] > 0) : C.some(l => l[i] != null));  // arrêts : gardiens seulement
+  const somme = (ls, i) => ls.reduce((s, l) => l[i] == null ? s : (s ?? 0) + l[i], null);
+  const cell = (v, i, pen) => `<td${i === 5 ? ' class="pts"' : ""}>${v ?? "–"}${i === 5 && pen ? ` <span class="mut">(${pen} pen.)</span>` : ""}</td>`;
+  const L = C.slice().sort((a, b) => b[0] - a[0]);
+  return `<h2>Carrière (toutes saisons en base)</h2><div class="tab-wrap"><table><thead><tr><th>Saison</th><th style="text-align:left">Club · compétition</th>${cols.map(([t]) => `<th>${t}</th>`).join("")}</tr></thead><tbody>
+    ${L.map(l => `<tr><td>${nomSaison(l[0])}</td><td class="g"><a href="#equipe=${encodeURIComponent(l[1])}">${esc(l[1])}</a><div class="mut">${esc(l[2])}</div></td>${cols.map(([, i]) => cell(l[i], i, l[6])).join("")}</tr>`).join("")}
+    <tr><td></td><td class="g"><b>Total</b></td>${cols.map(([, i]) => cell(somme(L, i), i, somme(L, 6))).join("")}</tr>
+  </tbody></table></div>
+  <p class="mut">« – » = inconnu : compositions et passes décisives seulement sur les saisons récentes ; tirs, fautes et arrêts selon ESPN.</p>`;
+}
 const joueursP = {};  // un fichier par saison, chargé à la demande
 const chargerJoueurs = () => joueursP[data.saison ?? ""] ??=
   fetch(data.saison ? `joueurs-${data.saison}.json` : "joueurs.json", { cache: "no-store" }).then(r => r.json()).catch(() => ({}));
@@ -447,7 +468,7 @@ async function statsJoueur(nom) {
   const J = (await chargerJoueurs())[nom];
   const parId = Object.fromEntries(data.matchs.map(m => [m.id, m]));
   const lignes = new Map();
-  for (const [mid, cote, role, sorti] of J?.m || []) if (parId[mid]) lignes.set(mid, { m: parId[mid], cote, role, sorti });
+  for (const [mid, cote, role, sorti, ...st] of J?.m || []) if (parId[mid]) lignes.set(mid, { m: parId[mid], cote, role, sorti, st });
   for (const m of data.matchs) for (const champ of ["buteurs", "passes", "cartons"]) for (const x of m[champ] || [])
     if (!x.nom.endsWith("(csc)") && sansTag(x.nom) === nom && !lignes.has(m.id)) lignes.set(m.id, { m, cote: x.cote, role: "?" });
   const L = [...lignes.values()].sort((a, b) => a.m.date_utc.localeCompare(b.m.date_utc));
@@ -456,26 +477,38 @@ async function statsJoueur(nom) {
   for (const l of L) { l.b = de(l, "buteurs"); l.p = de(l, "passes"); l.c = de(l, "cartons"); l.eq = l.cote === "dom" ? l.m.domicile : l.m.exterieur; }
   const tot = ls => ({ mj: ls.filter(l => l.role !== "?").length, tit: ls.filter(l => l.role === "T").length, b: ls.reduce((s, l) => s + l.b.length, 0),
     pen: ls.reduce((s, l) => s + l.b.filter(x => x.nom.endsWith("(pen)")).length, 0), p: ls.reduce((s, l) => s + l.p.length, 0),
-    j: ls.reduce((s, l) => s + l.c.filter(x => x.type === "J").length, 0), r: ls.reduce((s, l) => s + l.c.filter(x => x.type === "R").length, 0) });
+    j: ls.reduce((s, l) => s + l.c.filter(x => x.type === "J").length, 0), r: ls.reduce((s, l) => s + l.c.filter(x => x.type === "R").length, 0),
+    // stats ESPN (tirs, cadrés, fautes, subies, hors-jeu, arrêts, encaissés) : null si aucun match ne les donne
+    ...Object.fromEntries(STATS_J.map(([k], i) => [k, ls.reduce((s, l) => l.st?.[i] == null ? s : (s ?? 0) + l.st[i], null)])) });
   return { J, L, tot, T: tot(L), equipes: [...new Set(L.map(l => l.eq))] };
 }
 
 async function vueJoueur(nom) {
   const el = $("detail");
   el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Chargement…</p>`;
-  const st = await statsJoueur(nom);
+  const [st, C] = await Promise.all([statsJoueur(nom), carriere(nom)]);
   if (route()[1] !== nom) return;
-  if (!st) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur cette saison.</p>`; return; }
+  if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
+  if (!st) {  // rien cette saison, mais une carrière ailleurs
+    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche"><div><h2>${esc(nom)}</h2></div></div>${boutonsPartage("joueur", nom)}
+      <p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
+    return;
+  }
   const { J, L, tot, T, equipes } = st;
   const comps = [...new Set(L.map(l => l.m.ligue))];
   const photo = J?.id ? `<img class="photo" src="https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(J.id)}.png" alt="" onerror="this.remove()">` : "";
+  const gardien = J?.p === "G" || T.arrets > 0;
+  const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
+    : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
   el.innerHTML = `<a class="pill" href="#">← Retour</a>
     <div class="fiche">${photo}<div><h2>${esc(nom)}</h2><div class="mut">${equipes.map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ")}</div></div></div>
     ${boutonsPartage("joueur", nom)}
     ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}
     <h2>Saison (toutes compétitions)</h2>
     <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
-      <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div></div>
+      <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div>
+      ${STATS_J.filter(([k]) => k !== "cadres").map(tuile).join("")}</div>
+    ${C.length ? tableCarriere(C) : ""}
     ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
       ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
     </tbody></table></div>` : ""}

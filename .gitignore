@@ -6,3 +6,10 @@ _site/
 foot.db*
 matchs*.json
 joueurs*.json
+carrieres/
+joueur/
+equipe/
+competition/
+pages.css
+plan.html
+sitemap*.xml

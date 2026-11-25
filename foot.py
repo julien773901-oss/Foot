@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import sources as S
+import pages as P
 
 # shortcut: API ESPN non officielle et sans clé, elle peut changer ; passer à football-data.org (clé gratuite) si elle casse.
 API = "https://site.api.espn.com/apis"
@@ -91,8 +92,14 @@ def passes(summary):
     return out
 
 
+STATS_ESPN = ["totalShots", "shotsOnTarget", "foulsCommitted", "foulsSuffered", "offsides", "saves", "goalsConceded"]
+PART_COLS = ["match_id", "joueur", "id_espn", "cote", "titulaire", "entre", "sorti", "poste",
+             "tirs", "cadres", "fautes", "subies", "hors_jeu", "arrets", "encaisses"]
+
+
 def participations(summary):
-    """Joueurs ayant joué : [(joueur, id_espn, cote, titulaire, entre, sorti)] (les remplaçants restés sur le banc sont exclus)."""
+    """Joueurs ayant joué : [(joueur, id_espn, cote, titulaire, entre, sorti, poste, *STATS_ESPN)]
+    (les remplaçants restés sur le banc sont exclus ; stats = None quand ESPN ne les donne pas)."""
     comp = summary["header"]["competitions"][0]["competitors"]
     id_dom = next(t["team"]["id"] for t in comp if t["homeAway"] == "home")
     out = []
@@ -100,12 +107,16 @@ def participations(summary):
         cote = "dom" if eq["team"]["id"] == id_dom else "ext"
         for p in eq.get("roster", []):
             if p.get("starter") or p.get("subbedIn"):
+                st = {s["name"]: s.get("value") for s in p.get("stats", [])}
+                poste = p.get("position", {}).get("abbreviation")
                 out.append((p["athlete"]["displayName"], p["athlete"].get("id"), cote,
-                            int(bool(p.get("starter"))), int(bool(p.get("subbedIn"))), int(bool(p.get("subbedOut")))))
+                            int(bool(p.get("starter"))), int(bool(p.get("subbedIn"))), int(bool(p.get("subbedOut"))),
+                            None if poste == "SUB" else poste,
+                            *(None if st.get(k) is None else int(st[k]) for k in STATS_ESPN)))
     return out
 
 
-FICHE_VERSION = 2  # monter ce numéro force la relecture des fiches (ex. quand on y lit une nouvelle info)
+FICHE_VERSION = 3  # 3 = tirs, fautes, hors-jeu, arrêts... ; monter ce numéro force la relecture des fiches (ex. quand on y lit une nouvelle info)
 COLS = ["id", "ligue", "date_utc", "domicile", "exterieur", "buts_dom", "buts_ext", "statut", "logo_dom",
         "logo_ext", "buteurs", "cartons", "maj"]
 
@@ -124,7 +135,7 @@ def parse(event, ligue):
 
 
 PREMIERE_SAISON = 2001  # ESPN n'a rien avant (2001-02 pour les grands championnats, ~2008 pour beaucoup d'autres)
-NB_DETAILLEES = 2  # passeurs + compositions seulement pour les saisons récentes (sinon la base dépasse les limites de GitHub)
+NB_DETAILLEES = 4  # passeurs + compositions seulement pour les saisons récentes : ~13 Mo compressés par saison, limite GitHub 100 Mo
 MAX_JOURS = 30000  # journées ESPN lues par passage (~25 min) ; l'historique se remplit en ~20 passages, du plus récent au plus ancien
 
 
@@ -155,6 +166,61 @@ def jour(code, ligue, j):
         return [], False
 
 
+NB_PAQUETS = 64  # carrières découpées en 64 fichiers : la fiche joueur n'en charge qu'un
+
+
+def paquet(nom):
+    return sum(map(ord, nom)) % NB_PAQUETS  # même calcul dans index.html (codePointAt)
+
+
+def carrieres(m, saison_match, parts, debut_detail):
+    """{joueur: [[saison, équipe, compétition, MJ, tit., buts, pen., PD, J, R, tirs, cadrés, fautes, subies, HJ, arrêts, encaissés]]}
+    MJ/tit. = None sans composition ; PD = None avant les saisons détaillées ; stats = None quand ESPN ne les donne pas."""
+    par_id, lignes = {x["id"]: x for x in m}, {}
+    def ligne(nom, mt, cote):
+        s = saison_match[mt["id"]]
+        cle = (nom, s, mt["domicile"] if cote == "dom" else mt["exterieur"], mt["ligue"])
+        return lignes.setdefault(cle, [s, cle[2], cle[3], None, None, 0, 0, None if s < debut_detail else 0, 0, 0] + [None] * 7)
+    for mid, nom, _, cote, tit, _, _, *st in parts:
+        if mid in par_id:
+            l = ligne(nom, par_id[mid], cote)
+            l[3], l[4] = (l[3] or 0) + 1, (l[4] or 0) + tit
+            for i, v in enumerate(st, 10):
+                if v is not None:
+                    l[i] = (l[i] or 0) + v
+    for x in m:
+        for champ in ("buteurs", "passes", "cartons"):
+            for e in x[champ]:
+                if e["nom"].endswith(" (csc)"):
+                    continue
+                l = ligne(e["nom"].removesuffix(" (pen)"), x, e["cote"])
+                if champ == "buteurs":
+                    l[5] += 1
+                    l[6] += e["nom"].endswith(" (pen)")
+                elif champ == "passes":
+                    l[7] = (l[7] or 0) + 1
+                else:
+                    l[9 if e.get("type") == "R" else 8] += 1
+    out = {}
+    for (nom, *_), l in lignes.items():
+        out.setdefault(nom, []).append(l)
+    return out
+
+
+def ecrire_carrieres(m, saison_match, parts, debut_detail):
+    dossier = DB.with_name("carrieres")
+    dossier.mkdir(exist_ok=True)
+    pq = [{} for _ in range(NB_PAQUETS)]
+    for nom, ls in carrieres(m, saison_match, parts, int(debut_detail[:4])).items():
+        for l in ls:
+            while l[-1] is None:  # stats absentes en fin de ligne : fichiers bien plus légers
+                l.pop()
+        pq[paquet(nom)][nom] = sorted(ls, key=lambda l: (l[0], l[2]))
+    for i, d in enumerate(pq):
+        (dossier / f"{i}.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return {n: ls for d in pq for n, ls in d.items()}
+
+
 def main():
     db = sqlite3.connect(DB)
     db.executescript("""
@@ -169,9 +235,10 @@ def main():
     CREATE TABLE IF NOT EXISTS jours_lus (code TEXT, jour TEXT, PRIMARY KEY (code, jour));
     CREATE TABLE IF NOT EXISTS participations (match_id TEXT, joueur TEXT, id_espn TEXT, cote TEXT,
         titulaire INTEGER, entre INTEGER, sorti INTEGER, PRIMARY KEY (match_id, joueur));""")
-    for col in ("cartons TEXT", "passes TEXT", "fiche_lue INTEGER"):  # colonnes ajoutées après coup
+    for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
+            [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]]:  # colonnes ajoutées après coup
         try:
-            db.execute(f"ALTER TABLE matchs ADD COLUMN {col}")
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {col}")
         except sqlite3.OperationalError:
             pass  # déjà là
     maintenant = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -253,8 +320,11 @@ def main():
 
     # fiche détaillée de chaque match terminé (passeurs + qui a joué), 1500 max par passage (la suite au prochain)
     code_de = {v: k for k, v in LIGUES.items()}
-    a_faire = (f"(fiche_lue IS NULL OR fiche_lue < {FICHE_VERSION}) AND (statut LIKE '%FULL_TIME%' OR statut LIKE '%FINAL%')"
-               f" AND date_utc >= '{debut_recent}'")
+    # football-data n'a pas de fiche ; LiveScore n'a rien de nouveau depuis la version 2 (pas de stats joueurs)
+    a_faire = (f"(fiche_lue IS NULL OR fiche_lue < (CASE WHEN id LIKE 'ls%' THEN 2 ELSE {FICHE_VERSION} END))"
+               f" AND (statut LIKE '%FULL_TIME%' OR statut LIKE '%FINAL%') AND date_utc >= '{debut_recent}' AND id NOT LIKE 'fd%'")
+    # compositions des saisons sorties de la fenêtre : effacées, sinon la base grossit d'une saison chaque année
+    db.execute("DELETE FROM participations WHERE match_id IN (SELECT id FROM matchs WHERE date_utc < ?)", (debut_recent,))
     a_lire = db.execute(f"SELECT id, ligue FROM matchs WHERE {a_faire} ORDER BY date_utc DESC LIMIT 1500").fetchall()
     def fiche(m):
         try:
@@ -273,7 +343,8 @@ def main():
         db.execute("UPDATE matchs SET passes=?, fiche_lue=?, buteurs=coalesce(?, buteurs), cartons=coalesce(?, cartons) WHERE id=?",
                    (json.dumps(p, ensure_ascii=False), FICHE_VERSION, but, cart, mid))
         db.execute("DELETE FROM participations WHERE match_id=?", (mid,))
-        db.executemany("INSERT OR IGNORE INTO participations VALUES (?,?,?,?,?,?,?)", [(mid,) + j for j in joueurs])
+        db.executemany(f"INSERT OR IGNORE INTO participations ({','.join(PART_COLS)}) VALUES ({','.join('?' * len(PART_COLS))})",
+                       [(mid,) + j for j in joueurs])
     reste = db.execute(f"SELECT count(*) FROM matchs WHERE {a_faire}").fetchone()[0]
     print(f"[temps] fiches: {time.time() - t0:.0f} s ({len(lues)} lues, {reste} restantes)")
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
@@ -313,9 +384,9 @@ def main():
             "football-data.co.uk (historique)": f"{n_fd} matchs"}
     for nom, lire in [("LiveScore", lambda: S.livescore(jours_lus)),
                       ("TheSportsDB", lambda: S.thesportsdb(recents)),
-                      ("openfootball", lambda: [r for a in RECENTES for r in S.openfootball(a)]),
-                      ("OpenLigaDB", lambda: [r for a in RECENTES for r in S.openligadb(a)]),
-                      ("football-data.co.uk", lambda: [r for a in RECENTES for d in S.FD_DIV for r in S.fd_saison(d, a)])]:
+                      ("openfootball", lambda: [r for a in RECENTES[:2] for r in S.openfootball(a)]),
+                      ("OpenLigaDB", lambda: [r for a in RECENTES[:2] for r in S.openligadb(a)]),
+                      ("football-data.co.uk", lambda: [r for a in RECENTES[:2] for d in S.FD_DIV for r in S.fd_saison(d, a)])]:
         t0 = time.time()
         try:
             trouves = S.apparier(a_verifier, lire())
@@ -365,12 +436,17 @@ def main():
     clas = table("SELECT * FROM classement ORDER BY ligue, groupe, rang")
     saison_match = {x["id"]: saison_de(x["date_utc"]) for x in m}
     jou = {s: {} for s in SAISONS}
-    # qui a joué quoi, chargé seulement par la fiche joueur : {joueur: {"id": id_espn, "m": [[match, cote, "T"|"E", sorti]]}}
-    for mid, nom, ide, cote, tit, ent, sor in db.execute(
-            "SELECT p.match_id, joueur, id_espn, cote, titulaire, entre, sorti FROM participations p "
-            "JOIN matchs m ON m.id = p.match_id ORDER BY m.date_utc"):
+    # qui a joué quoi, chargé seulement par la fiche joueur :
+    # {joueur: {"id": id_espn, "p": poste, "m": [[match, cote, "T"|"E", sorti, *stats (si ESPN les donne)]]}}
+    parts = db.execute("SELECT p.match_id, joueur, id_espn, cote, titulaire, sorti, poste, tirs, cadres, fautes, subies, "
+                       "hors_jeu, arrets, encaisses FROM participations p JOIN matchs m ON m.id = p.match_id ORDER BY m.date_utc").fetchall()
+    for mid, nom, ide, cote, tit, sor, poste, *st in parts:
         if saison_match.get(mid) in jou:
-            jou[saison_match[mid]].setdefault(nom, {"id": ide, "m": []})["m"].append([mid, cote, "T" if tit else "E", sor])
+            j = jou[saison_match[mid]].setdefault(nom, {"id": ide, "m": []})
+            j["m"].append([mid, cote, "T" if tit else "E", sor] + (st if any(v is not None for v in st) else []))
+            if poste:
+                j["p"] = poste
+    car = ecrire_carrieres(m, saison_match, parts, debut_recent)
     for s in SAISONS:
         donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
@@ -380,6 +456,7 @@ def main():
         for suffixe in [f"-{s}"] + ([""] if s == courante else []):
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")
             DB.with_name(f"joueurs{suffixe}.json").write_text(joueurs, encoding="utf-8")
+    P.ecrire(DB.parent, m, car, clas, courante, maintenant)
     print(f"{len(taches)} jours lus, {len(matchs)} matchs mis à jour, {erreurs} erreurs -> {DB}")
 
 
@@ -406,9 +483,21 @@ if __name__ == "__main__":
                              "participants": [{"athlete": {"displayName": "P"}}, {"athlete": {"displayName": "Q"}}]}]}
     assert passes(resume) == [{"cote": "dom", "min": "5'", "nom": "Z"}]
     resume["rosters"] = [{"team": {"id": "20"}, "roster": [
-        {"starter": True, "subbedOut": True, "athlete": {"displayName": "A", "id": "1"}},
-        {"starter": False, "subbedIn": True, "athlete": {"displayName": "B", "id": "2"}},
+        {"starter": True, "subbedOut": True, "athlete": {"displayName": "A", "id": "1"}, "position": {"abbreviation": "G"},
+         "stats": [{"name": "saves", "value": 3.0}, {"name": "totalShots", "value": 0.0}]},
+        {"starter": False, "subbedIn": True, "athlete": {"displayName": "B", "id": "2"}, "position": {"abbreviation": "SUB"}},
         {"starter": False, "athlete": {"displayName": "Banc", "id": "3"}}]}]
     assert saison_de("2026-08-21T18:45Z") == 2026 and saison_de("2026-05-10T18:00Z") == 2025
-    assert participations(resume) == [("A", "1", "ext", 1, 0, 1), ("B", "2", "ext", 0, 1, 0)]
+    pa = participations(resume)
+    assert pa == [("A", "1", "ext", 1, 0, 1, "G", 0, None, None, None, None, 3, None),
+                  ("B", "2", "ext", 0, 1, 0, None) + (None,) * 7]
+    # carrière : 2 matchs de A (1 composition, 1 but sur penalty), un csc ignoré, saison ancienne sans PD
+    mt = [{"id": "1", "date_utc": "2025-09-01", "domicile": "D", "exterieur": "E", "ligue": "L",
+           "buteurs": [{"cote": "ext", "nom": "A (pen)"}, {"cote": "dom", "nom": "A (csc)"}], "passes": [], "cartons": []},
+          {"id": "2", "date_utc": "2010-09-01", "domicile": "E", "exterieur": "F", "ligue": "L",
+           "buteurs": [], "passes": [], "cartons": [{"cote": "dom", "nom": "A", "type": "J"}]}]
+    c = carrieres(mt, {"1": 2025, "2": 2010}, [("1",) + pa[0][:5] + pa[0][6:]], 2025)["A"]  # forme de l'export : sans « entre »
+    assert c == [[2025, "E", "L", 1, 1, 1, 1, 0, 0, 0, 0, None, None, None, None, 3, None],
+                 [2010, "E", "L", None, None, 0, 0, None, 1, 0] + [None] * 7], c
+    assert paquet("Kylian Mbappé") == sum(map(ord, "Kylian Mbappé")) % 64
     main()

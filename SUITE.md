@@ -7,6 +7,7 @@
 - `index.html` : le site. Matchs jour par jour, direct, classements, buteurs, passeurs, stats, pronostics,
   fiches match / équipe / joueur, comparateur, favoris, alertes de buts, recherche, thème, partage.
 - `sw.js` : nécessaire pour les notifications sur Android.
+- `pages.py` : pages statiques pour Google (voir « Ajouté le 25 novembre »).
 - `.github/workflows/maj.yml` : mise à jour automatique toutes les heures sur GitHub ; le site est publié
   sur une branche `site` (écrasée à chaque fois pour garder le dépôt léger).
 - 65 compétitions (tous les championnats masculins proposés par ESPN + coupes continentales).
@@ -51,6 +52,21 @@
 - Dépôt : https://github.com/julien773901-oss/Foot (branche `main` = code, `site` = site publié)
 - Mises à jour horaires : onglet Actions du dépôt.
 - Aperçu local : `python -m http.server 8000` dans ce dossier, puis http://localhost:8000
+
+## Ajouté le 25 novembre 2026
+- But : toutes ces données doivent être sur un site public, trouvable sur Google. Pas encore de nom de domaine
+  (on pourra en brancher un plus tard : changer `SITE` dans pages.py + le canonical de index.html).
+- Correction : statuts LiveScore `AW` (tapis vert) et `Aband.` ; les matchs restaient « en direct ».
+- Stats joueurs ESPN par match : tirs, cadrés, fautes commises/subies, hors-jeu, arrêts, buts encaissés, poste
+  (colonnes de `participations`, `FICHE_VERSION = 3` : relecture progressive de ~70 000 fiches, ~2 jours).
+- `NB_DETAILLEES = 4` (compositions + passeurs sur 4 saisons ; les plus anciennes sont effacées de la base).
+  Le recoupement par d'autres sources reste sur 2 saisons.
+- Carrière saison par saison : `carrieres/0..63.json` (découpage `paquet()` identique dans foot.py et index.html),
+  affichée sur la fiche joueur. Avant les saisons détaillées : buts et cartons seulement (« – » = inconnu).
+- Pages pour Google (`pages.py`) : `joueur/`, `equipe/`, `competition/`, `plan.html`, `sitemap.xml` (+ sitemap-N.xml).
+  ~108 000 pages, ~300 Mo. Site complet ~700-800 Mo : GitHub Pages refuse au-delà de 1 Go, le workflow
+  s'arrête à 950 Mo (l'ancien site reste en ligne). Si ça arrive : alléger les pages joueurs ou sortir foot.db.xz du site.
+- Reste à faire à la main (compte Google du propriétaire) : inscrire le site dans Google Search Console (sitemap : `sitemap.xml`).
 
 ## Pour relancer la base à la main
     python foot.py
