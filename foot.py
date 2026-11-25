@@ -202,6 +202,10 @@ def main():
     # le code change avec le nombre de ligues : en ajouter fait relire toutes les journées LiveScore une fois
     ls_code = f"livescore{len(S.LS_LIGUES)}"
     db.execute("DELETE FROM jours_lus WHERE code LIKE 'livescore%' AND code != ?", (ls_code,))
+    # un match resté « en cours » depuis la veille (statut inconnu, passage raté) : on relit sa journée
+    db.execute("DELETE FROM jours_lus WHERE code=? AND jour IN (SELECT replace(substr(date_utc, 1, 10), '-', '') FROM matchs"
+               " WHERE id LIKE 'ls%' AND statut='STATUS_IN_PROGRESS' AND date_utc < ?)",
+               (ls_code, (today - timedelta(days=1)).isoformat()))
     deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code=?", (ls_code,))}
     debut = date.fromisoformat(debut_recent)
     taches += [(ls_code, None, j) for i in range((today + timedelta(days=14) - debut).days + 1)

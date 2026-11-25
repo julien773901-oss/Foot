@@ -179,7 +179,8 @@ LS_LIGUES = {("switzerland", "super-league"): "Super League (Suisse)", ("switzer
              ("new-zealand", "national-league"): "National League (Nouvelle-Zélande)"}
 LS_VUS = set()  # (Ccd, Scd) réellement vus dans les matchs lus : on lit leurs classements
 LS_STATUT = {"FT": "STATUS_FULL_TIME", "AET": "STATUS_FINAL_AET", "AP": "STATUS_FINAL_PEN", "NS": "STATUS_SCHEDULED",
-             "Postp.": "STATUS_POSTPONED", "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED"}
+             "Postp.": "STATUS_POSTPONED", "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED", "Aband.": "STATUS_ABANDONED",
+             "AW": "STATUS_FINAL_AWARDED"}  # AW = gagné sur tapis vert
 
 
 def ls_ligue_principale(ccd, scd):
