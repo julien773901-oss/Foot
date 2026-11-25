@@ -302,9 +302,38 @@ function tableClass(rows, surligne) {
   return `<div class="tab-wrap"><table>
     <thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th><th>Diff</th></tr></thead><tbody>
     ${rows.map(c => `<tr class="${surligne(c) ? "moi" : ""}"><td>${c.rang}</td><td class="g">${lienEq(c.equipe, c.logo)}</td>
-      <td class="pts">${c.pts}${c.pts_officiel != null && c.pts_officiel !== c.pts ? `<sup class="off" title="Classement officiel LFP (peut inclure un match en cours)">LFP ${c.pts_officiel}</sup>` : ""}</td>
+      <td class="pts">${c.direct ? '<span title="Match en cours">🔴</span> ' : ""}${c.pts}${c.pts_officiel != null && c.pts_officiel !== c.pts ? `<sup class="off" title="Classement officiel LFP (peut inclure un match en cours)">LFP ${c.pts_officiel}</sup>` : ""}</td>
       <td>${c.joues}</td><td>${c.g}</td><td>${c.n}</td><td>${c.p}</td><td>${c.bp}</td><td>${c.bc}</td><td>${c.bp - c.bc > 0 ? "+" : ""}${c.bp - c.bc}</td></tr>`).join("")}
     </tbody></table></div>`;
+}
+
+// Classement d'une compétition + matchs joués (ou en cours) qu'il ne compte pas encore : la base ne relit les
+// classements qu'une fois par heure (c.maj = heure de lecture).
+// shortcut: « pas encore compté » = coup d'envoi moins de 1 h 45 avant la lecture ou après (match pas fini à ce moment-là) ;
+// faux si la source met plus longtemps à compter un match fini, ou le 1er jour d'une phase finale qui porte le nom du
+// championnat (ensuite le garde-fou ci-dessous la repère).
+function classementDirect(lg) {
+  const officiel = data.classement.filter(c => c.ligue === lg), rows = officiel.map(c => ({ ...c }));
+  const ms = data.matchs.filter(m => m.ligue === lg && m.buts_dom != null && (fini(m) || enDirect(m)));
+  const groupe = new Map(rows.map(c => [c.equipe, c.groupe]));
+  let change = false;
+  for (const c of rows) {
+    const lu = new Date(c.maj) - 105 * 60e3;
+    const L = ms.filter(m => (m.domicile === c.equipe || m.exterieur === c.equipe) && groupe.get(m.domicile) === groupe.get(m.exterieur));
+    // plus de matchs joués avant la lecture que « J » = ces matchs sont d'une autre phase (play-offs, Apertura/Clausura...)
+    if (L.filter(m => new Date(m.date_utc) <= lu).length > c.joues) return officiel;
+    for (const m of L.filter(m => new Date(m.date_utc) > lu)) {
+      const dom = m.domicile === c.equipe, pour = dom ? m.buts_dom : m.buts_ext, contre = dom ? m.buts_ext : m.buts_dom;
+      c.joues++; c.bp += pour; c.bc += contre;
+      if (pour > contre) { c.g++; c.pts += 3; } else if (pour === contre) { c.n++; c.pts += 1; } else c.p++;
+      c.direct ||= enDirect(m);
+      c.ajoute = change = true;
+    }
+  }
+  if (!change) return rows;  // rien à ajouter : on garde l'ordre officiel (départages exacts)
+  const parGroupe = rows.reduce((o, c) => ((o[c.groupe ?? ""] ??= []).push(c), o), {});  // pas Object.groupBy : vieux iPhone
+  return Object.values(parGroupe).flatMap(g => g.sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc) || b.bp - a.bp)
+    .map((c, i) => ({ ...c, rang: i + 1 })));
 }
 
 function vueClass() {
@@ -312,8 +341,9 @@ function vueClass() {
   const surligne = c => fav.has(c.equipe) || (q && c.equipe.toLowerCase().includes(q));
   const ligues = l && l !== "__fav" ? [l] : [...new Set(data.classement.filter(c => l !== "__fav" || fav.has(c.equipe)).map(c => c.ligue))].sort();
   return ligues.map(lg => {
-    const rows = data.classement.filter(c => c.ligue === lg);
-    return rows.length ? `<h2>${esc(lg)}</h2>` + tableClass(rows, surligne) : "";
+    const rows = classementDirect(lg);
+    return rows.length ? `<h2>${esc(lg)}</h2>` + tableClass(rows, surligne)
+      + (rows.some(c => c.ajoute) ? `<p class="mut">Classement provisoire : ${rows.some(c => c.direct) ? "🔴 = match en cours compté au score actuel ; " : ""}derniers résultats ajoutés en attendant le classement officiel.</p>` : "") : "";
   }).join("") || `<p class="mut">${l === "__fav" ? "Ajoutez des équipes en favori (★ sur leur fiche)." : "Pas de classement pour cette compétition (coupe)."}</p>`;
 }
 
@@ -375,7 +405,7 @@ function vueEquipe(nom) {
     ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}
     ${classes.map(l => { const p = positions(nom, l), n = data.classement.filter(c => c.ligue === l).length;
       return (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, n) : "")
-        + `<h2>Classement ${esc(l)}</h2>` + tableClass(data.classement.filter(c => c.ligue === l), c => c.equipe === nom); }).join("")}
+        + `<h2>Classement ${esc(l)}</h2>` + tableClass(classementDirect(l), c => c.equipe === nom); }).join("")}
     ${sc.length ? "<h2>Buteurs</h2>" + tableJoueurs(sc, 50, "buteurs") : ""}
     ${pa.length ? "<h2>Passeurs</h2>" + tableJoueurs(pa, 50, "passes") : ""}
     ${listeMatchs(ms, 1000)}`;
@@ -1021,8 +1051,17 @@ async function direct() {
   const actifs = saisonPassee ? [] : data.matchs.filter(m => enDirect(m) || (m.statut === PREVU && proche(m.date_utc)));
   const avant = new Map(data.matchs.map(m => [m.id, [m.buts_dom, m.buts_ext]]));
   if (actifs.length) {
-    // les ligues LiveScore ne sont pas suivies en direct (seulement à chaque mise à jour horaire)
     const codes = Object.entries(data.ligues).filter(([c, n]) => !c.startsWith("ls:") && actifs.some(m => m.ligue === n));
+    // LiveScore refuse les navigateurs : direct.json, refait toutes les 5 min par GitHub (direct.py), donne ces scores
+    // shortcut: 5 à 15 min de retard (GitHub + cache de 5 min de raw.githubusercontent.com) ; un vrai direct demanderait un serveur relais
+    const lsIds = new Set(actifs.filter(m => m.id.startsWith("ls")).map(m => m.id));
+    if (lsIds.size) try {
+      const d = await (await fetch("https://raw.githubusercontent.com/julien773901-oss/Foot/direct/direct.json", { cache: "no-store" })).json();
+      if (!data.maj || d.maj > data.maj) for (const n of d.matchs) {
+        const i = lsIds.has(n.id) ? data.matchs.findIndex(m => m.id === n.id) : -1;
+        if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n };
+      }
+    } catch (e) { /* fichier absent ou injoignable : on garde les données horaires */ }
     await Promise.all(codes.map(async ([code, nom]) => {
       try {
         const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard`, { cache: "no-store" });

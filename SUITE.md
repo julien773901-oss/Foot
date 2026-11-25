@@ -66,7 +66,7 @@
 - Pages pour Google (`pages.py`) : `joueur/`, `equipe/`, `competition/`, `plan.html`, `sitemap.xml` (+ sitemap-N.xml).
   ~108 000 pages, ~300 Mo. Site complet ~700-800 Mo : GitHub Pages refuse au-delà de 1 Go, le workflow
   s'arrête à 950 Mo (l'ancien site reste en ligne). Si ça arrive : alléger les pages joueurs ou sortir foot.db.xz du site.
-- Reste à faire à la main (compte Google du propriétaire) : inscrire le site dans Google Search Console (sitemap : `sitemap.xml`).
+- Google Search Console : site validé et `sitemap.xml` envoyé le 26 novembre 2026.
 
 - Search Console : balise de vérification dans index.html (ne pas l'enlever).
 - Identité des joueurs (fiche du site + pages Google) : naissance, âge, nationalité + drapeau, taille, poids, poste.
@@ -75,6 +75,13 @@
   Pays traduits en français via Wikidata (`pays_fr()`, compléments dans `PAYS_EN_PLUS`).
   Seulement les joueurs avec un id ESPN (compositions des 4 dernières saisons) : rien pour LiveScore / football-data.
   Wikidata testé : pied fort quasi absent (6 joueurs), photos pour ~3 400 joueurs seulement → pas utilisé.
+
+- Direct LiveScore : LiveScore refuse les navigateurs (403 avec un en-tête Origin). `direct.py`, lancé toutes les 5 min
+  par `.github/workflows/direct.yml`, publie `direct.json` sur la branche `direct` ; la page le lit via
+  raw.githubusercontent.com (cache 5 min) : 5 à 15 min de retard, scores + minute seulement (pas de buteurs).
+- Classements en direct (page, `classementDirect`) : ajoute au classement les matchs commencés moins de 1 h 45 avant
+  sa lecture (ou après), en cours compris (🔴). Si une équipe a plus de matchs avant la lecture que « J » (play-offs,
+  Apertura/Clausura qui portent le nom du championnat), on garde le classement officiel.
 
 ## Pour relancer la base à la main
     python foot.py

@@ -1,0 +1,22 @@
+name: Scores en direct (LiveScore)
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # toutes les 5 min (GitHub peut retarder de quelques minutes)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: direct
+  cancel-in-progress: true
+jobs:
+  direct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 direct.py
+      - name: Publier direct.json sur la branche "direct" (écrasée à chaque fois ; la page la lit via raw.githubusercontent.com)
+        run: |
+          mkdir _d && mv direct.json _d/ && cd _d && git init -q -b direct && git add direct.json
+          git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Direct $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" direct
