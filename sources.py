@@ -69,6 +69,12 @@ def apparier(matchs, resultats):
     return out
 
 
+def feminin(nom):
+    """Équipe féminine : « Bayern Munich W », « Arsenal Women » ou « Arsenal » (ESPN) -> « Bayern Munich (F) »."""
+    nom = re.sub(r"\s+(W|Women|Ladies|Femenil|Femenino|Feminino|Femminile|Féminine|Frauen)$", "", nom.strip())
+    return nom if nom.endswith(" (F)") else nom + " (F)"
+
+
 # ---------- les sources ----------
 LS_COMP = {"68": "Ligue 1", "65": "Premier League", "75": "La Liga", "77": "Serie A", "67": "Bundesliga",
            "60": "Ligue des champions", "100": "Ligue 2", "36": "Ligue Europa", "62": "Ligue Conférence",
@@ -176,7 +182,22 @@ LS_LIGUES = {("switzerland", "super-league"): "Super League (Suisse)", ("switzer
              ("philippines", "pfl"): "PFL (Philippines)",
              # Amériques, Océanie
              ("canada", "premier-league"): "Premier League (Canada)", ("jamaica", "premier-league"): "Premier League (Jamaïque)",
-             ("new-zealand", "national-league"): "National League (Nouvelle-Zélande)"}
+             ("new-zealand", "national-league"): "National League (Nouvelle-Zélande)",
+             # ajoutés le 26 novembre 2026 : divisions inférieures absentes d'ESPN
+             ("england", "national-league-north"): "National League North (Angleterre)",
+             ("england", "national-league-south"): "National League South (Angleterre)",
+             ("romania", "liga-ii"): "Liga II (Roumanie)", ("hungary", "nb-ii"): "NB II (Hongrie)",
+             ("sweden", "1st-division-north"): "Division 1 Nord (Suède)", ("sweden", "1st-division-south"): "Division 1 Sud (Suède)",
+             ("argentina", "primera-c"): "Primera C (Argentine)", ("paraguay", "division-intermedia"): "División Intermedia (Paraguay)",
+             ("usa", "mls-next-pro"): "MLS Next Pro (États-Unis)",
+             # championnats féminins absents d'ESPN (Angleterre, Espagne, France, Pays-Bas, États-Unis, Mexique : chez ESPN)
+             ("germany", "bundesliga-women"): "Frauen-Bundesliga (Allemagne)", ("italy", "serie-a-women"): "Serie A féminine (Italie)",
+             ("sweden", "damallsvenskan-women"): "Damallsvenskan (Suède)", ("norway", "toppserien-women"): "Toppserien (Norvège)",
+             ("denmark", "a-liga-women"): "A-Liga féminine (Danemark)", ("portugal", "womens-campeonato-nacional"): "Liga BPI (Portugal, féminin)",
+             ("japan", "we-league"): "WE League (Japon)", ("finland", "kansallinen-liiga-women"): "Kansallinen Liiga (Finlande, féminin)",
+             ("finland", "womens-kansallinen-liiga"): "Kansallinen Liiga (Finlande, féminin)",
+             ("ireland", "womens-national-league"): "Premier Division féminine (Irlande)"}
+LS_FEMININ = {nom for (c, sc), nom in LS_LIGUES.items() if "women" in sc or sc == "we-league"}
 LS_VUS = set()  # (Ccd, Scd) réellement vus dans les matchs lus : on lit leurs classements
 LS_STATUT = {"FT": "STATUS_FULL_TIME", "AET": "STATUS_FINAL_AET", "AP": "STATUS_FINAL_PEN", "NS": "STATUS_SCHEDULED",
              "Postp.": "STATUS_POSTPONED", "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED", "Aband.": "STATUS_ABANDONED",
@@ -203,8 +224,9 @@ def ls_jour(j):
             esd, statut = str(e["Esd"]), LS_STATUT.get(e.get("Eps"), "STATUS_IN_PROGRESS")  # sinon c'est une minute : en cours
             joue = statut not in ("STATUS_SCHEDULED", "STATUS_POSTPONED", "STATUS_CANCELED") and e.get("Tr1") not in (None, "")
             t1, t2 = e["T1"][0], e["T2"][0]
+            nom = feminin if ligue in LS_FEMININ else str
             out.append(("ls" + str(e["Eid"]), ligue, f"{esd[:4]}-{esd[4:6]}-{esd[6:8]}T{esd[8:10]}:{esd[10:12]}Z",
-                        t1["Nm"], t2["Nm"], int(e["Tr1"]) if joue else None, int(e["Tr2"]) if joue else None, statut,
+                        nom(t1["Nm"]), nom(t2["Nm"]), int(e["Tr1"]) if joue else None, int(e["Tr2"]) if joue else None, statut,
                         ls_logo(t1.get("Img")), ls_logo(t2.get("Img")), None, None))
     return out
 
@@ -250,7 +272,7 @@ def ls_classements(courante):
             groupe = re.sub(r"\s*\d{2}/\d{2}$", "", st.get("Snm") or ligue)
             for t in [t for l in (st.get("LeagueTable") or {}).get("L", []) for t in l.get("Tables", []) if t.get("LTT") == 1]:
                 for e in t.get("team", []):
-                    out.append((ligue, groupe, e["rnk"], e["Tnm"], ls_logo(e.get("Img")), e["pld"], e["win"], e["drw"],
+                    out.append((ligue, groupe, e["rnk"], feminin(e["Tnm"]) if ligue in LS_FEMININ else e["Tnm"], ls_logo(e.get("Img")), e["pld"], e["win"], e["drw"],
                                 e["lst"], e["gf"], e["ga"], e["pts"], saison))
     return out
 
@@ -399,6 +421,11 @@ if __name__ == "__main__":
     assert ls_ligue_principale("switzerland", "super-league-championship-group") == "Super League (Suisse)"
     assert ls_ligue_principale("poland", "iii-liga-group-1") is None and ls_ligue_principale("poland", "ii-liga") == "II Liga (Pologne)"
     assert ls_ligue_principale("korea-republic", "k-league-2") == "K League 2 (Corée du Sud)"
+    assert ls_ligue_principale("hungary", "nb-ii-2024-2025") == "NB II (Hongrie)" and ls_ligue_principale("hungary", "nb-i") == "NB I (Hongrie)"
+    assert ls_ligue_principale("finland", "womens-kansallinen-liiga-championship") in LS_FEMININ
+    assert ls_ligue_principale("france", "division-1-women") is None  # déjà chez ESPN (fra.w.1)
+    assert feminin("Bayern Munich W") == "Bayern Munich (F)" == feminin("Bayern Munich (F)") and feminin("Arsenal") == "Arsenal (F)"
+    assert feminin("Sandvikens IF") == "Sandvikens IF (F)" and feminin("Arsenal Women") == "Arsenal (F)" == feminin("Arsenal Femminile")
     assert fd_lignes([{"Date": "05/08/99", "HomeTeam": "A", "AwayTeam": "B", "FTHG": "2", "FTAG": "1"},
                       {"Date": "13/07/2012", "Home": "C", "Away": "D", "HG": "0", "AG": "1"},
                       {"Date": "14/07/2012", "Home": "E", "Away": "F", "HG": "", "AG": ""}], "L") \

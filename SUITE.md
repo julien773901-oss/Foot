@@ -126,6 +126,25 @@
   images envoyées par les utilisateurs sans licence claire). Joueurs LiveScore / football-data : pas de date de
   naissance, donc pas de correspondance sûre → pas de photo.
 
+## Plus de compétitions (26 novembre 2026)
+- Inventaire : ESPN propose 220 compétitions, le site en lisait 96 ; LiveScore, sur 60 jours de l'année, avait 80 % de
+  matchs non lus (surtout doublons d'ESPN, jeunes, réserves, divisions régionales).
+- Ajoutées chez ESPN (96, `LIGUES`, 192 au total) : sélections nationales (Coupe du monde + éliminatoires de chaque
+  continent, Euro, Ligue des nations, CAN, Copa América, Gold Cup, Coupe d'Asie, amicaux…), qualifications européennes,
+  Supercoupes, Coupe du monde des clubs, championnats d'État du Brésil, et 35 compétitions féminines (`FEMININ`).
+- Ajoutées chez LiveScore (`LS_LIGUES`) : National League North/South (Angleterre), Liga II (Roumanie), NB II (Hongrie),
+  Division 1 Nord/Sud (Suède), Primera C (Argentine), División Intermedia (Paraguay), MLS Next Pro ; championnats
+  féminins d'Allemagne, Italie, Suède, Norvège, Danemark, Portugal, Japon, Finlande, Irlande (`LS_FEMININ`).
+- Équipes féminines : « Nom (F) » (`S.feminin()`) car ESPN leur donne le même nom que les hommes ; la page garde le
+  « (F) » en direct grâce à la liste `feminin` de matchs.json.
+- Non retenus : jeunes (U17 à U23), universitaires (NCAA), amicaux de clubs et tournois d'été, tours préliminaires amateurs
+  (FA Cup, Coupe d'Écosse), USL League Two (amateur) : beaucoup de pages pour peu d'intérêt, et la taille du site.
+- Historique : ~45 000 à 50 000 matchs de plus (~600/an en 2005, ~4 200/an en 2025), lus par `MAX_JOURS` : ~30 passages
+  (~1,5 jour) de ~25 min de plus. Classements : lus à 4 en parallèle (~2 400 la 1re fois).
+- Taille : ~+45 Mo sur le site. À mettre en ligne SEULEMENT quand les archives (Foot-archives) fonctionnent.
+- Autres sources gratuites regardées : rien de plus large que ESPN + LiveScore sans clé ; FBref, Transfermarkt,
+  L'Équipe, matchendirect.fr déjà refusés (conditions / robots.txt).
+
 ## Pour relancer la base à la main
     python foot.py
 

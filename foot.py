@@ -53,7 +53,63 @@ LIGUES = {"fra.1": "Ligue 1", "eng.1": "Premier League", "esp.1": "La Liga",
           "sco.1.promotion.relegation": "Barrages Premiership (Écosse)", "sco.2.promotion.relegation": "Barrages Championship (Écosse)",
           "ned.playoff.relegation": "Barrages (Pays-Bas)", "swe.1.promotion.relegation": "Barrages (Suède)",
           "nor.1.promotion.relegation": "Barrages (Norvège)", "chi.1.promotion.relegation": "Barrages (Chili)",
-          "bol.ply.rel": "Barrages (Bolivie)", "chn.1.promotion.relegation": "Barrages (Chine)"}
+          "bol.ply.rel": "Barrages (Bolivie)", "chn.1.promotion.relegation": "Barrages (Chine)",
+          # sélections nationales (ajoutées le 26 novembre 2026)
+          "fifa.world": "Coupe du monde", "fifa.worldq.uefa": "Éliminatoires Coupe du monde (Europe)",
+          "fifa.worldq.conmebol": "Éliminatoires Coupe du monde (Amérique du Sud)",
+          "fifa.worldq.concacaf": "Éliminatoires Coupe du monde (CONCACAF)", "fifa.worldq.caf": "Éliminatoires Coupe du monde (Afrique)",
+          "fifa.worldq.afc": "Éliminatoires Coupe du monde (Asie)", "fifa.worldq.ofc": "Éliminatoires Coupe du monde (Océanie)",
+          "fifa.wcq.ply": "Barrages intercontinentaux Coupe du monde", "fifa.friendly": "Matchs amicaux internationaux",
+          "fifa.olympics": "Tournoi olympique", "uefa.euro": "Euro", "uefa.euroq": "Éliminatoires de l'Euro",
+          "uefa.nations": "Ligue des nations UEFA", "global.finalissima": "Finalissima",
+          "caf.nations": "Coupe d'Afrique des nations", "caf.nations_qual": "Éliminatoires CAN", "caf.championship": "CHAN (Afrique)",
+          "caf.cosafa": "Coupe COSAFA", "conmebol.america": "Copa América", "concacaf.gold": "Gold Cup",
+          "concacaf.gold_qual": "Éliminatoires Gold Cup", "concacaf.nations.league": "Ligue des nations CONCACAF",
+          "concacaf.central.american.cup": "Coupe d'Amérique centrale", "afc.asian.cup": "Coupe d'Asie des nations",
+          "afc.cupq": "Éliminatoires Coupe d'Asie", "aff.championship": "Championnat ASEAN", "afc.saff.championship": "Championnat SAFF",
+          "global.gulf_cup": "Coupe du Golfe",
+          # clubs : coupes internationales, qualifications, supercoupes, championnats d'État du Brésil
+          "fifa.cwc": "Coupe du monde des clubs", "fifa.intercontinental_cup": "Coupe intercontinentale FIFA",
+          "uefa.super_cup": "Supercoupe de l'UEFA", "uefa.champions_qual": "Ligue des champions (qualifications)",
+          "uefa.europa_qual": "Ligue Europa (qualifications)", "uefa.europa.conf_qual": "Ligue Conférence (qualifications)",
+          "afc.champions_qual": "Ligue des champions AFC (qualifications)", "afc.cup": "Ligue des champions AFC Two",
+          "afc.cup_qual": "Ligue des champions AFC Two (qualifications)", "conmebol.recopa": "Recopa Sudamericana",
+          "concacaf.leagues.cup": "Leagues Cup", "campeones.cup": "Campeones Cup",
+          "fra.super_cup": "Trophée des champions", "esp.super_cup": "Supercoupe d'Espagne", "ita.super_cup": "Supercoupe d'Italie",
+          "ger.super_cup": "Supercoupe d'Allemagne", "ned.supercup": "Supercoupe des Pays-Bas", "eng.charity": "Community Shield (Angleterre)",
+          "arg.supercopa": "Supercoupe d'Argentine", "arg.trofeo_de_la_campeones": "Trophée des champions (Argentine)",
+          "arg.supercopa.internacional": "Supercoupe internationale (Argentine)", "arg.copa_de_la_superliga": "Copa de la Superliga (Argentine)",
+          "bra.supercopa_do_brazil": "Supercoupe du Brésil", "chi.super_cup": "Supercoupe du Chili", "col.superliga": "Superliga (Colombie)",
+          "mex.campeon": "Campeón de Campeones (Mexique)", "par.1.supercopa": "Supercoupe du Paraguay",
+          "sco.challenge": "Challenge Cup (Écosse)", "usa.usl.l1.cup": "USL Cup (États-Unis)",
+          "bra.camp.paulista": "Campeonato Paulista (Brésil)", "bra.camp.carioca": "Campeonato Carioca (Brésil)",
+          "bra.camp.mineiro": "Campeonato Mineiro (Brésil)", "bra.camp.gaucho": "Campeonato Gaúcho (Brésil)",
+          # football féminin (équipes suffixées « (F) », voir FEMININ)
+          "fifa.wwc": "Coupe du monde féminine", "fifa.wworldq.uefa": "Éliminatoires Coupe du monde féminine (Europe)",
+          "fifa.wwcq.ply": "Barrages Coupe du monde féminine", "fifa.friendly.w": "Matchs amicaux internationaux féminins",
+          "fifa.w.olympics": "Tournoi olympique féminin", "fifa.w.champions_cup": "Coupe des champions féminine FIFA",
+          "uefa.weuro": "Euro féminin", "uefa.w.nations": "Ligue des nations féminine UEFA",
+          "uefa.wchampions": "Ligue des champions féminine", "uefa.wchampions_qual": "Ligue des champions féminine (qualifications)",
+          "uefa.w.europa": "Coupe d'Europe féminine", "caf.w.nations": "CAN féminine", "conmebol.america.femenina": "Copa América féminine",
+          "concacaf.w.gold": "Gold Cup féminine", "concacaf.womens.championship": "Championnat féminin CONCACAF",
+          "concacaf.w.champions_cup": "Coupe des champions féminine CONCACAF", "afc.w.asian.cup": "Coupe d'Asie féminine",
+          "fifa.shebelieves": "SheBelieves Cup", "global.arnold.clark_cup": "Arnold Clark Cup", "global.pinatar_cup": "Pinatar Cup",
+          "global.w.finalissima": "Finalissima féminine",
+          "eng.w.1": "Women's Super League (Angleterre)", "eng.w.fa": "FA Cup féminine (Angleterre)",
+          "eng.w.league_cup": "Coupe de la Ligue féminine (Angleterre)", "esp.w.1": "Liga F (Espagne)",
+          "esp.copa_de_la_reina": "Coupe de la Reine (Espagne)", "fra.w.1": "Première Ligue (France, féminin)",
+          "ned.w.1": "Eredivisie féminine (Pays-Bas)", "ned.w.knvb_cup": "Coupe des Pays-Bas féminine", "usa.nwsl": "NWSL (États-Unis)",
+          "usa.nwsl.cup": "NWSL Challenge Cup (États-Unis)", "usa.w.usl.1": "USL Super League (États-Unis, féminin)",
+          "mex.w.1": "Liga MX Femenil (Mexique)", "aus.w.1": "A-League féminine (Australie)", "can.w.nsl": "Northern Super League (Canada, féminin)"}
+# compétitions féminines : ESPN donne aux équipes le même nom que chez les hommes (« Manchester United ») ; on ajoute « (F) »
+# pour ne pas mélanger leurs résultats sur les fiches équipes. Non retenus : jeunes (U17 à U23), universitaires (NCAA),
+# amicaux de clubs et tournois d'été, tours préliminaires amateurs (FA Cup, Coupe d'Écosse) : beaucoup de pages pour peu d'intérêt.
+FEMININ = {"fifa.wwc", "fifa.wworldq.uefa", "fifa.wwcq.ply", "fifa.friendly.w", "fifa.w.olympics", "fifa.w.champions_cup",
+           "uefa.weuro", "uefa.w.nations", "uefa.wchampions", "uefa.wchampions_qual", "uefa.w.europa", "caf.w.nations",
+           "conmebol.america.femenina", "concacaf.w.gold", "concacaf.womens.championship", "concacaf.w.champions_cup",
+           "afc.w.asian.cup", "fifa.shebelieves", "global.arnold.clark_cup", "global.pinatar_cup", "global.w.finalissima",
+           "eng.w.1", "eng.w.fa", "eng.w.league_cup", "esp.w.1", "esp.copa_de_la_reina", "fra.w.1", "ned.w.1", "ned.w.knvb_cup",
+           "usa.nwsl", "usa.nwsl.cup", "usa.w.usl.1", "mex.w.1", "aus.w.1", "can.w.nsl"}
 DB = Path(__file__).with_name("foot.db")
 
 
@@ -122,14 +178,15 @@ COLS = ["id", "ligue", "date_utc", "domicile", "exterieur", "buts_dom", "buts_ex
         "logo_ext", "buteurs", "cartons", "maj"]
 
 
-def parse(event, ligue):
+def parse(event, ligue, feminin=False):
     c = event["competitions"][0]
     eq = {t["homeAway"]: t for t in c["competitors"]}
     h, a = eq["home"], eq["away"]
+    nom = lambda t: S.feminin(t["team"]["displayName"]) if feminin else t["team"]["displayName"]
     statut = event["status"]["type"]["name"]
     joue = statut != "STATUS_SCHEDULED"  # pas de score tant que le match n'a pas commencé
     score = lambda t: int(t["score"]) if joue and t.get("score") not in (None, "") else None
-    return (event["id"], ligue, event["date"], h["team"]["displayName"], a["team"]["displayName"],
+    return (event["id"], ligue, event["date"], nom(h), nom(a),
             score(h), score(a), statut, h["team"].get("logo"), a["team"].get("logo"),
             json.dumps(buteurs(c, h["team"]["id"]), ensure_ascii=False),
             json.dumps(cartons(c, h["team"]["id"]), ensure_ascii=False))
@@ -151,7 +208,7 @@ def classement(code, ligue, saison):
         for e in groupe["standings"]["entries"]:
             s = {x["name"]: x.get("value") for x in e["stats"]}
             n = lambda k: int(s.get(k) or 0)
-            lignes.append((ligue, groupe["name"], n("rank"), e["team"]["displayName"],
+            lignes.append((ligue, groupe["name"], n("rank"), S.feminin(e["team"]["displayName"]) if code in FEMININ else e["team"]["displayName"],
                            (e["team"].get("logos") or [{}])[0].get("href"), n("gamesPlayed"), n("wins"),
                            n("ties"), n("losses"), n("pointsFor"), n("pointsAgainst"), n("points"), saison))
     return lignes
@@ -161,7 +218,7 @@ def jour(code, ligue, j):
     try:
         if code.startswith("livescore"):  # une seule page par jour pour toutes les ligues lues chez LiveScore
             return S.ls_jour(j), True
-        return [parse(ev, ligue) for ev in get(f"{API}/site/v2/sports/soccer/{code}/scoreboard?dates={j}").get("events", [])], True
+        return [parse(ev, ligue, code in FEMININ) for ev in get(f"{API}/site/v2/sports/soccer/{code}/scoreboard?dates={j}").get("events", [])], True
     except Exception as e:
         print(f"[erreur] {ligue} {j}: {e}", file=sys.stderr)
         return [], False
@@ -520,21 +577,28 @@ def main():
         print(f"[erreur] photos Wikidata (on garde les anciennes) : {e}", file=sys.stderr)
     n_photos = db.execute("SELECT count(*), sum(espn_photo = 1), sum(espn_photo = 1 OR commons IS NOT NULL) FROM identites").fetchone()
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
-    for saison in [s for s in SAISONS if s >= PREMIERE_SAISON]:
-        for code, ligue in LIGUES.items():
-            if (f"cl:{code}", str(saison)) in cl_lus:
-                continue  # saison ancienne déjà lue : son classement ne bouge plus
-            try:
-                lignes = classement(code, ligue, saison)
-                if saison < courante - 1:
-                    db.execute("INSERT OR IGNORE INTO jours_lus VALUES (?,?)", (f"cl:{code}", str(saison)))
-            except Exception as e:
-                erreurs += 1
-                print(f"[erreur] classement {ligue} {saison}: {e}", file=sys.stderr)
-                continue  # on garde l'ancien classement plutôt que de l'effacer
-            db.execute("DELETE FROM classement WHERE ligue=? AND saison=?", (ligue, saison))
-            db.executemany("INSERT INTO classement (ligue, groupe, rang, equipe, logo, joues, g, n, p, bp, bc, pts, saison, maj) "
-                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [l + (maintenant,) for l in lignes])
+    # saison ancienne déjà lue : son classement ne bouge plus ; lus à 4 en parallèle (~2 400 la 1re fois après un ajout de ligues)
+    a_lire = [(code, ligue, saison) for saison in SAISONS if saison >= PREMIERE_SAISON for code, ligue in LIGUES.items()
+              if (f"cl:{code}", str(saison)) not in cl_lus]
+    def lire_classement(t):
+        try:
+            return t, classement(*t)
+        except Exception as e:
+            print(f"[erreur] classement {t[1]} {t[2]}: {e}", file=sys.stderr)
+            return t, None  # on garde l'ancien classement plutôt que de l'effacer
+    t0 = time.time()
+    with ThreadPoolExecutor(4) as pool:
+        cl_res = list(pool.map(lire_classement, a_lire))
+    print(f"[temps] classements: {time.time() - t0:.0f} s ({len(a_lire)} lus)")
+    for (code, ligue, saison), lignes in cl_res:
+        if lignes is None:
+            erreurs += 1
+            continue
+        if saison < courante - 1:
+            db.execute("INSERT OR IGNORE INTO jours_lus VALUES (?,?)", (f"cl:{code}", str(saison)))
+        db.execute("DELETE FROM classement WHERE ligue=? AND saison=?", (ligue, saison))
+        db.executemany("INSERT INTO classement (ligue, groupe, rang, equipe, logo, joues, g, n, p, bp, bc, pts, saison, maj) "
+                       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [l + (maintenant,) for l in lignes])
     try:
         lignes = S.ls_classements(courante)
         for ligue, saison in {(l[0], l[12]) for l in lignes}:
@@ -636,6 +700,7 @@ def main():
     for s in SAISONS:
         donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
+                              "feminin": sorted({LIGUES[c] for c in FEMININ} | S.LS_FEMININ),
                               "sources": etat, "matchs": [x for x in m if saison_match[x["id"]] == s],
                               "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False, separators=(",", ":"))  # sans espaces : -9 %
         joueurs = json.dumps(jou[s], ensure_ascii=False, separators=(",", ":"))
@@ -674,6 +739,8 @@ if __name__ == "__main__":
          "stats": [{"name": "saves", "value": 3.0}, {"name": "totalShots", "value": 0.0}]},
         {"starter": False, "subbedIn": True, "athlete": {"displayName": "B", "id": "2"}, "position": {"abbreviation": "SUB"}},
         {"starter": False, "athlete": {"displayName": "Banc", "id": "3"}}]}]
+    assert parse(fake, "L", True)[3:5] == ("A (F)", "B (F)")
+    assert "fifa.world" not in FEMININ and FEMININ <= set(LIGUES)
     assert saison_de("2026-08-21T18:45Z") == 2026 and saison_de("2026-05-10T18:00Z") == 2025
     pa = participations(resume)
     assert pa == [("A", "1", "ext", 1, 0, 1, "G", 0, None, None, None, None, 3, None),

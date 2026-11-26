@@ -1053,7 +1053,9 @@ function parseESPN(ev, ligue) {
   const statut = ev.status.type.name, joue = statut !== PREVU;
   const sc = t => joue && t.score !== undefined && t.score !== "" ? +t.score : null;
   const det = c.details || [], cote = d => d.team?.id === h.team.id ? "dom" : "ext", nomDe = d => (d.athletesInvolved || [])[0]?.displayName || "?";
-  return { id: ev.id, ligue, date_utc: ev.date, domicile: h.team.displayName, exterieur: a.team.displayName,
+  // compétition féminine : même nom d'équipe que chez les hommes chez ESPN, on garde le « (F) » ajouté par foot.py
+  const nomEq = t => (data.feminin || []).includes(ligue) ? t.team.displayName.replace(/ \(F\)$/, "") + " (F)" : t.team.displayName;
+  return { id: ev.id, ligue, date_utc: ev.date, domicile: nomEq(h), exterieur: nomEq(a),
     buts_dom: sc(h), buts_ext: sc(a), statut, logo_dom: h.team.logo, logo_ext: a.team.logo,
     buteurs: det.filter(d => d.scoringPlay && !d.shootout).map(d => ({ cote: cote(d), min: d.clock?.displayValue || "",
       nom: nomDe(d) + (d.ownGoal ? " (csc)" : d.penaltyKick ? " (pen)" : "") })),
