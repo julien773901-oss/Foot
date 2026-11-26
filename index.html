@@ -506,9 +506,17 @@ function tableCarriere(C) {
   </tbody></table></div>
   <p class="mut">« – » = inconnu : compositions et passes décisives seulement sur les saisons récentes ; tirs, fautes et arrêts selon ESPN.</p>`;
 }
+// vieilles saisons rangées dans un 2e dépôt GitHub (chaque site GitHub Pages est limité à 1 Go) : on lit d'abord ici, puis là-bas
+const ARCHIVES = "https://julien773901-oss.github.io/Foot-archives/";
+async function lireJson(nom) {
+  let r = await fetch(nom, { cache: "no-store" });
+  if (!r.ok) r = await fetch(ARCHIVES + nom);
+  if (!r.ok) throw new Error(nom + " introuvable");
+  return r.json();
+}
 const joueursP = {};  // un fichier par saison, chargé à la demande
 const chargerJoueurs = () => joueursP[data.saison ?? ""] ??=
-  fetch(data.saison ? `joueurs-${data.saison}.json` : "joueurs.json", { cache: "no-store" }).then(r => r.json()).catch(() => ({}));
+  lireJson(data.saison ? `joueurs-${data.saison}.json` : "joueurs.json").catch(() => ({}));
 
 async function statsJoueur(nom) {
   const J = (await chargerJoueurs())[nom];
@@ -1112,7 +1120,7 @@ function remplirEntete() {
 }
 $("saison").onchange = async e => {
   const s = +e.target.value;
-  try { saisons[s] ??= await (await fetch(`matchs-${s}.json`, { cache: "no-store" })).json(); }
+  try { saisons[s] ??= await lireJson(`matchs-${s}.json`); }
   catch (err) { toast("Cette saison n'est pas disponible pour le moment."); e.target.value = data.saison; return; }
   data = saisons[s];
   rgJoueurs = []; modele = null;  // la recherche et les pronostics dépendent de la saison
@@ -1161,7 +1169,7 @@ fetch("matchs.json", { cache: "no-store" }).then(r => r.json()).then(async j => 
   // lien partagé vers une ancienne saison : ?saison=2025
   const sp = +new URLSearchParams(location.search).get("saison");
   if (sp && sp !== j.saison && j.saisons?.includes(sp)) {
-    try { data = saisons[sp] = await (await fetch(`matchs-${sp}.json`, { cache: "no-store" })).json();
+    try { data = saisons[sp] = await lireJson(`matchs-${sp}.json`);
       jour = cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date()); } catch (e) { data = j; }
   }
   remplirEntete();

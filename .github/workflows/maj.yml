@@ -28,6 +28,24 @@ jobs:
           mkdir _base && xz -6 -T0 -c foot.db > _base/foot.db.xz && cd _base && git init -q -b base && git add foot.db.xz
           git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Base $(date -u +%FT%TZ)"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" base
+      - name: Ranger les vieilles saisons dans le dépôt Foot-archives (chaque site GitHub Pages est limité à 1 Go)
+        env:
+          JETON: ${{ secrets.ARCHIVES_TOKEN }}
+        run: |
+          # sans jeton (dépôt d'archives pas encore préparé) : tout reste sur le site, comme avant
+          [ -n "$JETON" ] || { echo "::warning::Pas de secret ARCHIVES_TOKEN, vieilles saisons gardées sur le site"; exit 0; }
+          depot="https://${{ github.repository_owner }}:$JETON@github.com/${{ github.repository }}-archives.git"
+          limite=$(( $(date -u +%Y) - 5 ))   # saisons de plus de 5 ans (en 2026 : 2020-21 et avant)
+          mkdir _archives && touch _archives/.nojekyll
+          for f in matchs-*.json joueurs-*.json; do a=${f//[^0-9]/}; [ "$a" -lt "$limite" ] && mv "$f" _archives/ || true; done
+          echo "Archives : $(ls _archives | wc -l) fichiers, $(du -sm --apparent-size _archives | cut -f1) Mo"
+          # ces saisons ne bougent presque plus : envoi une fois par jour (vers 3 h UTC), au lancement à la main,
+          # quand le code change, ou si le dépôt d'archives est encore vide ; sinon on garde ce qui y est déjà
+          if [ "$(date -u +%H)" = "03" ] || [ "${{ github.event_name }}" != "schedule" ] || ! git ls-remote --exit-code "$depot" main >/dev/null; then
+            cd _archives && git init -q -b main && git add -A
+            git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Archives $(date -u +%FT%TZ)"
+            git push -f "$depot" main || { echo "::warning::Envoi des archives raté, vieilles saisons gardées sur le site"; cd .. && mv _archives/*.json . ; }
+          fi
       - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
         run: |
           mkdir _site && cp -r index.html sw.js matchs*.json joueurs*.json carrieres identites joueur equipe competition pages.css plan.html sitemap*.xml _site/ && touch _site/.nojekyll
