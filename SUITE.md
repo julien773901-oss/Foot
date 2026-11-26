@@ -97,6 +97,17 @@
   Lien de téléchargement dans la page : raw.githubusercontent.com/.../base/foot.db.xz.
 - `matchs*.json` écrits sans espaces (-9 %, ~34 Mo). Site attendu vers ~820 Mo.
 
+## Vieilles saisons dans un 2e dépôt : Foot-archives (26 novembre 2026)
+- Chaque site GitHub Pages est limité à 1 Go. Les fichiers `matchs-AAAA.json` et `joueurs-AAAA.json` des saisons de plus
+  de 5 ans (~250 Mo) sont publiés dans le dépôt `Foot-archives` (son propre site GitHub Pages, branche `main` écrasée),
+  plus sur la branche `site`. Le site descend vers ~600 Mo.
+- La page (`lireJson()` dans index.html) cherche d'abord le fichier sur le site, puis à l'adresse `ARCHIVES`.
+- Envoi vers Foot-archives : une fois par jour (passage de 3 h UTC), ou au lancement à la main / changement de code,
+  ou si le dépôt d'archives est vide. Les autres passages gardent ce qui y est déjà.
+- Il faut un jeton GitHub dans le secret `ARCHIVES_TOKEN` du dépôt Foot (droit « Contents : lecture et écriture » sur
+  Foot-archives seulement). Sans jeton, ou si l'envoi échoue (jeton expiré…), tout reste sur le site comme avant
+  (avertissement jaune dans Actions) : penser à RENOUVELER LE JETON avant sa date d'expiration.
+
 ## Pour relancer la base à la main
     python foot.py
 
