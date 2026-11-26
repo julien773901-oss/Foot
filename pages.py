@@ -15,7 +15,9 @@ nav{font-size:14px;margin-bottom:8px}.app{display:inline-block;margin:8px 0;padd
 .tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;margin:8px 0 20px}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
 th{color:var(--mut);font-weight:600}td.g,th.g{text-align:left}tr:last-child td{border-bottom:0}
-ul.l{columns:3 200px;padding-left:18px}footer{margin:24px 0;font-size:13px}"""
+ul.l{columns:3 200px;padding-left:18px}footer{margin:24px 0;font-size:13px}
+figure.ph{float:right;margin:0 0 8px 12px;text-align:center;font-size:11px;color:var(--mut)}
+figure.ph img{width:120px;height:120px;object-fit:cover;object-position:50% 20%;border-radius:50%;background:var(--line);display:block;margin:0 auto 4px}"""
 
 
 def slug(nom):
@@ -64,10 +66,19 @@ def age(naissance, jour):
 
 def ligne_identite(v, jour):
     """[naissance, nationalité, drapeau, taille cm, poids kg, poste] -> « Né le 20/12/1998 (27 ans) · France · 1,78 m · ... »"""
-    naiss, nat, _, taille, poids, poste = v
+    naiss, nat, _, taille, poids, poste = v[:6]
     morceaux = [f"Né le {naiss[8:10]}/{naiss[5:7]}/{naiss[:4]} ({age(naiss, jour)} ans)" if naiss else None, nat,
                 f"{taille // 100},{taille % 100:02d} m" if taille else None, f"{poids} kg" if poids else None, poste]
     return " · ".join(x for x in morceaux if x)
+
+
+def bloc_photo(nom, v):
+    """Photo du joueur (adresse ESPN ou Wikimedia Commons, jamais copiée sur le site) + crédit ; "" sans photo."""
+    if len(v) < 7 or not v[6]:
+        return ""
+    credit = (f'<a href="https://commons.wikimedia.org/wiki/File:{quote(v[7].replace(" ", "_"))}">Wikimedia Commons</a>'
+              if len(v) > 7 and v[7] else "ESPN")
+    return f'<figure class="ph"><img src="{e(v[6])}" alt="Photo de {e(nom)}" width="120" height="120" loading="lazy"><figcaption>Photo : {credit}</figcaption></figure>'
 
 
 def ecrire(racine, m, car, clas, courante, maj, iden=None):
@@ -103,7 +114,7 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None):
         periode = nom_saison(saisons[0]) if len(saisons) == 1 else f"{nom_saison(saisons[0])} à {nom_saison(saisons[-1])}"
         desc = f"{nom} ({', '.join(clubs[:3])}) : {buts} but{'s' * (buts > 1)} en {len(saisons)} saison{'s' * (len(saisons) > 1)} ({periode}). Statistiques saison par saison, club par club."
         idt = ligne_identite(iden[nom], maj) if nom in iden else ""
-        corps = (f"<h1>{e(nom)}</h1>" + (f"<p>{e(idt)}</p>" if idt else "") + f"<p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
+        corps = (bloc_photo(nom, iden.get(nom, [])) + f"<h1>{e(nom)}</h1>" + (f"<p>{e(idt)}</p>" if idt else "") + f"<p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
                  f"<p>{e(desc)}</p><h2>Carrière saison par saison</h2>"
                  + table([("Saison", 0), ("Club", 1), ("Compétition", 1)] + [(t, 0) for t, _ in cols], lignes)
                  + "<p class=mut>« – » = inconnu : nombre de matchs et passes décisives seulement sur les saisons récentes.</p>")
@@ -199,4 +210,10 @@ if __name__ == "__main__":
     assert ligne_identite(["1998-12-20", "France", "fra", 178, 74, "Attaquant"], "2026-11-25") == \
         "Né le 20/12/1998 (27 ans) · France · 1,78 m · 74 kg · Attaquant"
     assert ligne_identite(["2000-11-26", None, None, None, None, None], "2026-11-25") == "Né le 26/11/2000 (25 ans)"
+    assert bloc_photo("X", ["2000-01-01", None, None, None, None, None]) == ""
+    assert 'src="https://a.espncdn.com/p.png"' in bloc_photo("X", [None] * 6 + ["https://a.espncdn.com/p.png"]) and "Photo : ESPN" in \
+        bloc_photo("X", [None] * 6 + ["https://a.espncdn.com/p.png"])
+    b = bloc_photo("Pep Biel", [None] * 6 + ["https://commons.wikimedia.org/wiki/Special:FilePath/Pep%20Biel.jpg?width=250", "Pep Biel.jpg"])
+    assert 'href="https://commons.wikimedia.org/wiki/File:Pep_Biel.jpg"' in b and 'alt="Photo de Pep Biel"' in b
+    assert ligne_identite(["2000-11-26", None, None, None, None, None, "u", "f"], "2026-11-25") == "Né le 26/11/2000 (25 ans)"
     print("auto-tests OK")
