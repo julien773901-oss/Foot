@@ -74,7 +74,7 @@
   lue une fois par joueur, `MAX_IDENTITES` par passage (~27 000 joueurs : ~5 passages). Fichiers `identites/0..63.json`.
   Pays traduits en français via Wikidata (`pays_fr()`, compléments dans `PAYS_EN_PLUS`).
   Seulement les joueurs avec un id ESPN (compositions des 4 dernières saisons) : rien pour LiveScore / football-data.
-  Wikidata testé : pied fort quasi absent (6 joueurs), photos pour ~3 400 joueurs seulement → pas utilisé.
+  Wikidata testé : pied fort quasi absent (6 joueurs) → pas utilisé. Photos : voir « Photos des joueurs » plus bas.
 
 - Direct LiveScore : LiveScore refuse les navigateurs (403 avec un en-tête Origin). La page passe chaque minute par un
   relais Cloudflare (Worker gratuit du propriétaire, https://foot-direct.julien773901.workers.dev/, code dans
@@ -107,6 +107,24 @@
 - Il faut un jeton GitHub dans le secret `ARCHIVES_TOKEN` du dépôt Foot (droit « Contents : lecture et écriture » sur
   Foot-archives seulement). Sans jeton, ou si l'envoi échoue (jeton expiré…), tout reste sur le site comme avant
   (avertissement jaune dans Actions) : penser à RENOUVELER LE JETON avant sa date d'expiration.
+
+## Photos des joueurs (26 novembre 2026)
+- Avant : seulement la photo ESPN par id (≈ 4 % des 42 680 joueurs ESPN). Après : ≈ 27 % (≈ 11 500 joueurs).
+- 1) Photo ESPN (`a.espncdn.com/i/headshots/...`), vérifiée par une requête HEAD : colonnes `espn_photo` (1/0) et
+  `photo_lu` de la table `identites`, `MAX_PHOTOS_ESPN` = 8000 par passage (~3,5 min ; toute la base en ~6 passages),
+  un joueur sans photo est revérifié après 60 jours.
+- 2) Sinon photo Wikimedia Commons trouvée par Wikidata (`photos_wikidata()`, colonne `commons` = nom du fichier) :
+  une requête CSV (~72 000 footballeurs avec photo + date de naissance, ~10-15 s), puis leurs noms (table `wikidata`,
+  lus une seule fois ; ~3 min la 1re fois, ~20 s ensuite). Correspondance : id ESPN (P3681) avec nom concordant,
+  ou même date de naissance + nom proche (`meme_nom()`) avec un seul candidat (homonymes nés le même jour : rien).
+  Le lien P3681 seul n'est pas fiable (6 erreurs sur 1 686), d'où la vérification du nom.
+- Les images ne sont PAS copiées sur le site : seulement l'adresse, dans `identites/N.json` (7e valeur = adresse,
+  8e = fichier Commons pour le crédit). Commons : `Special:FilePath/<fichier>?width=250` (largeur standard).
+- Crédit : « Photo : Commons » (fiche du site) / « Photo : Wikimedia Commons » (page Google), lien vers la page du
+  fichier (auteur + licence y sont indiqués). L'API Commons limite trop les requêtes pour lire chaque licence.
+- Non utilisé : TheSportsDB (une requête par joueur, déjà « trop de requêtes » sur le recoupement des scores,
+  images envoyées par les utilisateurs sans licence claire). Joueurs LiveScore / football-data : pas de date de
+  naissance, donc pas de correspondance sûre → pas de photo.
 
 ## Pour relancer la base à la main
     python foot.py
