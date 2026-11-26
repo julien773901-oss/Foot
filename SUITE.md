@@ -154,6 +154,16 @@
 - Nettoyage : un match encore « à venir » 3 jours après sa date est effacé (reporté sous un autre identifiant ou supprimé
   par la source ; il y en avait déjà ~1 270 en base). Un match reporté avec le même identifiant garde sa nouvelle date.
 
+## Classement final prévu (26 novembre 2026)
+- Onglet Classements, quand UNE compétition est choisie (saison en cours) : « Classement final prévu » sous le classement.
+- `projection()` dans index.html : les matchs à venir du calendrier (même groupe) sont simulés 2 000 fois ; chaque score est
+  tiré au hasard (loi de Poisson) avec les buts attendus du modèle des pronostics (`getModele().predire` renvoie `lh`, `la`).
+  Colonnes : Pts (actuels), Prévu (points moyens), chances de finir 1er / dans les 4 premiers / dans les 3 derniers.
+- Résultat gardé en mémoire tant que le modèle ne change pas (`projections`) : pas de recalcul à chaque minute de direct.
+  ~0,4 s pour la Premier League sur téléphone récent.
+- Limites : départage simplifié (points, différence, buts marqués, puis hasard) ; Apertura/Clausura ou play-offs sous le
+  même nom de compétition faussent la projection ; dépend du calendrier complet (lu jusqu'au 30 juin, voir plus haut).
+
 ## Pour relancer la base à la main
     python foot.py
 

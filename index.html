@@ -63,6 +63,8 @@
   td.pts { font-weight:700; }
   tr:last-child td { border-bottom:0; }
   tr.moi td { background:var(--accbg); }
+  table.proj th, table.proj td { padding-left:4px; padding-right:4px; }
+  table.proj td.g { white-space:normal; } table.proj .eq span { white-space:normal; }
   sup.off { font-size:10px; color:var(--warn); margin-left:4px; font-weight:600; }
   .fiche { display:flex; align-items:center; gap:12px; margin:12px 0; flex-wrap:wrap; }
   .fiche img { width:56px; height:56px; object-fit:contain; }
@@ -338,6 +340,54 @@ function classementDirect(lg) {
     .map((c, i) => ({ ...c, rang: i + 1 })));
 }
 
+// ---------- classement final prévu : la fin de saison simulée 2 000 fois avec le modèle des pronostics ----------
+// Chaque match à venir reçoit un score tiré au hasard selon les buts attendus (loi de Poisson) ; on compte, pour chaque
+// équipe, ses points moyens et combien de fois elle finit 1re, dans les 4 premiers ou dans les 3 derniers.
+// shortcut: départage = points, différence, buts marqués, puis hasard (pas les confrontations directes) ; les matchs
+// à venir d'une autre phase (play-offs, Apertura/Clausura) sous le même nom de compétition faussent la projection.
+const tirage = l => { let k = 0, p = Math.exp(-l), s = p; const u = Math.random(); while (u > s && k < 15) { k++; p *= l / k; s += p; } return k; };
+function projection(lg, rows, N = 2000) {
+  const groupe = new Map(rows.map(c => [c.equipe, c.groupe ?? ""]));
+  const reste = data.matchs.filter(m => m.ligue === lg && m.statut === PREVU && groupe.has(m.domicile) && groupe.has(m.exterieur)
+    && groupe.get(m.domicile) === groupe.get(m.exterieur));
+  if (!reste.length) return null;
+  const M = getModele(), lam = reste.map(m => M.predire(m.domicile, m.exterieur));
+  const st = Object.fromEntries(rows.map(c => [c.equipe, { pts: 0, p1: 0, top4: 0, bas3: 0 }]));
+  const parGroupe = rows.reduce((o, c) => ((o[c.groupe ?? ""] ??= []).push(c.equipe), o), {});
+  for (let k = 0; k < N; k++) {
+    const t = Object.fromEntries(rows.map(c => [c.equipe, { pts: c.pts, d: c.bp - c.bc, bp: c.bp, h: Math.random() }]));
+    reste.forEach((m, i) => {
+      const a = tirage(lam[i].lh), b = tirage(lam[i].la), D = t[m.domicile], E = t[m.exterieur];
+      D.d += a - b; E.d += b - a; D.bp += a; E.bp += b;
+      if (a > b) D.pts += 3; else if (a < b) E.pts += 3; else { D.pts++; E.pts++; }
+    });
+    for (const eqs of Object.values(parGroupe)) {
+      eqs.slice().sort((x, y) => t[y].pts - t[x].pts || t[y].d - t[x].d || t[y].bp - t[x].bp || t[y].h - t[x].h)
+        .forEach((e, i) => { const x = st[e]; x.pts += t[e].pts; x.p1 += i === 0; x.top4 += i < 4; x.bas3 += i >= eqs.length - 3; });
+    }
+  }
+  return { n: reste.length, lignes: rows.map(c => ({ c, pts: st[c.equipe].pts / N, p1: st[c.equipe].p1 / N, top4: st[c.equipe].top4 / N,
+    bas3: st[c.equipe].bas3 / N })).sort((a, b) => (a.c.groupe ?? "").localeCompare(b.c.groupe ?? "") || b.pts - a.pts) };
+}
+const projections = new Map();  // gardées tant que le modèle ne change pas (un match fini) : pas de calcul à chaque minute de direct
+function blocProjection(lg, rows, surligne) {
+  if (data.saison && data.saison !== data.courante) return "";  // saison terminée : rien à prévoir
+  const M = getModele(), cle = lg + "|" + rows.map(c => c.equipe + c.pts).join();
+  if (projections.get(cle)?.M !== M) projections.set(cle, { M, P: projection(lg, rows) });
+  const P = projections.get(cle).P;
+  if (!P) return "";
+  const pc = x => x === 0 ? "–" : x < .01 ? "<1 %" : x > .99 && x < 1 ? ">99 %" : pct(x) + " %";
+  const g = P.lignes.some(l => (l.c.groupe ?? "") !== (P.lignes[0].c.groupe ?? ""));
+  return `<h2>Classement final prévu</h2><div class="tab-wrap"><table class="proj">
+    <thead><tr><th>#</th><th style="text-align:left">Équipe</th><th title="Points actuels">Pts</th><th title="Points prévus en fin de saison">Prévu</th><th title="Finit 1er">1er</th><th title="Finit dans les 4 premiers">Top 4</th><th title="Finit dans les 3 derniers">Bas 3</th></tr></thead><tbody>
+    ${P.lignes.map((l, i, L) => { const rang = L.slice(0, i + 1).filter(x => (x.c.groupe ?? "") === (l.c.groupe ?? "")).length;
+      return `${g && rang === 1 ? `<tr><td colspan="7" class="g mut">${esc(l.c.groupe ?? "")}</td></tr>` : ""}<tr class="${surligne(l.c) ? "moi" : ""}"><td>${rang}</td><td class="g">${lienEq(l.c.equipe, l.c.logo)}</td><td>${l.c.pts}</td>
+      <td class="pts">${Math.round(l.pts)}</td><td>${pc(l.p1)}</td><td>${pc(l.top4)}</td><td>${pc(l.bas3)}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="mut">Pts = points actuels ; Prévu = points prévus en fin de saison ; 1er, Top 4, Bas 3 = chances de finir 1er, dans les 4 premiers, dans les 3 derniers.
+    Les ${P.n} matchs restants au calendrier, simulés 2 000 fois avec le modèle des pronostics (buts marqués et encaissés cette saison, avantage du terrain). Une estimation, pas une certitude : blessures, transferts et forme du moment ne sont pas pris en compte.</p>`;
+}
+
 function vueClass() {
   const l = $("ligue").value, q = cherche();
   const surligne = c => fav.has(c.equipe) || (q && c.equipe.toLowerCase().includes(q));
@@ -345,7 +395,8 @@ function vueClass() {
   return ligues.map(lg => {
     const rows = classementDirect(lg);
     return rows.length ? `<h2>${esc(lg)}</h2>` + tableClass(rows, surligne)
-      + (rows.some(c => c.ajoute) ? `<p class="mut">Classement provisoire : ${rows.some(c => c.direct) ? "🔴 = match en cours compté au score actuel ; " : ""}derniers résultats ajoutés en attendant le classement officiel.</p>` : "") : "";
+      + (rows.some(c => c.ajoute) ? `<p class="mut">Classement provisoire : ${rows.some(c => c.direct) ? "🔴 = match en cours compté au score actuel ; " : ""}derniers résultats ajoutés en attendant le classement officiel.</p>` : "")
+      + (ligues.length === 1 ? blocProjection(lg, rows, surligne) : "") : "";
   }).join("") || `<p class="mut">${l === "__fav" ? "Ajoutez des équipes en favori (★ sur leur fiche)." : "Pas de classement pour cette compétition (coupe)."}</p>`;
 }
 
@@ -650,7 +701,8 @@ function getModele() {
     const avgH = nM ? gH / nM : 1.45, avgA = nM ? gA / nM : 1.15, avg = (avgH + avgA) / 2;
     const s = n => eq[n] ?? { mj: 0, bp: 0, bc: 0 }, A = s(d), B = s(e);
     const att = x => (x.bp + K * avg) / (x.mj + K) / avg, def = x => (x.bc + K * avg) / (x.mj + K) / avg;
-    return { ...probas(avgH * att(A) * def(B), avgA * att(B) * def(A)), info: Math.min(A.mj, B.mj) };
+    const lh = avgH * att(A) * def(B), la = avgA * att(B) * def(A);
+    return { ...probas(lh, la), lh, la, info: Math.min(A.mj, B.mj) };
   };
   const histo = [];  // pronostic fait AVANT chaque match passé, avec seulement les matchs précédents
   for (const m of ms) {
