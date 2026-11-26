@@ -511,7 +511,7 @@ def main():
         donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
                               "sources": etat, "matchs": [x for x in m if saison_match[x["id"]] == s],
-                              "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False)
+                              "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False, separators=(",", ":"))  # sans espaces : -9 %
         joueurs = json.dumps(jou[s], ensure_ascii=False, separators=(",", ":"))
         for suffixe in [f"-{s}"] + ([""] if s == courante else []):
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")

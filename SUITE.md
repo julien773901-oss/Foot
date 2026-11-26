@@ -89,6 +89,14 @@
 - Page restée ouverte : `rafraichir()` relit matchs.json toutes les 10 min et quand l'onglet redevient visible
   (avant, résultats et classements restaient ceux de l'ouverture de la page ; le lendemain, retour sur « aujourd'hui »).
 
+## Correction du 26 novembre 2026 : site trop gros
+- Les passages #71 et #72 ont échoué : le site avait atteint 950 Mo (limite du workflow, l'ancien site restait en ligne).
+- La base `foot.db.xz` (~50 Mo) est maintenant rangée sur une branche à part `base` (écrasée à chaque passage, pas
+  publiée par GitHub Pages) ; le workflow la relit de là (1re fois : encore depuis `site`). Elle est rangée AVANT la
+  publication du site : si le site redevient trop gros, le travail de la base n'est plus perdu.
+  Lien de téléchargement dans la page : raw.githubusercontent.com/.../base/foot.db.xz.
+- `matchs*.json` écrits sans espaces (-9 %, ~34 Mo). Site attendu vers ~820 Mo.
+
 ## Pour relancer la base à la main
     python foot.py
 
