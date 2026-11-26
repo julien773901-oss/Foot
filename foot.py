@@ -214,6 +214,26 @@ def classement(code, ligue, saison):
     return lignes
 
 
+def mois_a_venir(today, fin):
+    """['AAAAMM', ...] du mois de today+15 jours au mois de fin (calendrier lu mois par mois au-delà des 14 jours)."""
+    d, out = (today + timedelta(days=15)).replace(day=1), []
+    while d <= fin:
+        out.append(d.strftime("%Y%m"))
+        d = (d + timedelta(days=32)).replace(day=1)
+    return out
+
+
+def calendrier(code, ligue, mois, apres):
+    """Matchs à venir d'un mois entier (ESPN accepte dates=AAAAMM, pas les intervalles) ; seulement après `apres`
+    (AAAA-MM-JJ) : les 14 prochains jours sont lus jour par jour avec le reste."""
+    try:
+        evs = get(f"{API}/site/v2/sports/soccer/{code}/scoreboard?dates={mois}&limit=1000").get("events", [])
+        return [parse(ev, ligue, code in FEMININ) for ev in evs if ev["date"][:10] > apres]
+    except Exception as e:
+        print(f"[erreur] calendrier {ligue} {mois}: {e}", file=sys.stderr)
+        return []
+
+
 def jour(code, ligue, j):
     try:
         if code.startswith("livescore"):  # une seule page par jour pour toutes les ligues lues chez LiveScore
@@ -448,6 +468,7 @@ def main():
     except sqlite3.OperationalError:
         pass
     stable = (today - timedelta(days=7)).strftime("%Y%m%d")  # avant : les scores ne bougent plus
+    fin_saison = date(courante + 1, 6, 30)  # calendrier lu jusqu'à la fin de la saison européenne (et le début 2027 des autres)
     taches = []
     for code, ligue in LIGUES.items():
         try:
@@ -470,7 +491,7 @@ def main():
                (ls_code, (today - timedelta(days=1)).isoformat()))
     deja = {j for (j,) in db.execute("SELECT jour FROM jours_lus WHERE code=?", (ls_code,))}
     debut = date.fromisoformat(debut_recent)
-    taches += [(ls_code, None, j) for i in range((today + timedelta(days=14) - debut).days + 1)
+    taches += [(ls_code, None, j) for i in range((max(fin_saison, today + timedelta(days=14)) - debut).days + 1)
                if (j := (debut + timedelta(days=i)).strftime("%Y%m%d")) not in deja]
     taches.sort(key=lambda t: t[2], reverse=True)  # le plus récent d'abord : les jours récents passent à chaque fois
     print(f"[historique] {len(taches)} journées à lire, {min(len(taches), MAX_JOURS)} ce passage")
@@ -487,6 +508,17 @@ def main():
     upsert = (f"INSERT INTO matchs ({','.join(COLS)}) VALUES ({','.join('?' * len(COLS))}) "
               f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=coalesce(excluded.{c}, {c})' if c in ('buteurs', 'cartons') else f'{c}=excluded.{c}' for c in COLS[1:])}")
     db.executemany(upsert, [m + (maintenant,) for m in matchs])
+    # calendrier jusqu'à la fin de saison : un appel par mois et par compétition ESPN (~1 500 appels, ~2 min)
+    apres, t0 = (today + timedelta(days=14)).isoformat(), time.time()
+    lots = [(code, ligue, m) for code, ligue in LIGUES.items() for m in mois_a_venir(today, fin_saison)]
+    with ThreadPoolExecutor(4) as pool:
+        a_venir = [x for r in pool.map(lambda t: calendrier(*t, apres), lots) for x in r]
+    db.executemany(upsert, [m + (maintenant,) for m in a_venir])
+    print(f"[temps] calendrier ESPN: {time.time() - t0:.0f} s ({len(a_venir)} matchs à venir après le {apres})")
+    # match toujours « à venir » 3 jours après sa date : la source ne l'annonce plus ce jour-là (reporté sous un autre
+    # identifiant ou supprimé ; les 7 derniers jours sont relus à chaque passage). Sinon il resterait « à venir » dans le passé.
+    n = db.execute("DELETE FROM matchs WHERE statut='STATUS_SCHEDULED' AND date_utc < ?", ((today - timedelta(days=3)).isoformat(),)).rowcount
+    print(f"[calendrier] {n} matchs annoncés mais jamais joués retirés")
 
     # football-data.co.uk comme source principale là où personne d'autre n'a les matchs : avant 2001 (ESPN n'a rien)
     # et, pour les ligues LiveScore, avant sa fenêtre d'un an. Chaque fichier n'est lu qu'une fois (saisons finies).
@@ -741,6 +773,8 @@ if __name__ == "__main__":
         {"starter": False, "athlete": {"displayName": "Banc", "id": "3"}}]}]
     assert parse(fake, "L", True)[3:5] == ("A (F)", "B (F)")
     assert "fifa.world" not in FEMININ and FEMININ <= set(LIGUES)
+    assert mois_a_venir(date(2026, 11, 26), date(2027, 6, 30)) == ["202612", "202701", "202702", "202703", "202704", "202705", "202706"]
+    assert mois_a_venir(date(2027, 6, 20), date(2027, 6, 30)) == []
     assert saison_de("2026-08-21T18:45Z") == 2026 and saison_de("2026-05-10T18:00Z") == 2025
     pa = participations(resume)
     assert pa == [("A", "1", "ext", 1, 0, 1, "G", 0, None, None, None, None, 3, None),

@@ -145,6 +145,15 @@
 - Autres sources gratuites regardées : rien de plus large que ESPN + LiveScore sans clé ; FBref, Transfermarkt,
   L'Équipe, matchendirect.fr déjà refusés (conditions / robots.txt).
 
+## Calendrier jusqu'à la fin de saison (26 novembre 2026)
+- Avant : matchs à venir lus 14 jours à l'avance seulement. Maintenant jusqu'au 30 juin de la saison (`fin_saison`).
+- ESPN n'accepte pas les intervalles de dates mais accepte un mois entier (`scoreboard?dates=AAAAMM&limit=1000`) :
+  `calendrier()` + `mois_a_venir()`, ~1 350 appels par passage (~1 min 30), ~6 800 matchs à venir fin novembre.
+  Les 14 prochains jours restent lus jour par jour (comme avant).
+- LiveScore : les jours lus vont jusqu'à `fin_saison` (~216 pages de plus par passage, ~1 min).
+- Nettoyage : un match encore « à venir » 3 jours après sa date est effacé (reporté sous un autre identifiant ou supprimé
+  par la source ; il y en avait déjà ~1 270 en base). Un match reporté avec le même identifiant garde sa nouvelle date.
+
 ## Pour relancer la base à la main
     python foot.py
 
