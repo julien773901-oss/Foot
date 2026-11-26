@@ -145,7 +145,9 @@
   .partage button { padding:6px 12px; font-size:14px; }
   .identite { margin:2px 0; font-size:14px; }
   .fiche img.drapeau { width:18px; height:auto; vertical-align:-2px; }
-  .photo { width:64px; height:64px; border-radius:50%; object-fit:cover; background:var(--line); }
+  .fiche img.photo { width:64px; height:64px; border-radius:50%; object-fit:cover; object-position:50% 20%; background:var(--line); display:block; }
+  figure.photo-j { margin:0; text-align:center; font-size:10px; line-height:1.2; }
+  figure.photo-j a { color:var(--mut); }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -480,9 +482,16 @@ const STATS_J = [["tirs", "Tirs"], ["cadres", "Cadrés"], ["fautes", "Fautes"], 
 const carrieresP = {};
 const paquet = n => [...n].reduce((s, c) => s + c.codePointAt(0), 0) % 64;
 const carriere = nom => (carrieresP[paquet(nom)] ??= fetch(`carrieres/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom] || []);
-// identité : [naissance, nationalité, drapeau, taille cm, poids kg, poste] (même découpage, voir foot.py)
+// identité : [naissance, nationalité, drapeau, taille cm, poids kg, poste, photo, fichier Commons] (même découpage, voir foot.py)
 const identitesP = {};
 const identite = nom => (identitesP[paquet(nom)] ??= fetch(`identites/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom]);
+// photo : celle de l'identité (ESPN, sinon Wikimedia Commons avec crédit), sinon essai ESPN par l'id (retirée si absente)
+function photoJoueur(idt, id) {
+  const src = idt?.[6] || (id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(id)}.png` : "");
+  if (!src) return "";
+  const credit = idt?.[7] ? `<figcaption><a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(idt[7].replaceAll(" ", "_"))}" target="_blank" rel="noopener">Photo : Commons</a></figcaption>` : "";
+  return `<figure class="photo-j"><img class="photo" src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.remove()">${credit}</figure>`;
+}
 function ligneIdentite(v) {
   if (!v) return "";
   const [naiss, nat, drapeau, taille, poids, poste] = v;
@@ -544,13 +553,13 @@ async function vueJoueur(nom) {
   if (route()[1] !== nom) return;
   if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
   if (!st) {  // rien cette saison, mais une carrière ailleurs
-    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche"><div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}</div></div>${boutonsPartage("joueur", nom)}
+    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche">${photoJoueur(idt)}<div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}</div></div>${boutonsPartage("joueur", nom)}
       <p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
     return;
   }
   const { J, L, tot, T, equipes } = st;
   const comps = [...new Set(L.map(l => l.m.ligue))];
-  const photo = J?.id ? `<img class="photo" src="https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(J.id)}.png" alt="" onerror="this.remove()">` : "";
+  const photo = photoJoueur(idt, J?.id);
   const gardien = J?.p === "G" || T.arrets > 0;
   const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
     : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;

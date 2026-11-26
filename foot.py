@@ -1,9 +1,10 @@
 """Met à jour foot.db : matchs (avec logos et buteurs) et classements.
 1er lancement : toute la saison. Ensuite : 7 jours avant / 14 jours après + les jours jamais lus correctement.
 Lancer : python foot.py"""
-import json, sqlite3, sys, time, urllib.parse
+import csv, io, json, re, sqlite3, sys, time, unicodedata, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
+from difflib import SequenceMatcher
 from pathlib import Path
 import sources as S
 import pages as P
@@ -200,6 +201,105 @@ def pays_fr():
         return PAYS_EN_PLUS
 
 
+# ---------- photos des joueurs ----------
+# 1) photo ESPN (portrait détouré, même style pour tous) quand elle existe : ~3 % des joueurs seulement ;
+# 2) sinon photo de Wikimedia Commons (libre de droits, crédit + lien vers la page du fichier), trouvée par Wikidata :
+#    lien direct par l'id ESPN (P3681) ou même date de naissance + nom proche (un seul candidat, sinon rien).
+# On stocke seulement l'adresse : les images ne sont pas copiées sur le site (limite de 1 Go).
+ESPN_PHOTO = "https://a.espncdn.com/i/headshots/soccer/players/full/{}.png"
+COMMONS = "https://commons.wikimedia.org/wiki/Special:FilePath/"  # redirige vers la miniature (largeurs standard : 250)
+MAX_PHOTOS_ESPN = 8000  # vérifications ESPN par passage (~2 min) ; un joueur sans photo est revérifié après 60 jours
+WD_UA = {"User-Agent": "base-foot/1.0 (site de statistiques de football)", "Accept": "text/csv"}
+
+
+def photo_espn(id_espn):
+    """1 si ESPN a la photo, 0 sinon, None si on ne sait pas (erreur réseau : nouvel essai au prochain passage)."""
+    try:
+        urllib.request.urlopen(urllib.request.Request(ESPN_PHOTO.format(id_espn), method="HEAD", headers=S.UA), timeout=20)
+        return 1
+    except Exception as e:
+        return 0 if getattr(e, "code", None) in (403, 404) else None
+
+
+def sparql(q, essais=3):
+    """Requête Wikidata en POST (listes VALUES trop longues pour une adresse), réponse en CSV (4 fois plus légère que
+    le JSON : la grosse requête tient sous la limite de 60 s). Renvoie une liste de {colonne: valeur} ("" = absente)."""
+    d = urllib.parse.urlencode({"query": q}).encode()
+    for i in range(essais):
+        try:
+            txt = urllib.request.urlopen(urllib.request.Request("https://query.wikidata.org/sparql", data=d, headers=WD_UA),
+                                         timeout=120).read().decode()
+            return list(csv.DictReader(io.StringIO(txt), strict=True))
+        except Exception:  # réponse coupée, serveur surchargé…
+            if i == essais - 1:
+                raise
+            time.sleep(30)
+
+
+def photo(id_espn, espn, commons):
+    """[adresse, fichier Commons] pour l'export ; ESPN d'abord ; [] sans photo."""
+    if espn == 1:
+        return [ESPN_PHOTO.format(id_espn)]
+    return [COMMONS + urllib.parse.quote(commons) + "?width=250", commons] if commons else []
+
+
+def mots(nom):
+    s = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode().lower()
+    return re.findall(r"[a-z0-9]+", s)
+
+
+def meme_nom(a, b):
+    """« Jesé » / « Jesé Rodríguez », « Hannes Van Der Bruggen » / « Hannes van der Bruggen », translittérations proches."""
+    ma, mb = mots(a), mots(b)
+    if not ma or not mb:
+        return False
+    return set(ma) <= set(mb) or set(mb) <= set(ma) or SequenceMatcher(None, " ".join(ma), " ".join(mb)).ratio() >= 0.85
+
+
+def apparier_photos(joueurs, wd, noms):
+    """joueurs : {id_espn: (nom, naissance)} ; wd : {qid: (naissance, fichier Commons, {ids ESPN})} ; noms : {qid: [noms]}.
+    Renvoie {id_espn: fichier Commons}. Lien par id ESPN accepté seulement si le nom concorde (quelques erreurs dans Wikidata)."""
+    par_espn = {e: q for q, (_, _, es) in wd.items() for e in es}
+    par_date = {}
+    for q, (d, _, _) in wd.items():
+        par_date.setdefault(d, []).append(q)
+    out = {}
+    for e, (nom, naiss) in joueurs.items():
+        q = par_espn.get(e)
+        if q and any(meme_nom(nom, n) for n in noms.get(q, [])):
+            out[e] = wd[q][1]
+            continue
+        cands = [q for q in par_date.get(naiss, []) if any(meme_nom(nom, n) for n in noms.get(q, []))] if naiss else []
+        if len(cands) == 1:  # deux homonymes nés le même jour : on ne choisit pas
+            out[e] = wd[cands[0]][1]
+    return out
+
+
+def photos_wikidata(db, joueurs):
+    """Footballeurs Wikidata avec photo + date de naissance (~72 000, une requête de ~15 s), puis leurs noms
+    (seulement ceux qui peuvent correspondre ; gardés en base, table wikidata : on ne relit que les nouveaux)."""
+    wd = {}
+    for b in sparql("SELECT ?p ?d ?img ?espn WHERE { ?p wdt:P106 wd:Q937857 ; wdt:P18 ?img ; wdt:P569 ?d . OPTIONAL { ?p wdt:P3681 ?espn } }"):
+        q = b["p"].rsplit("/", 1)[1]
+        if "Special:FilePath/" not in b["img"]:
+            continue  # valeur « inconnue » de Wikidata, pas un fichier Commons
+        x = wd.setdefault(q, (b["d"][:10], urllib.parse.unquote(b["img"].rsplit("Special:FilePath/", 1)[1]), set()))
+        if b["espn"]:
+            x[2].add(b["espn"])
+    dates, ids = {n for _, n in joueurs.values()}, set(joueurs)
+    utiles = {q for q, (d, _, es) in wd.items() if d in dates or es & ids}
+    noms = {q: json.loads(n) for q, n in db.execute("SELECT qid, noms FROM wikidata")}
+    a_lire = sorted(utiles - set(noms))
+    for i in range(0, len(a_lire), 3000):  # ~10 s par paquet ; ~11 paquets la 1re fois, presque rien ensuite
+        lus = {q: set() for q in a_lire[i:i + 3000]}
+        for b in sparql("SELECT ?p ?l WHERE { VALUES ?p { %s } { ?p rdfs:label ?l } UNION { ?p skos:altLabel ?l } "
+                        'FILTER(lang(?l) IN ("en","fr","es","de","it","pt","mul")) }' % " ".join("wd:" + q for q in lus)):
+            lus[b["p"].rsplit("/", 1)[1]].add(b["l"])
+        db.executemany("INSERT OR REPLACE INTO wikidata VALUES (?,?)", [(q, json.dumps(sorted(v), ensure_ascii=False)) for q, v in lus.items()])
+        noms |= {q: sorted(v) for q, v in lus.items()}
+    return apparier_photos(joueurs, wd, noms)
+
+
 NB_PAQUETS = 64  # carrières découpées en 64 fichiers : la fiche joueur n'en charge qu'un
 
 
@@ -270,9 +370,11 @@ def main():
     CREATE TABLE IF NOT EXISTS participations (match_id TEXT, joueur TEXT, id_espn TEXT, cote TEXT,
         titulaire INTEGER, entre INTEGER, sorti INTEGER, PRIMARY KEY (match_id, joueur));
     CREATE TABLE IF NOT EXISTS identites (id_espn TEXT PRIMARY KEY, joueur TEXT, lu TEXT, naissance TEXT, nationalite TEXT,
-        drapeau TEXT, taille INTEGER, poids INTEGER, poste TEXT);""")
+        drapeau TEXT, taille INTEGER, poids INTEGER, poste TEXT);
+    CREATE TABLE IF NOT EXISTS wikidata (qid TEXT PRIMARY KEY, noms TEXT);""")
     for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
-            [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]]:  # colonnes ajoutées après coup
+            [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]] + \
+            [("identites", "espn_photo INTEGER"), ("identites", "photo_lu TEXT"), ("identites", "commons TEXT")]:  # colonnes ajoutées après coup
         try:
             db.execute(f"ALTER TABLE {table} ADD COLUMN {col}")
         except sqlite3.OperationalError:
@@ -395,8 +497,28 @@ def main():
             return (x[0], x[1], maintenant) + (None,) * 6  # pas relu à chaque passage
     t0 = time.time()
     with ThreadPoolExecutor(4) as pool:
-        db.executemany("INSERT OR REPLACE INTO identites VALUES (?,?,?,?,?,?,?,?,?)", pool.map(lire_identite, ids))
+        db.executemany("INSERT OR REPLACE INTO identites (id_espn, joueur, lu, naissance, nationalite, drapeau, taille, poids, poste) "
+                       "VALUES (?,?,?,?,?,?,?,?,?)", pool.map(lire_identite, ids))
     print(f"[temps] identités: {time.time() - t0:.0f} s ({len(ids)} lues)")
+    # photos ESPN : jamais vérifiée, ou absente depuis plus de 60 jours (ESPN en ajoute pour les joueurs en activité)
+    ids = [i for (i,) in db.execute("SELECT id_espn FROM identites WHERE photo_lu IS NULL OR (espn_photo = 0 AND photo_lu < ?) "
+                                    f"ORDER BY photo_lu IS NOT NULL, lu DESC LIMIT {MAX_PHOTOS_ESPN}", ((today - timedelta(days=60)).isoformat(),))]
+    t0 = time.time()
+    with ThreadPoolExecutor(8) as pool:
+        vus = [(v, maintenant, i) for i, v in zip(ids, pool.map(photo_espn, ids)) if v is not None]
+    db.executemany("UPDATE identites SET espn_photo=?, photo_lu=? WHERE id_espn=?", vus)
+    print(f"[temps] photos ESPN: {time.time() - t0:.0f} s ({len(vus)} vérifiées, {sum(v for v, _, _ in vus)} trouvées)")
+    # photos Wikimedia Commons via Wikidata (toutes recalculées : Wikidata s'enrichit chaque jour)
+    t0 = time.time()
+    try:
+        trouvees = photos_wikidata(db, {i: (n, d) for i, n, d in db.execute("SELECT id_espn, joueur, naissance FROM identites")})
+        db.execute("UPDATE identites SET commons=NULL")
+        db.executemany("UPDATE identites SET commons=? WHERE id_espn=?", [(f, i) for i, f in trouvees.items()])
+        print(f"[temps] photos Wikidata: {time.time() - t0:.0f} s ({len(trouvees)} joueurs)")
+    except Exception as e:
+        erreurs += 1
+        print(f"[erreur] photos Wikidata (on garde les anciennes) : {e}", file=sys.stderr)
+    n_photos = db.execute("SELECT count(*), sum(espn_photo = 1), sum(espn_photo = 1 OR commons IS NOT NULL) FROM identites").fetchone()
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
     for saison in [s for s in SAISONS if s >= PREMIERE_SAISON]:
         for code, ligue in LIGUES.items():
@@ -499,8 +621,12 @@ def main():
     car = ecrire_carrieres(m, saison_match, parts, debut_recent)
     # identités par nom (homonymes : le dernier lu l'emporte), même découpage que les carrières
     pays = pays_fr()
-    iden = {nom: [v[0], pays.get(v[1], v[1])] + v[2:] for nom, *v in db.execute("SELECT joueur, naissance, nationalite, drapeau, taille, poids, poste FROM identites "
-                                            "WHERE coalesce(naissance, nationalite, poste) IS NOT NULL ORDER BY lu")}
+    # [naissance, nationalité, drapeau, taille, poids, poste, adresse de la photo, fichier Commons (pour le crédit)]
+    iden = {}
+    for nom, *v, ide, ep, cm in db.execute("SELECT joueur, naissance, nationalite, drapeau, taille, poids, poste, id_espn, espn_photo, commons "
+                                           "FROM identites WHERE coalesce(naissance, nationalite, poste) IS NOT NULL OR espn_photo = 1 "
+                                           "OR commons IS NOT NULL ORDER BY lu"):
+        iden[nom] = [v[0], pays.get(v[1], v[1])] + v[2:] + photo(ide, ep, cm)
     (dossier := DB.with_name("identites")).mkdir(exist_ok=True)
     pq = [{} for _ in range(NB_PAQUETS)]
     for nom, v in iden.items():
@@ -517,6 +643,7 @@ def main():
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")
             DB.with_name(f"joueurs{suffixe}.json").write_text(joueurs, encoding="utf-8")
     P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden)
+    print(f"[photos] {n_photos[2] or 0} joueurs avec photo sur {n_photos[0]} (ESPN : {n_photos[1] or 0}, les autres : Wikimedia Commons)")
     print(f"{len(taches)} jours lus, {len(matchs)} matchs mis à jour, {erreurs} erreurs -> {DB}")
 
 
@@ -564,4 +691,14 @@ if __name__ == "__main__":
                      "position": {"name": "Forward"}, "flag": {"href": "https://a.espncdn.com/i/teamlogos/countries/500/fra.png"}}) \
         == ("1998-12-20", "France", "fra", 178, 74, "Attaquant")
     assert identite({}) == (None,) * 6
+    assert meme_nom("Jesé", "Jesé Rodríguez") and meme_nom("Hannes Van Der Bruggen", "Hannes van der Bruggen")
+    assert meme_nom("Viktor Tsygankov", "Viktor Tsyhankov") and not meme_nom("Christian Alemán", "Brayan Palmezano")
+    wd = {"Q1": ("1990-01-01", "A.jpg", {"10"}), "Q2": ("1995-05-05", "B.jpg", set()), "Q3": ("1995-05-05", "C.jpg", set()),
+          "Q4": ("2000-02-02", "D.jpg", {"40"}), "Q5": ("1999-09-09", "E.jpg", set())}
+    noms = {"Q1": ["Jean Dupont"], "Q2": ["Paul Martin"], "Q3": ["Paul Martin"], "Q4": ["Autre Joueur"], "Q5": ["Luis Pérez"]}
+    # 10 : lien ESPN + nom ; 20 : deux homonymes même jour -> rien ; 40 : lien ESPN mais nom différent -> rien ; 50 : date + nom
+    assert apparier_photos({"10": ("Jean Dupont", "1991-01-01"), "20": ("Paul Martin", "1995-05-05"), "40": ("Marc Leroy", "2000-02-02"),
+                            "50": ("Luis Perez", "1999-09-09"), "60": ("Sans Date", None)}, wd, noms) == {"10": "A.jpg", "50": "E.jpg"}
+    assert photo("7", 1, "X.jpg") == [ESPN_PHOTO.format("7")] and photo("7", 0, None) == []
+    assert photo("7", 0, "Joe Bloggs é.jpg") == [COMMONS + "Joe%20Bloggs%20%C3%A9.jpg?width=250", "Joe Bloggs é.jpg"]
     main()
