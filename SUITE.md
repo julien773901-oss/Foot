@@ -179,6 +179,24 @@
   Recherche une fois par jour (passage de 3 h UTC, ~1 min). Essai : 313 clubs sur 350 des grands championnats (89 %).
 - `color-mix()` (CSS) : navigateurs de 2023 et plus ; sinon dégradé vert par défaut.
 
+## Palmarès (nuit du 26 au 27 novembre 2026)
+- Fiches joueur et club (site + pages Google) : une case par trophée (photo du trophée, « ×N » si plusieurs, années).
+- Aucune source gratuite fiable ne donne les palmarès : `titres()` (foot.py) les déduit de la base :
+  - championnat = 1er du classement final (un seul groupe, tout le monde s'est rencontré ; année civile si le championnat
+    ne joue presque pas en janvier) ; sans classement (football-data avant 2001) : recalculé avec les matchs ;
+  - coupe / play-offs = finale : match seul ce jour-là, ≤ 3 matchs dans les 7 jours d'avant, puis ≥ 45 jours sans match
+    de la compétition, et le gagnant ne rejoue pas dans les 120 jours (sinon : demi-finale) ; aller-retour additionné ;
+    tirs au but : vainqueur lu une fois chez ESPN (`vainqueur_tab()`, champ winner ou score des t.a.b.), table `finales` ;
+  - pas de titre : amicaux, éliminatoires, qualifications, barrages (`PAS_UN_TITRE`).
+  - essai sur la base : ~1 500 titres (PSG Ligue 1 2023-24, Liverpool C1 2004-05 aux t.a.b., Botafogo Libertadores 2024…).
+- Joueur : titres de son équipe dans les compétitions où il a une ligne de carrière cette saison-là (club ou sélection).
+  Avant les saisons détaillées, la carrière ne contient que buteurs et cartons : palmarès incomplet pour ces années.
+- `palmares.json` : {"titres": [[compétition, édition, vainqueur, [saisons]]], "trophees": {compétition: [image, fichier Commons]}}.
+  Image : photo du trophée (Commons, `TROPHEES`, 21 compétitions vérifiées à la main), sinon logo ESPN, sinon 🏆.
+- football-data.co.uk renvoyait parfois le fichier d'une autre division (la Liga 1993-94 rangée en 2e division écossaise,
+  LaLiga 2, Liga Portugal…) : contrôle de la colonne Div (`fd_saison`) et relecture une fois des saisons avant 2001
+  (`fd_version` 2 dans jours_lus).
+
 ## Pour relancer la base à la main
     python foot.py
 
