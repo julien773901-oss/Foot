@@ -117,6 +117,7 @@ SELECTIONS = {c for c in LIGUES if c.startswith(("fifa.world", "fifa.wcq", "fifa
               "concacaf.central", "concacaf.womens", "afc.asian", "afc.w.asian", "afc.cupq", "aff.", "afc.saff", "global."))
               or c in ("fifa.shebelieves", "uefa.euro", "uefa.euroq")}
 COULEURS = {}  # équipe -> (couleur, 2e couleur) lues chez ESPN (hexadécimal sans #), gardées dans la table couleurs
+LOGOS_LIGUES = {}  # code ESPN -> logo de la compétition (palmarès, quand on n'a pas de photo du trophée)
 STADES = {}  # équipe -> nom de son stade (matchs à domicile ESPN), pour la photo de la bannière de la fiche équipe
 DB = Path(__file__).with_name("foot.db")
 
@@ -428,6 +429,134 @@ def photos_stades(equipes):
     return apparier_stades(equipes, stades, clubs)
 
 
+# ---------- palmarès : titres déduits des classements et des finales de la base ----------
+PAS_UN_TITRE = ("amicaux", "Éliminatoires", "qualifications", "Barrages", "Matchs amicaux")
+
+
+def titres(m, clas, courante, tab=None, aujourdhui=None):
+    """Titres des éditions terminées : [{"c": compétition, "a": "2023-24" ou "2024", "v": vainqueur, "s": [saisons], "f": id de la finale}].
+    - championnat : 1er du classement final (un seul groupe, toutes les équipes se sont rencontrées). Ses matchs = la saison
+      juillet-juin, ou l'année civile pour les championnats d'une année (Brésil, Suède… : presque pas de match en janvier).
+      Sans classement (football-data avant 2001…) : recalculé avec les matchs si toutes les équipes se sont rencontrées ;
+    - coupe (et play-offs, MLS Cup…) : finale = match seul ce jour-là, au plus 3 matchs dans les 7 jours d'avant
+      (demi-finales, 3e place), puis au moins 45 jours sans match de la compétition, même prévu (l'intersaison : une trêve
+      d'hiver en cours d'édition est plus courte), et le gagnant ne rejoue pas dans la compétition dans les 120 jours
+      (sinon c'était une demi-finale) ; aller-retour : addition des
+      deux matchs ; égalité : tab {id: vainqueur} (tirs au but, lu chez ESPN), sinon vainqueur inconnu (None).
+      Étiquette : l'année si la finale est entre juillet et décembre (Euro 2024, Libertadores), sinon la saison (2024-25).
+    shortcut: pas de règle des buts à l'extérieur ; Apertura/Clausura (plusieurs groupes) ignorés."""
+    tab, auj = tab or {}, aujourdhui or date.today()
+    fin = lambda x: "FULL_TIME" in x["statut"] or "FINAL" in x["statut"]
+    jour = lambda x: date.fromisoformat(x["date_utc"][:10])
+    par_lg, cl_cs = {}, {}
+    for x in m:
+        if not any(t in x["ligue"] for t in PAS_UN_TITRE):
+            par_lg.setdefault(x["ligue"], []).append(x)
+    for c in clas:
+        cl_cs.setdefault((c["ligue"], c["saison"]), []).append(c)
+    out = []
+    for lg, tous in par_lg.items():
+        tous.sort(key=lambda x: x["date_utc"])
+        joues = [x for x in tous if fin(x) and x["buts_dom"] is not None]
+        championnat = set()  # ids des matchs de championnat (exclus de la recherche des finales)
+        # championnat d'une année civile (Brésil, Suède, Japon…) : presque rien en janvier, beaucoup en juillet
+        civil = sum(jour(x).month == 1 for x in joues) * 3 < sum(jour(x).month == 7 for x in joues)
+        saisons = sorted({saison_de(x["date_utc"]) for x in joues} | {sa for (l, sa) in cl_cs if l == lg})
+        for sa in saisons:
+            rows = cl_cs.get((lg, sa), [])
+            europe = [x for x in joues if saison_de(x["date_utc"]) == sa]
+            civile = [x for x in joues if jour(x).year == sa]
+            if rows:
+                if not (len({c["groupe"] for c in rows}) == 1 and len(rows) >= 6 and min(c["joues"] for c in rows) >= len(rows) - 1):
+                    continue
+                ms, annee = (civile, True) if civil else (europe, False)
+                v = min(rows, key=lambda c: c["rang"])["equipe"]
+            else:
+                ms, annee = europe, False
+                equipes = {e for x in ms for e in (x["domicile"], x["exterieur"])}
+                adv = {e: set() for e in equipes}
+                for x in ms:
+                    adv[x["domicile"]].add(x["exterieur"]); adv[x["exterieur"]].add(x["domicile"])
+                if len(equipes) < 6 or any(len(a) != len(equipes) - 1 for a in adv.values()):
+                    continue  # pas tout le monde contre tout le monde : pas un championnat
+                t = {e: [0, 0, 0] for e in equipes}
+                for x in ms:
+                    for e, p_, c_ in ((x["domicile"], x["buts_dom"], x["buts_ext"]), (x["exterieur"], x["buts_ext"], x["buts_dom"])):
+                        t[e][0] += 3 if p_ > c_ else p_ == c_; t[e][1] += p_ - c_; t[e][2] += p_
+                v = max(t, key=lambda e: t[e])
+            championnat |= {x["id"] for x in ms}
+            if sa < courante and ms:
+                out.append({"c": lg, "a": str(sa) if annee else P.nom_saison(sa), "v": v, "s": sorted({saison_de(x["date_utc"]) for x in ms}), "f": None})
+        coupe = [x for x in joues if x["id"] not in championnat]
+        for i, f in enumerate(coupe):
+            if i + 1 < len(coupe) and coupe[i + 1]["date_utc"][:10] == f["date_utc"][:10] or i and coupe[i - 1]["date_utc"][:10] == f["date_utc"][:10]:
+                continue  # plusieurs matchs ce jour-là : pas une finale
+            if any(x["date_utc"] > f["date_utc"] and (jour(x) - jour(f)).days <= 45 for x in tous) or (auj - jour(f)).days <= 45:
+                continue  # la compétition reprend dans les 45 jours (ou la finale est trop récente pour en être sûr)
+            avant = [x for x in coupe[:i] if (jour(f) - jour(x)).days <= 7]
+            if len(avant) > 3 or i == 0:
+                continue
+            paire = {f["domicile"], f["exterieur"]}
+            buts = {f["domicile"]: f["buts_dom"], f["exterieur"]: f["buts_ext"]}
+            if {coupe[i - 1]["domicile"], coupe[i - 1]["exterieur"]} == paire:  # finale aller-retour
+                buts[coupe[i - 1]["domicile"]] += coupe[i - 1]["buts_dom"]; buts[coupe[i - 1]["exterieur"]] += coupe[i - 1]["buts_ext"]
+            a, b = sorted(paire, key=lambda e: -buts[e])
+            v = a if buts[a] != buts[b] else tab.get(f["id"]) if tab.get(f["id"]) in paire else None
+            if any(x["date_utc"] > f["date_utc"] and (jour(x) - jour(f)).days <= 120 and ({v} if v else paire) & {x["domicile"], x["exterieur"]}
+                   for x in tous):
+                continue  # le gagnant rejoue dans la compétition peu après : c'était un tour avant la finale
+            # saisons de l'édition : depuis la finale précédente (ou 330 jours), pour retrouver les joueurs qui y ont joué
+            ed = [x for x in coupe[:i + 1] if (jour(f) - jour(x)).days <= 330]
+            out.append({"c": lg, "a": str(jour(f).year) if jour(f).month >= 7 else P.nom_saison(saison_de(f["date_utc"])), "v": v,
+                        "s": sorted({saison_de(x["date_utc"]) for x in ed}), "f": f["id"]})
+    return list({(t["c"], t["a"]): t for t in out}.values())  # rare doublon (match aller de demi-finale) : la finale la plus tardive
+
+
+# photo du trophée sur Wikimedia Commons (fichiers choisis à la main d'après Wikidata : la photo d'une compétition n'est
+# pas toujours son trophée) ; les autres compétitions ESPN prennent leur logo ESPN, les autres rien (🏆 dans la page)
+TROPHEES = {
+    "eng.1": "Premier League Trophy at Manchester's National Football Museum (Ank Kumar) 02.jpg",
+    "uefa.europa.conf": "UEFA Europa Conference League Trophy.jpg",
+    "ger.2": "Zweite Bundesliga Schale.png",
+    "sco.1": "SPL trophy.jpg",
+    "swe.1": "Lennart Johanssons Pokal.JPG",
+    "eng.fa": "The FA Cup Trophy.jpg",
+    "eng.league_cup": "League Cup at Old Trafford.jpg",
+    "sco.tennents": "Scottish cup.jpg",
+    "fifa.world": "FIFA World Cup Trophy photo by Djuradj Vujcic.jpg",
+    "uefa.euro": "Coupe Henri Delaunay 2017.jpg",
+    "conmebol.america": "Copa america trofeo.jpg",
+    "afc.asian.cup": "Asian cup trophy 2019-.png",
+    "fra.super_cup": "Trophée des champions.jpeg",
+    "eng.charity": "FA Community Shield.JPG",
+    "ger.super_cup": "DFLSupercupTrofeo.png",
+    "conmebol.america.femenina": "Trofeo Conmebol Copa America Femenina.png",
+    "ned.1": "Landskampioen Schaal.png",
+    "fifa.wwc": "FIFA Women World Cup Trophy (Ank Kumar, Infosys Limited) 01.jpg",
+    "uefa.wchampions": "2015-09-13 UEFA Women's Champions League Trophy.jpg",
+    "concacaf.champions": "Trofeo de Liga de Campeones Concacaf.svg",
+    "bel.1": "Icone du nouveau trophée du championnat de Belgique.svg",
+}
+
+
+def trophees(logos):
+    """{compétition: [adresse de l'image, fichier Commons pour le crédit ou None]}."""
+    out = {LIGUES[c]: [u, None] for c, u in logos.items() if u and c in LIGUES}
+    for c, f in TROPHEES.items():
+        out[LIGUES[c]] = [COMMONS + urllib.parse.quote(f) + "?width=250", f]
+    return out
+
+
+def vainqueur_tab(code, mid):
+    """Vainqueur d'un match nul gagné aux tirs au but (ou sur l'ensemble des deux matchs), d'après la fiche ESPN."""
+    s = get(f"{API}/site/v2/sports/soccer/{code}/summary?event={mid}")
+    cs = s["header"]["competitions"][0]["competitors"]
+    eq = [c for c in cs if c.get("winner")]
+    if len(eq) != 1 and len(cs) == 2 and all(c.get("shootoutScore") is not None for c in cs) and cs[0]["shootoutScore"] != cs[1]["shootoutScore"]:
+        eq = [max(cs, key=lambda c: c["shootoutScore"])]  # vieux matchs : pas de « winner », mais le score des tirs au but
+    return eq[0]["team"]["displayName"] if len(eq) == 1 else None
+
+
 NB_PAQUETS = 64  # carrières découpées en 64 fichiers : la fiche joueur n'en charge qu'un
 
 
@@ -501,7 +630,8 @@ def main():
         drapeau TEXT, taille INTEGER, poids INTEGER, poste TEXT);
     CREATE TABLE IF NOT EXISTS wikidata (qid TEXT PRIMARY KEY, noms TEXT);
     CREATE TABLE IF NOT EXISTS couleurs (equipe TEXT PRIMARY KEY, c1 TEXT, c2 TEXT);
-    CREATE TABLE IF NOT EXISTS stades (equipe TEXT PRIMARY KEY, stade TEXT, commons TEXT);""")
+    CREATE TABLE IF NOT EXISTS stades (equipe TEXT PRIMARY KEY, stade TEXT, commons TEXT);
+    CREATE TABLE IF NOT EXISTS finales (match_id TEXT PRIMARY KEY, vainqueur TEXT);""")
     for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
             [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]] + \
             [("identites", "espn_photo INTEGER"), ("identites", "photo_lu TEXT"), ("identites", "commons TEXT")]:  # colonnes ajoutées après coup
@@ -525,7 +655,9 @@ def main():
     taches = []
     for code, ligue in LIGUES.items():
         try:
-            debut = date.fromisoformat(get(f"{API}/site/v2/sports/soccer/{code}/scoreboard")["leagues"][0]["season"]["startDate"][:10])
+            lg_espn = get(f"{API}/site/v2/sports/soccer/{code}/scoreboard")["leagues"][0]
+            LOGOS_LIGUES[code] = (lg_espn.get("logos") or [{}])[0].get("href")  # repli de la photo du trophée (palmarès)
+            debut = date.fromisoformat(lg_espn["season"]["startDate"][:10])
         except Exception as e:
             print(f"[erreur] début de saison {ligue}: {e}", file=sys.stderr)
             debut = today - timedelta(days=7)
@@ -579,6 +711,12 @@ def main():
     # football-data.co.uk comme source principale là où personne d'autre n'a les matchs : avant 2001 (ESPN n'a rien)
     # et, pour les ligues LiveScore, avant sa fenêtre d'un an. Chaque fichier n'est lu qu'une fois (saisons finies).
     noms_ls = set(S.LS_LIGUES.values())
+    # version 2 : fichiers relus avec le contrôle de la division (avant, des copies de la Liga 1993-94 étaient rangées
+    # sous d'autres championnats) ; on efface les vieux matchs football-data et on relit leurs fichiers une fois
+    if not db.execute("SELECT 1 FROM jours_lus WHERE code='fd_version' AND jour='2'").fetchone():
+        db.execute(f"DELETE FROM matchs WHERE id LIKE 'fd%' AND date_utc < '{PREMIERE_SAISON}-07-01'")
+        db.execute("DELETE FROM jours_lus WHERE jour='fd' AND code LIKE 'fd:%:%'")
+        db.execute("INSERT INTO jours_lus VALUES ('fd_version', '2')")
     fd_lus = {c for (c,) in db.execute("SELECT code FROM jours_lus WHERE jour='fd'")}
     lots = [(f"fd:{d}:{a}", lambda d=d, a=a: S.fd_saison(d, a)) for d in S.FD_DIV for a in range(S.FD_DEBUT, PREMIERE_SAISON)]
     lots += [(f"fd:{c}", lambda c=c: [r for r in S.fd_pays(c) if r[1] < debut_recent])
@@ -808,6 +946,29 @@ def main():
         for suffixe in [f"-{s}"] + ([""] if s == courante else []):
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")
             DB.with_name(f"joueurs{suffixe}.json").write_text(joueurs, encoding="utf-8")
+    # palmarès : titres déduits des classements et des finales ; finale nulle (tirs au but) : vainqueur lu une fois chez ESPN
+    tab = dict(db.execute("SELECT match_id, vainqueur FROM finales"))
+    tit = titres(m, clas, courante, tab)
+    a_lire = [(code_de[t["c"]], t["f"]) for t in tit if t["v"] is None and t["f"] and t["f"] not in tab and t["c"] in code_de
+              and t["f"].isdigit()][:300]
+    def lire_tab(x):
+        try:
+            v = vainqueur_tab(*x)
+            return x[1], (S.feminin(v) if v and x[0] in FEMININ else v)
+        except Exception as e:
+            print(f"[erreur] finale {x}: {e}", file=sys.stderr)
+            return x[1], None
+    with ThreadPoolExecutor(4) as pool:
+        lus = list(pool.map(lire_tab, a_lire))
+    db.executemany("INSERT OR REPLACE INTO finales VALUES (?,?)", [l for l in lus if l[1]])
+    db.commit()
+    if lus:
+        tab |= {k: v for k, v in lus if v}
+        tit = titres(m, clas, courante, tab)
+    tit = [t for t in tit if t["v"]]
+    palm = {"titres": [[t["c"], t["a"], t["v"], t["s"]] for t in sorted(tit, key=lambda t: (t["c"], t["a"]))], "trophees": trophees(LOGOS_LIGUES)}
+    DB.with_name("palmares.json").write_text(json.dumps(palm, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"[palmarès] {len(tit)} titres ({len(lus)} finales aux tirs au but lues chez ESPN)")
     # bannières des fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
     eqs = {}
     for e, a, b in db.execute("SELECT equipe, c1, c2 FROM couleurs"):
@@ -815,7 +976,7 @@ def main():
     for e, f in db.execute("SELECT equipe, commons FROM stades WHERE commons IS NOT NULL"):
         eqs.setdefault(e, [None, None, None])[2] = f
     DB.with_name("equipes.json").write_text(json.dumps(eqs, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden)
+    P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden, palm)
     print(f"[photos] {n_photos[2] or 0} joueurs avec photo sur {n_photos[0]} (ESPN : {n_photos[1] or 0}, les autres : Wikimedia Commons)")
     print(f"{len(taches)} jours lus, {len(matchs)} matchs mis à jour, {erreurs} erreurs -> {DB}")
 
@@ -860,6 +1021,21 @@ if __name__ == "__main__":
     # ambigu par le stade mais tranché par le club ; par le stade seul ; par le club seul (stade ESPN inconnu) ; rien
     assert apparier_stades({"Manchester United": "Old Trafford", "Marseille": "Stade Vélodrome", "Lorient (F)": None, "X": "Inconnu"},
                            st, cl) == {"Manchester United": "Old Trafford.jpg", "Marseille": "Velodrome.jpg", "Lorient (F)": "Moustoir.jpg"}
+    # palmarès : un championnat (classement), une coupe (finale aux t.a.b.), une finale aller-retour, une journée de championnat
+    fm = lambda i, lg, d, a, b, x, y: {"id": i, "ligue": lg, "date_utc": d + "T20:00Z", "domicile": a, "exterieur": b, "buts_dom": x, "buts_ext": y, "statut": "STATUS_FULL_TIME"}
+    mt = [fm("1", "Coupe", "2025-04-20", "A", "B", 2, 0), fm("2", "Coupe", "2025-04-21", "C", "D", 1, 0), fm("3", "Coupe", "2025-05-30", "A", "C", 1, 1),
+          fm("4", "Aller", "2025-05-01", "E", "F", 3, 0), fm("5", "Aller", "2025-05-08", "F", "E", 2, 0),
+          fm("6", "Champ", "2025-05-30", "G", "H", 0, 1), fm("7", "Champ", "2025-05-30", "I", "J", 0, 0),
+          fm("8", "Matchs amicaux internationaux", "2025-06-01", "K", "L", 1, 0), fm("9", "Coupe", "2026-09-30", "A", "C", 3, 0)]  # saison en cours : pas encore de titre
+    cl = [{"ligue": "Champ", "groupe": "G", "rang": i + 1, "equipe": e, "joues": 38, "saison": 2024} for i, e in enumerate("HGIJKLMN")]
+    T = lambda tab: {(t["c"], t["a"]): t["v"] for t in titres(mt, cl, 2026, tab, date(2026, 11, 27))}
+    # le match seul de septembre 2026, sans suite dans le mois, compte comme une finale (une Supercoupe, par exemple)
+    assert T({"3": "C"}) == {("Coupe", "2024-25"): "C", ("Coupe", "2026"): "A", ("Aller", "2024-25"): "E", ("Champ", "2024-25"): "H"}, T({"3": "C"})
+    assert T({})[("Coupe", "2024-25")] is None  # t.a.b. sans vainqueur connu : finale repérée, vainqueur à demander à ESPN
+    # Euro de juin-juillet : une seule édition malgré le changement de saison au 1er juillet
+    eu = [fm(str(i), "Euro", f"2024-06-{14 + i}", "X", "Y", 1, 0) for i in range(10)] + [fm("20", "Euro", "2024-07-10", "Es", "Fr", 2, 1),
+          fm("21", "Euro", "2024-07-11", "Ne", "An", 1, 2), fm("22", "Euro", "2024-07-14", "Es", "An", 2, 1)]
+    assert [(t["a"], t["v"], t["s"]) for t in titres(eu, [], 2026, {}, date(2026, 11, 27))] == [("2024", "Es", [2023, 2024])]
     assert "fifa.world" in SELECTIONS and "uefa.champions" not in SELECTIONS and "fifa.cwc" not in SELECTIONS and "uefa.europa" not in SELECTIONS
     assert "fifa.world" not in FEMININ and FEMININ <= set(LIGUES)
     assert mois_a_venir(date(2026, 11, 26), date(2027, 6, 30)) == ["202612", "202701", "202702", "202703", "202704", "202705", "202706"]

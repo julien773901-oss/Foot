@@ -325,7 +325,10 @@ def fd_lignes(rows, ligue):
 
 
 def fd_saison(div, annee):
-    return fd_lignes(fd_csv(f"{FD}/mmz4281/{annee % 100:02d}{(annee + 1) % 100:02d}/{div}.csv"), FD_DIV[div])
+    # le site renvoie parfois le fichier d'une AUTRE division (1993-94 : la Liga à la place de la 2e division écossaise…) :
+    # on ne garde que les lignes de la division demandée
+    rows = [r for r in fd_csv(f"{FD}/mmz4281/{annee % 100:02d}{(annee + 1) % 100:02d}/{div}.csv") if r.get("Div", div) == div]
+    return fd_lignes(rows, FD_DIV[div])
 
 
 def fd_pays(code):
