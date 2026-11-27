@@ -26,6 +26,8 @@ jobs:
           else
             { git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db.xz && xz -d foot.db.xz; } || echo "Pas encore de base : remplissage complet"
           fi
+      - name: Outil de détection des visages (cadrage des photos de joueurs)
+        run: pip install -q opencv-python-headless || echo "::warning::OpenCV non installé, photos cadrées au centre"
       - run: python3 foot.py
       - name: Ranger la base sur la branche "base" (hors du site, que GitHub Pages limite à 1 Go)
         run: |

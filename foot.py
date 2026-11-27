@@ -382,10 +382,62 @@ def sparql(q, essais=3):
 
 
 def photo(id_espn, espn, commons):
-    """[adresse, fichier Commons] pour l'export ; ESPN d'abord ; [] sans photo."""
+    """[adresse, fichier Commons ou None] pour l'export ; ESPN d'abord ; [] sans photo."""
     if espn == 1:
-        return [ESPN_PHOTO.format(id_espn)]
+        return [ESPN_PHOTO.format(id_espn), None]
     return [vignette(commons), commons] if commons else []
+
+
+# ---------- cadrage des photos : où est le visage ----------
+# Les photos Commons sont souvent prises de loin (joueur en pied, en plein match) : un cadrage fixe coupe la tête.
+# On repère le visage une fois par photo (détecteur YuNet d'OpenCV, licence MIT, fichier visage_yunet.onnx : ~10 ms
+# par photo) ; le site cadre ensuite dessus (ronds de l'effectif, portrait, bannière).
+MAX_VISAGES = 4000  # photos analysées par passage (~2 min) ; ~17 600 photos : quelques passages la 1re fois
+MODELE_VISAGE = Path(__file__).with_name("visage_yunet.onnx")
+
+
+def detecter_visage(image, det):
+    """image : octets JPEG/PNG. Renvoie [x, y, largeur, hauteur de l'image], en millièmes de la largeur de l'image
+    (x, y = centre du plus grand visage) ; [] si aucun visage ou image illisible."""
+    import cv2, numpy as np
+    im = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
+    if im is None:
+        return []
+    h, w = im.shape[:2]
+    det.setInputSize((w, h))
+    _, faces = det.detect(im)
+    if faces is None or not len(faces):
+        return []
+    x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])[:4]
+    return [round((x + fw / 2) * 1000 / w), round((y + fh / 2) * 1000 / w), round(fw * 1000 / w), round(h * 1000 / w)]
+
+
+def visages(db):
+    """Analyse les photos pas encore vues (ou changées : la photo Commons d'un joueur peut changer avec Wikidata)."""
+    try:
+        import cv2
+        det = cv2.FaceDetectorYN.create(str(MODELE_VISAGE), "", (320, 320), 0.6)
+    except Exception as e:
+        print(f"[erreur] détecteur de visages indisponible (photos cadrées au centre) : {e}", file=sys.stderr)
+        return 0
+    a_voir = []
+    for i, ep, cm, src in db.execute("SELECT id_espn, espn_photo, commons, visage_src FROM identites WHERE espn_photo = 1 OR commons IS NOT NULL"):
+        u = photo(i, ep, cm)[0]
+        if u != src:
+            a_voir.append((i, u))
+    a_voir = a_voir[:MAX_VISAGES]
+    def lire(x):
+        try:
+            return x, urllib.request.urlopen(urllib.request.Request(x[1], headers=WD_UA | {"Accept": "image/*"}), timeout=30).read()
+        except Exception as e:
+            return x, None if getattr(e, "code", None) not in (403, 404) else b""  # None = réseau : nouvel essai au prochain passage
+    vus = []
+    with ThreadPoolExecutor(8) as pool:
+        for (i, u), image in pool.map(lire, a_voir):
+            if image is not None:
+                vus.append((json.dumps(detecter_visage(image, det) if image else []), u, i))
+    db.executemany("UPDATE identites SET visage=?, visage_src=? WHERE id_espn=?", vus)
+    return len(vus)
 
 
 def mots(nom):
@@ -694,7 +746,8 @@ def main():
     CREATE TABLE IF NOT EXISTS finales (match_id TEXT PRIMARY KEY, vainqueur TEXT);""")
     for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
             [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]] + \
-            [("identites", "espn_photo INTEGER"), ("identites", "photo_lu TEXT"), ("identites", "commons TEXT")]:  # colonnes ajoutées après coup
+            [("identites", "espn_photo INTEGER"), ("identites", "photo_lu TEXT"), ("identites", "commons TEXT"),
+             ("identites", "visage TEXT"), ("identites", "visage_src TEXT")]:  # colonnes ajoutées après coup
         try:
             db.execute(f"ALTER TABLE {table} ADD COLUMN {col}")
         except sqlite3.OperationalError:
@@ -861,6 +914,9 @@ def main():
     except Exception as e:
         erreurs += 1
         print(f"[erreur] photos Wikidata (on garde les anciennes) : {e}", file=sys.stderr)
+    t0 = time.time()
+    n = visages(db)
+    print(f"[temps] visages: {time.time() - t0:.0f} s ({n} photos analysées)")
     if datetime.now(timezone.utc).hour == 3 or not db.execute("SELECT 1 FROM stades WHERE commons IS NOT NULL LIMIT 1").fetchone():
         t0 = time.time()
         try:
@@ -983,12 +1039,14 @@ def main():
     car = ecrire_carrieres(m, saison_match, parts, debut_recent)
     # identités par nom (homonymes : le dernier lu l'emporte), même découpage que les carrières
     pays = pays_fr()
-    # [naissance, nationalité, drapeau, taille, poids, poste, adresse de la photo, fichier Commons (pour le crédit)]
+    # [naissance, nationalité, drapeau, taille, poids, poste, adresse de la photo, fichier Commons (pour le crédit),
+    #  visage [x, y, largeur, hauteur de l'image] en millièmes de la largeur de la photo (si trouvé)]
     iden = {}
-    for nom, *v, ide, ep, cm in db.execute("SELECT joueur, naissance, nationalite, drapeau, taille, poids, poste, id_espn, espn_photo, commons "
+    for nom, *v, ide, ep, cm, vi, vs in db.execute("SELECT joueur, naissance, nationalite, drapeau, taille, poids, poste, id_espn, espn_photo, commons, visage, visage_src "
                                            "FROM identites WHERE coalesce(naissance, nationalite, poste) IS NOT NULL OR espn_photo = 1 "
                                            "OR commons IS NOT NULL ORDER BY lu"):
-        iden[nom] = [v[0], pays.get(v[1], v[1])] + v[2:] + photo(ide, ep, cm)
+        ph = photo(ide, ep, cm)
+        iden[nom] = [v[0], pays.get(v[1], v[1])] + v[2:] + ph + ([json.loads(vi)] if ph and vi and vi != "[]" and vs == ph[0] else [])
     (dossier := DB.with_name("identites")).mkdir(exist_ok=True)
     pq = [{} for _ in range(NB_PAQUETS)]
     for nom, v in iden.items():
@@ -1138,7 +1196,14 @@ if __name__ == "__main__":
     # 10 : lien ESPN + nom ; 20 : deux homonymes même jour -> rien ; 40 : lien ESPN mais nom différent -> rien ; 50 : date + nom
     assert apparier_photos({"10": ("Jean Dupont", "1991-01-01"), "20": ("Paul Martin", "1995-05-05"), "40": ("Marc Leroy", "2000-02-02"),
                             "50": ("Luis Perez", "1999-09-09"), "60": ("Sans Date", None)}, wd, noms) == {"10": "A.jpg", "50": "E.jpg"}
-    assert photo("7", 1, "X.jpg") == [ESPN_PHOTO.format("7")] and photo("7", 0, None) == []
+    assert photo("7", 1, "X.jpg") == [ESPN_PHOTO.format("7"), None] and photo("7", 0, None) == []
+    try:  # cadrage : image vide = pas de visage (le vrai détecteur est essayé sur de vraies photos dans visages())
+        import cv2, numpy as np
+        det = cv2.FaceDetectorYN.create(str(MODELE_VISAGE), "", (320, 320), 0.6)
+        assert detecter_visage(cv2.imencode(".png", np.zeros((40, 30, 3), np.uint8))[1].tobytes(), det) == []
+        assert detecter_visage(b"pas une image", det) == []
+    except ImportError:
+        print("OpenCV absent : test du cadrage sauté")
     assert photo("7", 0, "Joe Bloggs é.jpg") == [vignette("Joe Bloggs é.jpg"), "Joe Bloggs é.jpg"]
     assert vignette("Ousmane Dembele France v Senegal 16 June 2026-341 (cropped).jpg", 960) == (
         "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Ousmane_Dembele_France_v_Senegal_16_June_2026-341_%28cropped%29.jpg/"

@@ -242,6 +242,15 @@
 - Photos : vérifié le 27/11, Wikidata est épuisé (17 600 joueurs sur 72 700 ont une photo libre ; les autres n'en ont pas
   sur Wikidata). Pas d'autre source gratuite sans clé trouvée.
 
+## Photos cadrées sur le visage (27 novembre 2026)
+- `visages()` (foot.py) : chaque photo (ESPN ou Commons) est analysée une fois par le détecteur YuNet d'OpenCV
+  (fichier `visage_yunet.onnx`, licence MIT, opencv_zoo) ; ~36 photos/s, 4 000 par passage (MAX_VISAGES) ; 99 % de visages
+  trouvés au test. Colonnes `identites.visage` (JSON) et `visage_src` (adresse analysée : refait si la photo change).
+- Export : 9e valeur des identités = [x, y, largeur du visage, hauteur de la photo] en millièmes de la largeur.
+- Site : `cadreVisage()` / `imgVisage()` (ronds de l'effectif, portrait) et `cadrerFond()` (bannière du joueur) ; miniature
+  Commons plus grande quand on zoome (`urlTaille()`), la 250 px en secours. Sans visage connu : cadrage d'avant.
+- maj.yml installe opencv-python-headless ; s'il manque, la mise à jour continue sans cadrage.
+
 ## Pour relancer la base à la main
     python foot.py
 

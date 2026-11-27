@@ -173,6 +173,7 @@
   .hero-in { position:relative; z-index:2; display:flex; align-items:flex-end; gap:16px; padding:56px 18px 20px; min-height:210px; }
   .hero-img { width:92px; height:92px; flex:none; border-radius:50%; object-fit:cover; object-position:50% 20%; background:rgba(255,255,255,.15);
               border:3px solid rgba(255,255,255,.9); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .hero-img.cadre-rond { position:relative; overflow:hidden; display:block; }
   .hero-img.logo-eq { object-fit:contain; padding:12px; background:#fff; border-radius:22px; }
   .hero-txt { min-width:0; flex:1; }
   .hero-sur { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; opacity:.85; }
@@ -309,6 +310,7 @@
   .ef-ph { width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--card2); position:relative; display:block; }
   .ef-ph::before { content:attr(data-i); position:absolute; inset:0; display:grid; place-items:center; font-weight:700; color:var(--mut); font-size:14px; }
   .ef-ph img { position:relative; width:100%; height:100%; object-fit:cover; object-position:50% 15%; background:var(--card2); }
+  .ef-ph img.cadre, .hero-img img.cadre { position:absolute; height:auto; max-width:none; object-fit:fill; }
   .ef-n { min-width:0; } .ef-n b, .ef-n small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ef-n small { color:var(--mut); font-size:12px; margin-top:2px; }
   .carr { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:4px 0 8px; }
@@ -772,7 +774,7 @@ async function remplirEffectif(nom, fin) {
   const carte = x => { const v = x.idt || [], src = v[6] || (x.j.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(x.j.id)}.png` : "");
     const age = v[0] && auj.slice(0, 4) - v[0].slice(0, 4) - (auj.slice(5) < v[0].slice(5));
     const init = x.n.split(" ").map(m => m[0]).join("").slice(0, 2).toUpperCase();
-    return `<a class="ef-l" href="#joueur=${encodeURIComponent(x.n)}"><span class="ef-ph" data-i="${esc(init)}">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</span>
+    return `<a class="ef-l" href="#joueur=${encodeURIComponent(x.n)}"><span class="ef-ph" data-i="${esc(init)}">${src ? imgVisage(src, v[8], 44) : ""}</span>
       <span class="ef-n"><b>${esc(x.n)}</b><small>${[v[1] && `${v[2] ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(v[2])}.png" alt="" loading="lazy" onerror="this.remove()"> ` : ""}${esc(v[1])}`, age && `${age} ans`].filter(Boolean).join(" · ")}</small></span>
       <span title="Matchs joués">${x.mj}</span><span title="Titulaire">${x.tit}</span><span title="Buts">${x.b || "–"}</span><span title="Passes décisives">${x.p || "–"}</span></a>`; };
   const nbPhotos = liste.filter(x => x.idt?.[6]).length;
@@ -873,14 +875,23 @@ function fondHero(images) {
   const fond = $("hero-fond"), credit = $("hero-credit");
   const essai = i => {
     if (!fond || i >= images.length) return;
-    const [u, f] = images[i], espn = !f, im = new Image();
+    const [u, f, v] = images[i], espn = !f, im = new Image();
     im.onload = () => { if (!document.body.contains(fond)) return;
-      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu"); fond.classList.toggle("detoure", espn); $("hero")?.classList.add("avec-fond");
+      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu");
+      if (v) cadrerFond(fond, v); fond.classList.toggle("detoure", espn); $("hero")?.classList.add("avec-fond");
       if (!espn) { credit.href = pageCommons(f); credit.hidden = false; } };
     im.onerror = () => essai(i + 1);
     im.src = u;
   };
   essai(0);
+}
+// bannière d'un joueur : visage large d'environ 26 % de la hauteur de la bannière, un peu à droite du milieu de la zone photo
+function cadrerFond(fond, v) {
+  const r = fond.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const c = cadreVisage(v, r.width, r.height, .26 * r.height / r.width, .6, .44);
+  fond.style.backgroundSize = `${c.s.toFixed(0)}px auto`;
+  fond.style.backgroundPosition = `${c.left.toFixed(0)}px ${c.top.toFixed(0)}px`;
 }
 async function habillerHero(equipe, fichiers, stade = true) {
   const eqs = await infosEquipes(), h = $("hero");
@@ -919,6 +930,26 @@ const nomHero = nom => { const i = nom.indexOf(" "); return i < 0 ? `<b>${esc(no
 const heroHtml = (img, sur, nom, bas, avant = "") => `<section class="hero" id="hero"><div class="hero-fond" id="hero-fond"></div>
   <a class="hero-credit" id="hero-credit" target="_blank" rel="noopener" hidden>Photo : Wikimedia Commons</a>${avant}
   <div class="hero-in">${img}<div class="hero-txt">${sur ? `<div class="hero-sur">${sur}</div>` : ""}<h2 class="hero-nom">${nom}</h2>${bas}</div></div></section>`;
+
+// ---------- cadrage sur le visage ----------
+// f = [x, y, largeur du visage, hauteur de la photo], en millièmes de la largeur de la photo (foot.py, detecter_visage).
+// Boîte Bw×Bh : le visage prend la part q de la largeur de la boîte, son centre va en (ax, ay) ; jamais de bord vide.
+// Renvoie la largeur affichée de la photo et son décalage (mêmes unités que la boîte).
+function cadreVisage(f, Bw, Bh, q, ax = .5, ay = .45) {
+  const [x, y, l, h] = f.map(v => v / 1000);
+  const s = Math.max(q * Bw / l, Bw, Bh / h);
+  return { s, left: Math.min(0, Math.max(Bw - s, Bw * ax - x * s)), top: Math.min(0, Math.max(Bh - s * h, Bh * ay - y * s)) };
+}
+// miniature Commons assez grande pour le zoom (tailles standard de Wikimedia) ; la 250 px reste en secours (onerror)
+const urlTaille = (u, px) => { const w = [250, 330, 500, 960, 1280].find(t => t >= px * (devicePixelRatio || 1)) || 1280;
+  return u.includes("/250px-") ? u.replace("/250px-", `/${w}px-`) : u; };
+// photo ronde (ou carrée) cadrée sur le visage, en pourcentages : la même pour toutes les tailles d'affichage
+function imgVisage(src, f, px, alt = "") {
+  if (!f) return `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.remove()">`;
+  const c = cadreVisage(f, 1, 1, .5, .5, .48), pc = v => (v * 100).toFixed(1) + "%";
+  return `<img class="cadre" src="${esc(urlTaille(src, px * c.s))}" alt="${esc(alt)}" loading="lazy" style="width:${pc(c.s)};left:${pc(c.left)};top:${pc(c.top)}"
+    onerror="if (this.src !== '${esc(src)}') this.src = '${esc(src)}'; else this.remove()">`;
+}
 
 // photo : celle de l'identité (ESPN, sinon Wikimedia Commons avec crédit), sinon essai ESPN par l'id (retirée si absente)
 function photoJoueur(idt, id) {
@@ -1017,9 +1048,10 @@ async function vueJoueur(nom) {
   const club = st?.L.filter(l => !sel.has(l.m.ligue)).at(-1)?.eq
     ?? C.filter(l => !sel.has(l[2])).sort((a, b) => a[0] - b[0]).at(-1)?.[1] ?? st?.equipes[0] ?? C.at(-1)?.[1];
   const src = idt?.[6] || (st?.J?.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(st.J.id)}.png` : "");
-  const portrait = src ? `<img class="hero-img" src="${esc(src)}" alt="Photo de ${esc(nom)}" onerror="this.remove()">` : "";
+  const portrait = !src ? "" : idt?.[8] ? `<span class="hero-img cadre-rond">${imgVisage(src, idt[8], 92, "Photo de " + nom)}</span>`
+    : `<img class="hero-img" src="${esc(src)}" alt="Photo de ${esc(nom)}" onerror="this.remove()">`;
   // fond : sa photo (Commons, souvent recadrée sur le visage) ou sa photo détourée ESPN ; sinon rien (couleurs du club)
-  const fichiers = idt?.[7] ? [[idt[6].replace("/250px-", "/960px-"), idt[7]]] : src ? [[src, null]] : [];
+  const fichiers = idt?.[7] ? [[idt[6].replace("/250px-", "/960px-"), idt[7], idt[8]]] : src ? [[src, null]] : [];
   const equipesSaison = st ? st.equipes : [];
   const clubs = (equipesSaison.length ? equipesSaison : club ? [club] : []).map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ");
   const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
