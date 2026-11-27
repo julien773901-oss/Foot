@@ -1,7 +1,7 @@
 """Met à jour foot.db : matchs (avec logos et buteurs) et classements.
 1er lancement : toute la saison. Ensuite : 7 jours avant / 14 jours après + les jours jamais lus correctement.
 Lancer : python foot.py"""
-import csv, io, json, re, sqlite3, sys, time, unicodedata, urllib.parse, urllib.request
+import csv, hashlib, io, json, re, sqlite3, sys, time, unicodedata, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
@@ -116,6 +116,50 @@ SELECTIONS = {c for c in LIGUES if c.startswith(("fifa.world", "fifa.wcq", "fifa
               "caf.championship", "caf.cosafa", "conmebol.america", "concacaf.gold", "concacaf.w.gold", "concacaf.nations",
               "concacaf.central", "concacaf.womens", "afc.asian", "afc.w.asian", "afc.cupq", "aff.", "afc.saff", "global."))
               or c in ("fifa.shebelieves", "uefa.euro", "uefa.euroq")}
+# pays de chaque compétition (page d'accueil groupée par pays) : préfixe du code ESPN, sinon « (Pays) » dans le nom
+PAYS_ESPN = {"fra": "France", "eng": "Angleterre", "esp": "Espagne", "ita": "Italie", "ger": "Allemagne", "por": "Portugal",
+             "ned": "Pays-Bas", "sco": "Écosse", "bel": "Belgique", "tur": "Turquie", "rus": "Russie", "aut": "Autriche",
+             "gre": "Grèce", "swe": "Suède", "den": "Danemark", "nor": "Norvège", "usa": "États-Unis", "mex": "Mexique",
+             "arg": "Argentine", "bra": "Brésil", "chi": "Chili", "uru": "Uruguay", "col": "Colombie", "per": "Pérou",
+             "par": "Paraguay", "ecu": "Équateur", "ven": "Venezuela", "bol": "Bolivie", "hon": "Honduras", "crc": "Costa Rica",
+             "gua": "Guatemala", "slv": "Salvador", "jpn": "Japon", "chn": "Chine", "aus": "Australie", "ksa": "Arabie saoudite",
+             "ind": "Inde", "rsa": "Afrique du Sud", "can": "Canada", "uefa": "Europe", "fifa": "Monde", "global": "Monde",
+             "conmebol": "Amérique du Sud", "concacaf": "Amérique du Nord", "campeones": "Amérique du Nord", "afc": "Asie",
+             "aff": "Asie", "caf": "Afrique"}
+# drapeaux (codes ISO) ; Angleterre, Écosse, pays de Galles : drapeaux spéciaux ; continents : globe
+DRAPEAUX = {"France": "FR", "Espagne": "ES", "Italie": "IT", "Allemagne": "DE", "Portugal": "PT", "Pays-Bas": "NL", "Belgique": "BE",
+            "Turquie": "TR", "Russie": "RU", "Autriche": "AT", "Grèce": "GR", "Suède": "SE", "Danemark": "DK", "Norvège": "NO",
+            "États-Unis": "US", "Mexique": "MX", "Argentine": "AR", "Brésil": "BR", "Chili": "CL", "Uruguay": "UY", "Colombie": "CO",
+            "Pérou": "PE", "Paraguay": "PY", "Équateur": "EC", "Venezuela": "VE", "Bolivie": "BO", "Honduras": "HN", "Costa Rica": "CR",
+            "Guatemala": "GT", "Salvador": "SV", "Japon": "JP", "Chine": "CN", "Australie": "AU", "Arabie saoudite": "SA", "Inde": "IN",
+            "Afrique du Sud": "ZA", "Canada": "CA", "Suisse": "CH", "Pologne": "PL", "Croatie": "HR", "Ukraine": "UA",
+            "Corée du Sud": "KR", "Maroc": "MA", "Égypte": "EG", "Tchéquie": "CZ", "Serbie": "RS", "Roumanie": "RO", "Hongrie": "HU",
+            "Bulgarie": "BG", "Slovaquie": "SK", "Slovénie": "SI", "Israël": "IL", "Chypre": "CY", "Finlande": "FI", "Irlande": "IE",
+            "Islande": "IS", "Bosnie": "BA", "Albanie": "AL", "Macédoine du Nord": "MK", "Monténégro": "ME", "Kosovo": "XK",
+            "Géorgie": "GE", "Arménie": "AM", "Azerbaïdjan": "AZ", "Kazakhstan": "KZ", "Biélorussie": "BY", "Moldavie": "MD",
+            "Lituanie": "LT", "Lettonie": "LV", "Estonie": "EE", "Luxembourg": "LU", "Malte": "MT", "Îles Féroé": "FO", "Andorre": "AD",
+            "Saint-Marin": "SM", "Gibraltar": "GI", "Algérie": "DZ", "Tunisie": "TN", "Nigeria": "NG", "Ghana": "GH", "Cameroun": "CM",
+            "Kenya": "KE", "Tanzanie": "TZ", "Zambie": "ZM", "Botswana": "BW", "Bénin": "BJ", "Burkina Faso": "BF", "Niger": "NE",
+            "Malawi": "MW", "Iran": "IR", "Irak": "IQ", "Qatar": "QA", "Émirats arabes unis": "AE", "Jordanie": "JO", "Koweït": "KW",
+            "Bahreïn": "BH", "Oman": "OM", "Liban": "LB", "Ouzbékistan": "UZ", "Thaïlande": "TH", "Vietnam": "VN", "Indonésie": "ID",
+            "Malaisie": "MY", "Hong Kong": "HK", "Singapour": "SG", "Bangladesh": "BD", "Philippines": "PH", "Jamaïque": "JM",
+            "Nouvelle-Zélande": "NZ", "Irlande du Nord": "GB"}
+DRAPEAUX_SPECIAUX = {"Angleterre": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
+                     "Écosse": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
+                     "Pays de Galles": "\U0001F3F4\U000E0067\U000E0062\U000E0077\U000E006C\U000E0073\U000E007F",
+                     "Monde": "🌍", "Europe": "🇪🇺", "Afrique": "🌍", "Asie": "🌏", "Amérique du Sud": "🌎", "Amérique du Nord": "🌎"}
+
+
+def pays_de(code, nom):
+    """[pays, drapeau] d'une compétition : préfixe du code ESPN, sinon « (Pays) » ou « (Pays, féminin) » à la fin du nom."""
+    p = PAYS_ESPN.get(code.split(".")[0]) if code else None
+    if not p:
+        m = re.search(r"\(([^,()]+)(?:, [^()]*)?\)$", nom) or re.match(r"Coupe (?:de la |de l'|du |des |de |d')(.+)$", nom)
+        p = m.group(1) if m else "Autres"  # « Coupe de Suisse », « Coupe d'Ukraine »
+    iso = DRAPEAUX.get(p)
+    return [p, DRAPEAUX_SPECIAUX.get(p) or ("".join(chr(0x1F1E6 + ord(c) - 65) for c in iso) if iso else "⚽")]
+
+
 COULEURS = {}  # équipe -> (couleur, 2e couleur) lues chez ESPN (hexadécimal sans #), gardées dans la table couleurs
 LOGOS_LIGUES = {}  # code ESPN -> logo de la compétition (palmarès, quand on n'a pas de photo du trophée)
 STADES = {}  # équipe -> nom de son stade (matchs à domicile ESPN), pour la photo de la bannière de la fiche équipe
@@ -298,7 +342,13 @@ def pays_fr():
 #    lien direct par l'id ESPN (P3681) ou même date de naissance + nom proche (un seul candidat, sinon rien).
 # On stocke seulement l'adresse : les images ne sont pas copiées sur le site (limite de 1 Go).
 ESPN_PHOTO = "https://a.espncdn.com/i/headshots/soccer/players/full/{}.png"
-COMMONS = "https://commons.wikimedia.org/wiki/Special:FilePath/"  # redirige vers la miniature (largeurs standard : 250)
+def vignette(fichier, largeur=250):
+    """Adresse DIRECTE de la miniature d'un fichier Commons (largeurs standard : 250, 330, 500, 960, 1280…).
+    Pas Special:FilePath : ses deux redirections font parfois bloquer l'image par le navigateur (ERR_BLOCKED_BY_ORB).
+    Le dossier vient de l'empreinte MD5 du nom (règle de Wikimedia)."""
+    n = fichier.replace(" ", "_")
+    h, q = hashlib.md5(n.encode()).hexdigest(), urllib.parse.quote(n)
+    return f"https://thumb.wikimedia.org/wikipedia/commons/thumb/{h[0]}/{h[:2]}/{q}/{largeur}px-{q}"
 MAX_PHOTOS_ESPN = 8000  # vérifications ESPN par passage (~2 min) ; un joueur sans photo est revérifié après 60 jours
 WD_UA = {"User-Agent": "base-foot/1.0 (site de statistiques de football)", "Accept": "text/csv"}
 
@@ -335,7 +385,7 @@ def photo(id_espn, espn, commons):
     """[adresse, fichier Commons] pour l'export ; ESPN d'abord ; [] sans photo."""
     if espn == 1:
         return [ESPN_PHOTO.format(id_espn)]
-    return [COMMONS + urllib.parse.quote(commons) + "?width=250", commons] if commons else []
+    return [vignette(commons), commons] if commons else []
 
 
 def mots(nom):
@@ -547,7 +597,7 @@ def trophees(logos):
     """{compétition: [adresse de l'image, fichier Commons pour le crédit ou None]}."""
     out = {LIGUES[c]: [u, None] for c, u in logos.items() if u and c in LIGUES}
     for c, f in TROPHEES.items():
-        out[LIGUES[c]] = [COMMONS + urllib.parse.quote(f) + "?width=250", f]
+        out[LIGUES[c]] = [vignette(f), f]
     return out
 
 
@@ -944,6 +994,7 @@ def main():
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
                               "feminin": sorted({LIGUES[c] for c in FEMININ} | S.LS_FEMININ),
                               "selections": sorted(LIGUES[c] for c in SELECTIONS),
+                              "pays": {nom: pays_de(c, nom) for c, nom in LIGUES.items()} | {nom: pays_de(None, nom) for nom in S.LS_LIGUES.values()},
                               "sources": etat, "matchs": [x for x in m if saison_match[x["id"]] == s],
                               "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False, separators=(",", ":"))  # sans espaces : -9 %
         joueurs = json.dumps(jou[s], ensure_ascii=False, separators=(",", ":"))
@@ -973,12 +1024,12 @@ def main():
     palm = {"titres": [[t["c"], t["a"], t["v"], t["s"]] for t in sorted(tit, key=lambda t: (t["c"], t["a"]))], "trophees": trophees(LOGOS_LIGUES)}
     DB.with_name("palmares.json").write_text(json.dumps(palm, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"[palmarès] {len(tit)} titres ({len(lus)} finales aux tirs au but lues chez ESPN)")
-    # bannières des fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
+    # bannières des fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade, sa miniature 960 px]}
     eqs = {}
     for e, a, b in db.execute("SELECT equipe, c1, c2 FROM couleurs"):
         eqs[e] = [a, b, None]
     for e, f in db.execute("SELECT equipe, commons FROM stades WHERE commons IS NOT NULL"):
-        eqs.setdefault(e, [None, None, None])[2] = f
+        eqs.setdefault(e, [None, None, None])[2:] = [f, vignette(f, 960)]
     DB.with_name("equipes.json").write_text(json.dumps(eqs, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden, palm)
     print(f"[photos] {n_photos[2] or 0} joueurs avec photo sur {n_photos[0]} (ESPN : {n_photos[1] or 0}, les autres : Wikimedia Commons)")
@@ -1040,6 +1091,11 @@ if __name__ == "__main__":
     eu = [fm(str(i), "Euro", f"2024-06-{14 + i}", "X", "Y", 1, 0) for i in range(10)] + [fm("20", "Euro", "2024-07-10", "Es", "Fr", 2, 1),
           fm("21", "Euro", "2024-07-11", "Ne", "An", 1, 2), fm("22", "Euro", "2024-07-14", "Es", "An", 2, 1)]
     assert [(t["a"], t["v"], t["s"]) for t in titres(eu, [], 2026, {}, date(2026, 11, 27))] == [("2024", "Es", [2023, 2024])]
+    assert pays_de("fra.1", "Ligue 1") == ["France", "🇫🇷"] and pays_de("uefa.champions", "Ligue des champions")[0] == "Europe"
+    assert pays_de(None, "Super League (Suisse)") == ["Suisse", "🇨🇭"] and pays_de(None, "Serie A féminine (Italie)")[0] == "Italie"
+    assert pays_de(None, "Liga BPI (Portugal, féminin)")[0] == "Portugal" and pays_de("eng.1", "Premier League")[0] == "Angleterre"
+    assert all(pays_de(c, n)[0] != "Autres" for c, n in LIGUES.items()), [n for c, n in LIGUES.items() if pays_de(c, n)[0] == "Autres"]
+    assert all(pays_de(None, n)[1] != "⚽" for n in S.LS_LIGUES.values()), [n for n in S.LS_LIGUES.values() if pays_de(None, n)[1] == "⚽"]
     assert "fifa.world" in SELECTIONS and "uefa.champions" not in SELECTIONS and "fifa.cwc" not in SELECTIONS and "uefa.europa" not in SELECTIONS
     assert "fifa.world" not in FEMININ and FEMININ <= set(LIGUES)
     assert mois_a_venir(date(2026, 11, 26), date(2027, 6, 30)) == ["202612", "202701", "202702", "202703", "202704", "202705", "202706"]
@@ -1070,5 +1126,8 @@ if __name__ == "__main__":
     assert apparier_photos({"10": ("Jean Dupont", "1991-01-01"), "20": ("Paul Martin", "1995-05-05"), "40": ("Marc Leroy", "2000-02-02"),
                             "50": ("Luis Perez", "1999-09-09"), "60": ("Sans Date", None)}, wd, noms) == {"10": "A.jpg", "50": "E.jpg"}
     assert photo("7", 1, "X.jpg") == [ESPN_PHOTO.format("7")] and photo("7", 0, None) == []
-    assert photo("7", 0, "Joe Bloggs é.jpg") == [COMMONS + "Joe%20Bloggs%20%C3%A9.jpg?width=250", "Joe Bloggs é.jpg"]
+    assert photo("7", 0, "Joe Bloggs é.jpg") == [vignette("Joe Bloggs é.jpg"), "Joe Bloggs é.jpg"]
+    assert vignette("Ousmane Dembele France v Senegal 16 June 2026-341 (cropped).jpg", 960) == (
+        "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Ousmane_Dembele_France_v_Senegal_16_June_2026-341_%28cropped%29.jpg/"
+        "960px-Ousmane_Dembele_France_v_Senegal_16_June_2026-341_%28cropped%29.jpg")
     main()

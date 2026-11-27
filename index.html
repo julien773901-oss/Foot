@@ -74,12 +74,34 @@
   .onglets button[aria-selected="true"] { color:var(--txt); border-bottom-color:var(--acc); }
   .filtres { display:flex; gap:8px; margin:0 0 12px; }
   .filtres select { flex:1 1 55%; } .filtres input { flex:1 1 45%; }
+  /* bandeau des jours (défile), bouton calendrier, filtres d'état */
+  .bande { display:flex; align-items:stretch; gap:6px; }
+  .bande-jours { flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px; scroll-snap-type:x proximity; }
+  .bande-jours::-webkit-scrollbar { display:none; }
+  .bande-jours button { flex:none; width:58px; padding:6px 0 7px; border:0; border-radius:12px; background:var(--card); box-shadow:var(--ombre); cursor:pointer;
+                        display:flex; flex-direction:column; align-items:center; line-height:1.15; scroll-snap-align:center; color:var(--txt); }
+  .bande-jours button small { font-size:11px; color:var(--mut); text-transform:capitalize; }
+  .bande-jours button b { font-size:18px; font-weight:800; margin:1px 0; }
+  .bande-jours button.auj small:first-child { color:var(--acc); font-weight:700; }
+  .bande-jours button.choisi { background:var(--acc); }
+  .bande-jours button.choisi, .bande-jours button.choisi small { color:#fff; }
+  :root[data-theme="dark"] .bande-jours button.choisi, :root[data-theme="dark"] .bande-jours button.choisi small { color:#0b1712; }
+  .cal { position:relative; flex:none; width:44px; display:grid; place-items:center; border-radius:12px; background:var(--card); box-shadow:var(--ombre); font-size:18px; cursor:pointer; }
+  .cal input { position:absolute; inset:0; opacity:0; cursor:pointer; border:0; padding:0; }
+  .statuts { display:flex; gap:6px; margin:12px 0 0; overflow-x:auto; scrollbar-width:none; }
+  .statuts button { flex:none; padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); cursor:pointer; font-weight:600; font-size:14px; color:var(--txt); }
+  .statuts button span { color:var(--mut); font-weight:600; margin-left:2px; }
+  .statuts button.choisi { background:var(--txt); border-color:var(--txt); color:var(--bg); }
+  .statuts button.choisi span { color:var(--bg); opacity:.7; }
+  .statuts button.rouge:not(.choisi) { border-color:var(--live); color:var(--live); }
+  .drap-mini { margin-right:8px; font-size:16px; }
   .jours { display:flex; align-items:center; gap:6px; background:var(--card); border-radius:12px; padding:4px; box-shadow:var(--ombre); }
   .jours button { border:0; background:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; color:var(--mut); }
   .jours button:hover { background:var(--card2); color:var(--txt); }
   .jours input { flex:1; border:0; background:none; text-align:center; padding:6px; }
   #auj { color:var(--acc); }
   .jour-titre { font-size:20px; font-weight:800; letter-spacing:-.01em; margin:16px 2px 0; text-transform:capitalize; }
+  .jour-titre + #vue > h2:first-child, #vue > .grp:first-child { margin-top:12px; }
 
   /* ---------- listes de matchs : un bloc par compétition, une ligne par match ---------- */
   .grp { background:var(--card); border-radius:14px; box-shadow:var(--ombre); margin:12px 0; overflow:hidden; }
@@ -138,6 +160,12 @@
           background:linear-gradient(135deg, var(--h1, #0b3d26), var(--h2, #0a6b40)); box-shadow:0 8px 24px rgba(16,24,40,.18); }
   .hero-fond { position:absolute; inset:0; background-size:cover; background-position:center 30%; opacity:0; transition:opacity .5s; }
   .hero-fond.vu { opacity:.55; }
+  /* fiche joueur : la photo (visage) à droite, fondue vers la gauche sous le texte ; détourée ESPN : posée en bas à droite */
+  .hero.joueur .hero-fond { left:34%; background-position:center 10%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 45%);
+                            mask-image:linear-gradient(90deg, transparent, #000 45%); }
+  .hero.joueur .hero-fond.vu { opacity:.95; }
+  .hero.joueur .hero-fond.detoure { background-size:contain; background-position:right bottom; -webkit-mask-image:none; mask-image:none; }
+  .hero.joueur.avec-fond .hero-img { display:none; }  /* le visage est déjà dans la bannière */
   .hero::before { content:""; position:absolute; inset:0; z-index:1;
                   background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.15) 40%, color-mix(in srgb, var(--h1, #0b3d26) 85%, black) 100%),
                              repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 40px, transparent 40px 80px); }
@@ -230,6 +258,21 @@
   figure.photo-j { margin:0; text-align:center; font-size:10px; line-height:1.2; }
   figure.photo-j a { color:var(--mut); }
 
+  /* ---------- accueil : un bloc repliable par pays ---------- */
+  details.pays { margin:10px 0; }
+  details.pays > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:14px;
+                           background:var(--card); box-shadow:var(--ombre); font-weight:800; font-size:16px; user-select:none; }
+  :root[data-theme="dark"] details.pays > summary { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) details.pays > summary { border:1px solid var(--line); } }
+  details.pays > summary::-webkit-details-marker { display:none; }
+  details.pays > summary::after { content:""; margin-left:6px; width:8px; height:8px; border-right:2px solid var(--mut); border-bottom:2px solid var(--mut);
+                                  transform:rotate(-45deg); transition:transform .2s; }
+  details.pays[open] > summary::after { transform:rotate(45deg); }
+  details.pays .drap { font-size:22px; line-height:1; }
+  details.pays .nom-pays { flex:1; }
+  details.pays .nb-pays { font-size:12px; font-weight:600; color:var(--mut); }
+  details.pays > .grp { margin:8px 0 8px 10px; }
+
   /* ---------- palmarès ---------- */
   .palmares { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:10px; }
   .trophee { background:var(--card); border-radius:14px; box-shadow:var(--ombre); padding:12px 8px 10px; text-align:center; }
@@ -275,12 +318,9 @@
       <input id="equipe" type="search" placeholder="Filtrer…" aria-label="Filtrer par équipe ou joueur">
     </div>
     <div id="nav-jours">
-      <div class="jours">
-        <button id="prec" aria-label="Jour précédent">◀</button>
-        <input id="jour" type="date" aria-label="Choisir un jour">
-        <button id="auj">Auj.</button>
-        <button id="suiv" aria-label="Jour suivant">▶</button>
-      </div>
+      <div class="bande"><div class="bande-jours" id="bande-jours"></div>
+        <label class="cal" title="Choisir une date">📅<input id="jour" type="date" aria-label="Choisir un jour"></label></div>
+      <div class="statuts" id="statuts" role="group" aria-label="Filtrer les matchs"></div>
       <div class="jour-titre" id="jour-titre"></div>
     </div>
     <div id="vue"></div>
@@ -376,21 +416,63 @@ function listeMatchs(f, limite) {
 }
 
 // ---------- calendrier jour par jour ----------
+// ---------- accueil, inspiré des applis de résultats : bandeau des jours, filtres d'état, compétitions phares, pays de A à Z ----------
+let filtreStatut = "tous";  // tous | direct | fini | avenir
+function bandeJours() {
+  const auj = cleJour(new Date()), centre = Math.abs((new Date(jour) - new Date(auj)) / 864e5) <= 7 ? auj : jour;
+  const nom = k => k === auj ? "Auj." : k === decale(auj, -1) ? "Hier" : k === decale(auj, 1) ? "Demain" : fmt(k + "T12:00:00", { weekday:"short" }).replace(".", "");
+  const jours = Array.from({ length: 15 }, (_, i) => decale(centre, i - 7));
+  $("bande-jours").innerHTML = jours.map(k => `<button data-jour="${k}" class="${k === jour ? "choisi" : ""}${k === auj ? " auj" : ""}">
+    <small>${nom(k)}</small><b>${+k.slice(8)}</b><small>${fmt(k + "T12:00:00", { month:"short" }).replace(".", "")}</small></button>`).join("");
+  const c = $("bande-jours").querySelector(".choisi"); if (c) c.scrollIntoView({ inline:"center", block:"nearest" });
+}
+const ETATS = [["tous", "Tous"], ["direct", "En direct"], ["fini", "Terminés"], ["avenir", "À venir"]];
+const etatDe = m => enDirect(m) ? "direct" : fini(m) ? "fini" : m.statut === PREVU ? "avenir" : "autre";
+// compétitions toujours affichées en premier, ouvertes (dans cet ordre)
+const PHARES = ["Ligue 1", "Ligue des champions", "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue Europa", "Ligue Conférence",
+  "Coupe du monde", "Euro", "Ligue des nations UEFA", "Coupe du monde des clubs", "Coupe d'Afrique des nations", "Copa América",
+  "Ligue 2", "Coupe de France", "Trophée des champions", "Supercoupe de l'UEFA", "Éliminatoires Coupe du monde (Europe)", "Liga Portugal", "Eredivisie"];
+
+// pays ouverts / fermés par le visiteur (gardés d'une visite à l'autre)
+let paysOuverts = {};
+try { paysOuverts = JSON.parse(localStorage.getItem("paysOuverts") || "{}"); } catch (e) {}
+document.addEventListener("toggle", e => { const d = e.target;
+  if (d.classList?.contains("pays")) { paysOuverts[d.dataset.pays] = d.open; try { localStorage.setItem("paysOuverts", JSON.stringify(paysOuverts)); } catch (e) {} } }, true);
+
 function vueJour() {
-  const base = data.matchs.filter(filtreLigue);
-  const direct = base.filter(enDirect);
-  const duJour = base.filter(m => cleJour(m.date_utc) === jour && !enDirect(m));
+  const base = data.matchs.filter(filtreLigue), dateJ = m => cleJour(m.date_utc) === jour;
+  const tousJour = base.filter(m => dateJ(m) || enDirect(m)), n = e => tousJour.filter(m => e === "tous" || etatDe(m) === e).length;
+  $("statuts").innerHTML = ETATS.map(([e, t]) => `<button data-statut="${e}" class="${e === filtreStatut ? "choisi" : ""}${e === "direct" && n(e) ? " rouge" : ""}">${t}${e === "tous" ? "" : ` <span>${n(e)}</span>`}</button>`).join("");
+  const garde = m => filtreStatut === "tous" || etatDe(m) === filtreStatut;
+  const direct = base.filter(m => enDirect(m) && garde(m));
+  const duJour = base.filter(m => dateJ(m) && !enDirect(m) && garde(m));
   const favs = duJour.filter(estFav);
   const parLigue = {};
   for (const m of duJour) if (!favs.includes(m)) (parLigue[m.ligue] ??= []).push(m);
+  const paysDe = lg => data.pays?.[lg] || ["Autres", "⚽"], titre = lg => `<span class="drap-mini">${paysDe(lg)[1]}</span>${esc(lg)}`;
   let h = direct.length ? blocMatchs("🔴 En direct", direct, false, "direct") : "";
   if (favs.length) h += blocMatchs("⭐ Mes équipes", favs, false);
-  for (const lg of Object.keys(parLigue).sort()) h += blocMatchs(esc(lg), parLigue[lg], true);
-  if (!duJour.length) {
+  const phares = PHARES.filter(lg => parLigue[lg]);
+  if (phares.length) h += `<h2>Compétitions phares</h2>` + phares.map(lg => blocMatchs(titre(lg), parLigue[lg], true)).join("");
+  // tous les autres, par pays (France, puis Monde et Europe, puis de A à Z), chaque pays repliable ;
+  // dans un pays : les compétitions dans l'ordre de foot.py (1re division d'abord)
+  const ordreLg = Object.values(data.ligues || {}), parPays = {};
+  for (const lg of Object.keys(parLigue)) if (!phares.includes(lg)) (parPays[paysDe(lg)[0]] ??= []).push(lg);
+  const rang = p => ({ France: 0, Monde: 1, Europe: 2 })[p] ?? 3;
+  const pays = Object.keys(parPays).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, "fr"));
+  const peu = duJour.length <= 30;  // petite journée (ou filtre) : tout ouvert
+  if (pays.length) h += `<h2>${phares.length ? "Tous les pays" : "Par pays"}</h2>`;
+  for (const p of pays) {
+    const lgs = parPays[p].sort((a, b) => (ordreLg.indexOf(a) + 1 || 999) - (ordreLg.indexOf(b) + 1 || 999) || a.localeCompare(b, "fr"));
+    const nb = lgs.reduce((t, lg) => t + parLigue[lg].length, 0), ouvert = paysOuverts[p] ?? peu;
+    h += `<details class="pays" data-pays="${esc(p)}"${ouvert ? " open" : ""}><summary><span class="drap">${paysDe(lgs[0])[1]}</span><span class="nom-pays">${esc(p)}</span>
+      <span class="nb-pays">${lgs.length > 1 ? `${lgs.length} compétitions · ` : ""}${nb} match${nb > 1 ? "s" : ""}</span></summary>${lgs.map(lg => blocMatchs(esc(lg), parLigue[lg], true)).join("")}</details>`;
+  }
+  if (!duJour.length && !direct.length) {
     const jours = base.map(m => cleJour(m.date_utc)).sort();
     const prochain = jours.find(k => k > jour), precedent = jours.filter(k => k < jour).at(-1);
     const bouton = (k, t) => `<button class="plus" data-jour="${k}">${t} (${fmt(k + "T12:00:00", { weekday:"long", day:"numeric", month:"long" })})</button>`;
-    h += `<p class="mut">Aucun match ce jour-là.</p>` + (prochain ? bouton(prochain, "Prochain jour avec des matchs") : "")
+    h += `<p class="mut">${filtreStatut === "tous" ? "Aucun match ce jour-là." : "Aucun match de ce type ce jour-là."}</p>` + (prochain ? bouton(prochain, "Prochain jour avec des matchs") : "")
       + (precedent ? bouton(precedent, "Jour précédent avec des matchs") : "");
   }
   return h;
@@ -644,7 +726,6 @@ const identite = nom => (identitesP[paquet(nom)] ??= fetch(`identites/${paquet(n
 // equipes.json (foot.py) : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
 let equipesP = null;
 const infosEquipes = () => equipesP ??= fetch("equipes.json").then(r => r.json()).catch(() => ({}));
-const COMMONS = "https://commons.wikimedia.org/wiki/Special:FilePath/";
 const pageCommons = f => "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(f.replaceAll(" ", "_"));
 // couleurs ESPN souvent blanches ou jaunes (Marseille, Lyon, Villarreal…) : on prend la plus foncée pour que le texte blanc reste lisible
 function styleHero(cs) {
@@ -655,26 +736,27 @@ function styleHero(cs) {
   const fond = lum(base) < .7 ? `#${base}` : `color-mix(in srgb, #${base} 45%, black)`;
   return `--h1:color-mix(in srgb, ${fond} 55%, black);--h2:${fond};--h3:#${autre}`;
 }
-// la 1re image qui se charge devient le fond de la bannière (crédit : lien vers la page du fichier)
-function fondHero(fichiers) {
+// la 1re image qui se charge devient le fond de la bannière : [adresse, fichier Commons pour le crédit] ; sans fichier = ESPN (détourée)
+function fondHero(images) {
   const fond = $("hero-fond"), credit = $("hero-credit");
   const essai = i => {
-    if (!fond || i >= fichiers.length) return;
-    const f = fichiers[i], u = COMMONS + encodeURIComponent(f) + "?width=1280", im = new Image();
+    if (!fond || i >= images.length) return;
+    const [u, f] = images[i], espn = !f, im = new Image();
     im.onload = () => { if (!document.body.contains(fond)) return;
-      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu"); credit.href = pageCommons(f); credit.hidden = false; };
+      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu"); fond.classList.toggle("detoure", espn); $("hero")?.classList.add("avec-fond");
+      if (!espn) { credit.href = pageCommons(f); credit.hidden = false; } };
     im.onerror = () => essai(i + 1);
     im.src = u;
   };
   essai(0);
 }
-async function habillerHero(equipe, fichiers) {
+async function habillerHero(equipe, fichiers, stade = true) {
   const eqs = await infosEquipes(), h = $("hero");
   if (!h) return;
   const st = styleHero(eqs[equipe]);
   if (st) h.setAttribute("style", st);
-  const stade = eqs[equipe]?.[2];
-  fondHero([...fichiers, ...(stade ? [stade] : [])]);  // pas de photo du joueur en action : son stade
+  // fiche club : photo du stade ; fiche joueur : sa photo seulement (sinon juste les couleurs du club)
+  fondHero([...fichiers, ...(stade && eqs[equipe]?.[3] ? [[eqs[equipe][3], eqs[equipe][2]]] : [])]);
 }
 // ---------- palmarès (palmares.json, calculé par foot.py avec les classements finaux et les finales) ----------
 let palmaresP = null;
@@ -779,12 +861,12 @@ async function vueJoueur(nom) {
     ?? C.filter(l => !sel.has(l[2])).sort((a, b) => a[0] - b[0]).at(-1)?.[1] ?? st?.equipes[0] ?? C.at(-1)?.[1];
   const src = idt?.[6] || (st?.J?.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(st.J.id)}.png` : "");
   const portrait = src ? `<img class="hero-img" src="${esc(src)}" alt="Photo de ${esc(nom)}" onerror="this.remove()">` : "";
-  // fond : la photo d'origine (non recadrée) montre souvent le joueur en plein match, puis la photo recadrée, puis son stade
-  const f = idt?.[7], fichiers = f ? [...new Set([f.replace(/ \((new )?cropped\)(?=\.\w+$)/i, ""), f])] : [];
+  // fond : sa photo (Commons, souvent recadrée sur le visage) ou sa photo détourée ESPN ; sinon rien (couleurs du club)
+  const fichiers = idt?.[7] ? [[idt[6].replace("/250px-", "/960px-"), idt[7]]] : src ? [[src, null]] : [];
   const equipesSaison = st ? st.equipes : [];
   const clubs = (equipesSaison.length ? equipesSaison : club ? [club] : []).map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ");
   const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
-  const habiller = () => habillerHero(club, fichiers);
+  const habiller = () => { $("hero")?.classList.add("joueur"); habillerHero(club, fichiers, false); };
   if (!st) {  // rien cette saison, mais une carrière ailleurs
     el.innerHTML = entete + `${boutonsPartage("joueur", nom)}<div id="zone-palmares"></div><p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
     habiller(); remplirPalmares(null, C);
@@ -1266,6 +1348,7 @@ function afficher() {
   const modeJour = onglet === "matchs" && !cherche();
   $("nav-jours").hidden = !modeJour;
   $("jour").value = jour;
+  bandeJours();
   $("jour-titre").textContent = jour === cleJour(new Date()) ? "Aujourd'hui" : fmt(jour + "T12:00:00", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
   $("vue").innerHTML = onglet === "matchs" ? vueMatchs() : onglet === "class" ? vueClass() : onglet === "stats" ? vueStats()
     : vueJoueurs(onglet === "buteurs" ? "buteurs" : "passes");
@@ -1276,9 +1359,7 @@ function afficher() {
 document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { onglet = b.dataset.o; afficher(); });
 $("ligue").onchange = () => { nbResultats = 30; afficher(); };
 $("equipe").oninput = () => { nbResultats = 30; afficher(); };
-$("prec").onclick = () => { jour = decale(jour, -1); afficher(); };
-$("suiv").onclick = () => { jour = decale(jour, 1); afficher(); };
-$("auj").onclick = () => { jour = cleJour(new Date()); afficher(); };
+document.addEventListener("click", e => { const b = e.target.closest("[data-statut]"); if (b) { filtreStatut = b.dataset.statut; afficher(); } });
 $("jour").onchange = e => { if (e.target.value) { jour = e.target.value; afficher(); } };
 addEventListener("hashchange", () => { afficher(); scrollTo(0, 0); });
 

@@ -204,6 +204,18 @@
 - Wikidata coupe parfois sa réponse CSV sans erreur : `sparql()` la redemande si la dernière ligne est incomplète (le PSG
   n'avait pas la photo du Parc des Princes) ; requête des stades en 3 morceaux.
 
+## Accueil et bannières (27 novembre 2026)
+- Accueil, inspiré des applis de résultats : bandeau des jours qui défile (Hier, Auj., Demain… + calendrier), filtres
+  Tous / En direct / Terminés / À venir (avec le nombre), « Compétitions phares » toujours ouvertes (`PHARES`), puis
+  « Tous les pays » : un bloc repliable par pays avec drapeau (France, Monde, Europe, puis A→Z), ouvert/fermé retenu.
+  Pays d'une compétition : `pays_de()` (foot.py, préfixe du code ESPN ou « (Pays) » / « Coupe de X » du nom), exporté
+  dans matchs.json (`pays` : {compétition: [pays, drapeau]}).
+- Bannière joueur : sa photo à droite (visage), fondue sous le texte ; photo ESPN détourée posée en bas à droite ;
+  sans photo : seulement les couleurs du club (plus de stade). Fiche club : photo du stade.
+- Images Commons : adresse DIRECTE de la miniature (`vignette()`, thumb.wikimedia.org + empreinte MD5 du nom), plus
+  Special:FilePath : ses redirections faisaient bloquer les images par Chrome (ERR_BLOCKED_BY_ORB). equipes.json a une
+  4e valeur : la miniature 960 px du stade.
+
 ## Pour relancer la base à la main
     python foot.py
 
