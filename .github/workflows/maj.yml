@@ -48,7 +48,7 @@ jobs:
           fi
       - name: Publier le site sur la branche "site" (écrasée à chaque fois, pour garder le dépôt léger)
         run: |
-          mkdir _site && cp -r index.html sw.js matchs*.json joueurs*.json carrieres identites joueur equipe competition pages.css plan.html sitemap*.xml _site/ && touch _site/.nojekyll
+          mkdir _site && cp -r index.html sw.js equipes.json matchs*.json joueurs*.json carrieres identites joueur equipe competition pages.css plan.html sitemap*.xml _site/ && touch _site/.nojekyll
           # GitHub Pages refuse les sites de plus de 1 Go : on s'arrête avant (l'ancien site reste en ligne)
           taille=$(du -sm --apparent-size _site | cut -f1); echo "Taille du site : $taille Mo"
           [ "$taille" -lt 950 ] || { echo "::error::Site trop gros ($taille Mo)"; exit 1; }

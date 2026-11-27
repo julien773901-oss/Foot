@@ -164,6 +164,21 @@
 - Limites : départage simplifié (points, différence, buts marqués, puis hasard) ; Apertura/Clausura ou play-offs sous le
   même nom de compétition faussent la projection ; dépend du calendrier complet (lu jusqu'au 30 juin, voir plus haut).
 
+## Nouvelle interface (27 novembre 2026)
+- Barre du haut fixe et sombre (logo, saison, alertes 🔔 et thème en icônes) ; recherche en dessous ; onglets soulignés ;
+  « mis à jour le… » et sources déplacés dans le pied de page.
+- Matchs : un bloc par compétition (`blocMatchs()`), une ligne par match (`carte(m, groupe)`) : état/heure à gauche,
+  équipes l'une sous l'autre, score à droite, vainqueur en gras ; plus de « ✓ 1 source » (seulement ⚠ si désaccord).
+- Fiches joueur et équipe : bannière (`heroHtml()`, `habillerHero()`) aux couleurs du club actuel (couleurs ESPN, la plus
+  foncée si l'une est blanche/jaune ; club actuel = dernier match hors sélection nationale, `selections` dans matchs.json).
+  Fond : photo Commons du joueur NON recadrée quand le fichier finit par « (cropped) » (souvent une photo de match), sinon la
+  photo recadrée, sinon la photo du stade de son club. Fiche équipe : photo du stade. Crédit en haut à droite (lien Commons).
+- `equipes.json` (foot.py) : {équipe: [couleur, 2e couleur, fichier Commons du stade]}. Couleurs lues dans chaque match ESPN
+  (table `couleurs`) ; stade = nom du stade des matchs à domicile ESPN (table `stades`), retrouvé sur Wikidata (P115 + P18),
+  sinon par le nom du club ; nom ambigu (Old Trafford = aussi un terrain de cricket) : stade commun aux deux pistes ou rien.
+  Recherche une fois par jour (passage de 3 h UTC, ~1 min). Essai : 313 clubs sur 350 des grands championnats (89 %).
+- `color-mix()` (CSS) : navigateurs de 2023 et plus ; sinon dégradé vert par défaut.
+
 ## Pour relancer la base à la main
     python foot.py
 

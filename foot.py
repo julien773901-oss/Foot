@@ -110,6 +110,14 @@ FEMININ = {"fifa.wwc", "fifa.wworldq.uefa", "fifa.wwcq.ply", "fifa.friendly.w", 
            "afc.w.asian.cup", "fifa.shebelieves", "global.arnold.clark_cup", "global.pinatar_cup", "global.w.finalissima",
            "eng.w.1", "eng.w.fa", "eng.w.league_cup", "esp.w.1", "esp.copa_de_la_reina", "fra.w.1", "ned.w.1", "ned.w.knvb_cup",
            "usa.nwsl", "usa.nwsl.cup", "usa.w.usl.1", "mex.w.1", "aus.w.1", "can.w.nsl"}
+# compétitions de sélections nationales : la fiche joueur prend les couleurs de son CLUB actuel, pas de sa sélection
+SELECTIONS = {c for c in LIGUES if c.startswith(("fifa.world", "fifa.wcq", "fifa.wwc", "fifa.wworld", "fifa.friendly", "fifa.olympics",
+              "fifa.w.olympics", "uefa.weuro", "uefa.nations", "uefa.w.nations", "caf.nations", "caf.w.nations",
+              "caf.championship", "caf.cosafa", "conmebol.america", "concacaf.gold", "concacaf.w.gold", "concacaf.nations",
+              "concacaf.central", "concacaf.womens", "afc.asian", "afc.w.asian", "afc.cupq", "aff.", "afc.saff", "global."))
+              or c in ("fifa.shebelieves", "uefa.euro", "uefa.euroq")}
+COULEURS = {}  # équipe -> (couleur, 2e couleur) lues chez ESPN (hexadécimal sans #), gardées dans la table couleurs
+STADES = {}  # équipe -> nom de son stade (matchs à domicile ESPN), pour la photo de la bannière de la fiche équipe
 DB = Path(__file__).with_name("foot.db")
 
 
@@ -183,6 +191,11 @@ def parse(event, ligue, feminin=False):
     eq = {t["homeAway"]: t for t in c["competitors"]}
     h, a = eq["home"], eq["away"]
     nom = lambda t: S.feminin(t["team"]["displayName"]) if feminin else t["team"]["displayName"]
+    for t in (h, a):
+        if t["team"].get("color"):
+            COULEURS[nom(t)] = (t["team"]["color"].lower(), (t["team"].get("alternateColor") or "").lower() or None)
+    if (c.get("venue") or {}).get("fullName"):
+        STADES[nom(h)] = c["venue"]["fullName"]
     statut = event["status"]["type"]["name"]
     joue = statut != "STATUS_SCHEDULED"  # pas de score tant que le match n'a pas commencé
     score = lambda t: int(t["score"]) if joue and t.get("score") not in (None, "") else None
@@ -377,6 +390,44 @@ def photos_wikidata(db, joueurs):
     return apparier_photos(joueurs, wd, noms)
 
 
+def apparier_stades(equipes, stades, clubs):
+    """equipes : {équipe: nom du stade ESPN ou None} ; stades : {qid stade: (fichier Commons, {noms})} ;
+    clubs : {qid club: (qid de son stade, {noms})}. Renvoie {équipe: fichier Commons}.
+    1) le stade ESPN retrouvé par son nom ; 2) sinon le club retrouvé par son nom, puis son stade. Nom ambigu (« Old Trafford »
+    = aussi un terrain de cricket) : on garde le stade commun aux deux pistes s'il est seul, sinon rien."""
+    cle = lambda n: " ".join(mots(n))
+    par_nom_s, par_nom_c = {}, {}
+    for q, (_, ns) in stades.items():
+        for n in ns:
+            par_nom_s.setdefault(cle(n), set()).add(q)
+    for q, (_, ns) in clubs.items():
+        for n in ns:
+            par_nom_c.setdefault(cle(n), set()).add(q)
+    out = {}
+    for eq, stade in equipes.items():
+        s_ = par_nom_s.get(cle(stade), set()) if stade else set()
+        c_ = {clubs[q][0] for q in par_nom_c.get(cle(eq.removesuffix(" (F)")), set())} & set(stades)
+        choix = s_ if len(s_) == 1 else c_ if not s_ and len(c_) == 1 else s_ & c_ if len(s_ & c_) == 1 else set()
+        if choix:
+            out[eq] = stades[choix.pop()][0]
+    return out
+
+
+def photos_stades(equipes):
+    """Photos de stade (Wikidata P115 « stade » + P18 « image ») ; 3 requêtes CSV, ~1 min en tout (une fois par jour)."""
+    stades, clubs = {}, {}
+    for langues in ('"en","mul"', '"fr","es","de","it","pt"'):  # en deux fois : une seule requête frôle la limite de 60 s
+        for b in sparql('SELECT DISTINCT ?v ?img ?l WHERE { ?club wdt:P115 ?v . ?v wdt:P18 ?img . { ?v rdfs:label ?l } '
+                        'UNION { ?v skos:altLabel ?l } FILTER(lang(?l) IN (%s)) }' % langues):
+            if "Special:FilePath/" in b["img"]:
+                x = stades.setdefault(b["v"].rsplit("/", 1)[1], (urllib.parse.unquote(b["img"].rsplit("Special:FilePath/", 1)[1]), set()))
+                x[1].add(b["l"])
+    for b in sparql('SELECT DISTINCT ?club ?v ?l WHERE { ?club wdt:P115 ?v ; wdt:P31/wdt:P279* wd:Q476028 . ?v wdt:P18 [] . '
+                    '{ ?club rdfs:label ?l } UNION { ?club skos:altLabel ?l } FILTER(lang(?l) IN ("en","fr","es","de","it","pt","mul")) }'):
+        clubs.setdefault(b["club"].rsplit("/", 1)[1], (b["v"].rsplit("/", 1)[1], set()))[1].add(b["l"])
+    return apparier_stades(equipes, stades, clubs)
+
+
 NB_PAQUETS = 64  # carrières découpées en 64 fichiers : la fiche joueur n'en charge qu'un
 
 
@@ -448,7 +499,9 @@ def main():
         titulaire INTEGER, entre INTEGER, sorti INTEGER, PRIMARY KEY (match_id, joueur));
     CREATE TABLE IF NOT EXISTS identites (id_espn TEXT PRIMARY KEY, joueur TEXT, lu TEXT, naissance TEXT, nationalite TEXT,
         drapeau TEXT, taille INTEGER, poids INTEGER, poste TEXT);
-    CREATE TABLE IF NOT EXISTS wikidata (qid TEXT PRIMARY KEY, noms TEXT);""")
+    CREATE TABLE IF NOT EXISTS wikidata (qid TEXT PRIMARY KEY, noms TEXT);
+    CREATE TABLE IF NOT EXISTS couleurs (equipe TEXT PRIMARY KEY, c1 TEXT, c2 TEXT);
+    CREATE TABLE IF NOT EXISTS stades (equipe TEXT PRIMARY KEY, stade TEXT, commons TEXT);""")
     for table, col in [("matchs", "cartons TEXT"), ("matchs", "passes TEXT"), ("matchs", "fiche_lue INTEGER")] + \
             [("participations", f"{c} {'TEXT' if c == 'poste' else 'INTEGER'}") for c in PART_COLS[7:]] + \
             [("identites", "espn_photo INTEGER"), ("identites", "photo_lu TEXT"), ("identites", "commons TEXT")]:  # colonnes ajoutées après coup
@@ -508,6 +561,9 @@ def main():
     upsert = (f"INSERT INTO matchs ({','.join(COLS)}) VALUES ({','.join('?' * len(COLS))}) "
               f"ON CONFLICT(id) DO UPDATE SET {','.join(f'{c}=coalesce(excluded.{c}, {c})' if c in ('buteurs', 'cartons') else f'{c}=excluded.{c}' for c in COLS[1:])}")
     db.executemany(upsert, [m + (maintenant,) for m in matchs])
+    db.executemany("INSERT OR REPLACE INTO couleurs VALUES (?,?,?)", [(e, *c) for e, c in COULEURS.items()])
+    db.executemany("INSERT INTO stades (equipe, stade) VALUES (?,?) ON CONFLICT(equipe) DO UPDATE SET stade=excluded.stade",
+                   list(STADES.items()))
     # calendrier jusqu'à la fin de saison : un appel par mois et par compétition ESPN (~1 500 appels, ~2 min)
     apres, t0 = (today + timedelta(days=14)).isoformat(), time.time()
     lots = [(code, ligue, m) for code, ligue in LIGUES.items() for m in mois_a_venir(today, fin_saison)]
@@ -607,6 +663,18 @@ def main():
     except Exception as e:
         erreurs += 1
         print(f"[erreur] photos Wikidata (on garde les anciennes) : {e}", file=sys.stderr)
+    if datetime.now(timezone.utc).hour == 3 or not db.execute("SELECT 1 FROM stades WHERE commons IS NOT NULL LIMIT 1").fetchone():
+        t0 = time.time()
+        try:
+            eqs = {e: None for (e,) in db.execute("SELECT domicile FROM matchs UNION SELECT exterieur FROM matchs")}
+            eqs |= dict(db.execute("SELECT equipe, stade FROM stades"))
+            trouves = photos_stades(eqs)
+            db.executemany("INSERT INTO stades (equipe, commons) VALUES (?,?) ON CONFLICT(equipe) DO UPDATE SET commons=excluded.commons",
+                           list(trouves.items()))
+            print(f"[temps] photos de stades: {time.time() - t0:.0f} s ({len(trouves)} équipes sur {len(eqs)})")
+        except Exception as e:
+            erreurs += 1
+            print(f"[erreur] photos de stades (on garde les anciennes) : {e}", file=sys.stderr)
     n_photos = db.execute("SELECT count(*), sum(espn_photo = 1), sum(espn_photo = 1 OR commons IS NOT NULL) FROM identites").fetchone()
     cl_lus = set(db.execute("SELECT code, jour FROM jours_lus WHERE code LIKE 'cl:%'").fetchall())
     # saison ancienne déjà lue : son classement ne bouge plus ; lus à 4 en parallèle (~2 400 la 1re fois après un ajout de ligues)
@@ -733,12 +801,20 @@ def main():
         donnees = json.dumps({"maj": maintenant, "saison": s, "saisons": SAISONS, "courante": courante,
                               "ligues": LIGUES | {f"ls:{c}/{s}": nom for (c, s), nom in S.LS_LIGUES.items()},
                               "feminin": sorted({LIGUES[c] for c in FEMININ} | S.LS_FEMININ),
+                              "selections": sorted(LIGUES[c] for c in SELECTIONS),
                               "sources": etat, "matchs": [x for x in m if saison_match[x["id"]] == s],
                               "classement": [c for c in clas if c["saison"] == s]}, ensure_ascii=False, separators=(",", ":"))  # sans espaces : -9 %
         joueurs = json.dumps(jou[s], ensure_ascii=False, separators=(",", ":"))
         for suffixe in [f"-{s}"] + ([""] if s == courante else []):
             DB.with_name(f"matchs{suffixe}.json").write_text(donnees, encoding="utf-8")
             DB.with_name(f"joueurs{suffixe}.json").write_text(joueurs, encoding="utf-8")
+    # bannières des fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
+    eqs = {}
+    for e, a, b in db.execute("SELECT equipe, c1, c2 FROM couleurs"):
+        eqs[e] = [a, b, None]
+    for e, f in db.execute("SELECT equipe, commons FROM stades WHERE commons IS NOT NULL"):
+        eqs.setdefault(e, [None, None, None])[2] = f
+    DB.with_name("equipes.json").write_text(json.dumps(eqs, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden)
     print(f"[photos] {n_photos[2] or 0} joueurs avec photo sur {n_photos[0]} (ESPN : {n_photos[1] or 0}, les autres : Wikimedia Commons)")
     print(f"{len(taches)} jours lus, {len(matchs)} matchs mis à jour, {erreurs} erreurs -> {DB}")
@@ -772,6 +848,19 @@ if __name__ == "__main__":
         {"starter": False, "subbedIn": True, "athlete": {"displayName": "B", "id": "2"}, "position": {"abbreviation": "SUB"}},
         {"starter": False, "athlete": {"displayName": "Banc", "id": "3"}}]}]
     assert parse(fake, "L", True)[3:5] == ("A (F)", "B (F)")
+    fake["competitions"][0]["competitors"][0]["team"] |= {"color": "FFFFFF", "alternateColor": "011F68"}
+    parse(fake, "L")
+    assert COULEURS["A"] == ("ffffff", "011f68") and "B" not in COULEURS
+    fake["competitions"][0]["venue"] = {"fullName": "Stade A"}
+    parse(fake, "L")
+    assert STADES["A"] == "Stade A"
+    st = {"S1": ("Old Trafford.jpg", {"Old Trafford"}), "S2": ("OT cricket.jpg", {"Old Trafford"}), "S3": ("Velodrome.jpg", {"Stade Vélodrome"}),
+          "S4": ("Moustoir.jpg", {"Stade du Moustoir"})}
+    cl = {"C1": ("S1", {"Manchester United", "Man United"}), "C2": ("S4", {"FC Lorient", "Lorient"})}
+    # ambigu par le stade mais tranché par le club ; par le stade seul ; par le club seul (stade ESPN inconnu) ; rien
+    assert apparier_stades({"Manchester United": "Old Trafford", "Marseille": "Stade Vélodrome", "Lorient (F)": None, "X": "Inconnu"},
+                           st, cl) == {"Manchester United": "Old Trafford.jpg", "Marseille": "Velodrome.jpg", "Lorient (F)": "Moustoir.jpg"}
+    assert "fifa.world" in SELECTIONS and "uefa.champions" not in SELECTIONS and "fifa.cwc" not in SELECTIONS and "uefa.europa" not in SELECTIONS
     assert "fifa.world" not in FEMININ and FEMININ <= set(LIGUES)
     assert mois_a_venir(date(2026, 11, 26), date(2027, 6, 30)) == ["202612", "202701", "202702", "202703", "202704", "202705", "202706"]
     assert mois_a_venir(date(2027, 6, 20), date(2027, 6, 30)) == []

@@ -10,161 +10,243 @@
 <script>/* thème choisi appliqué avant l'affichage, pour éviter un flash de la mauvaise couleur */
   try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --txt:#16181d; --mut:#6b7280; --line:#e5e7eb; --acc:#0a7c4a; --accbg:#e7f5ee;
-          --warn:#c2410c; --live:#dc2626; --v:#16a34a; --n:#9ca3af; --d:#dc2626; --dom:#0a7c4a; --ext:#2563eb; --star:#eab308; }
-  /* sombre : automatique (réglage de l'appareil) sauf si le visiteur a choisi "clair", ou forcé s'il a choisi "sombre" */
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111317; --card:#1a1d23; --txt:#e8eaed; --mut:#9aa0a6; --line:#2a2e36;
-          --acc:#3ccf8e; --accbg:#16301f; --warn:#fb923c; --live:#f87171; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; color-scheme:dark; } }
-  :root[data-theme="dark"] { --bg:#111317; --card:#1a1d23; --txt:#e8eaed; --mut:#9aa0a6; --line:#2a2e36;
-          --acc:#3ccf8e; --accbg:#16301f; --warn:#fb923c; --live:#f87171; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; color-scheme:dark; }
-  :root[data-theme="light"] { color-scheme:light; }
+  /* ---------- couleurs (clair, sombre automatique, sombre forcé) ---------- */
+  :root { --bg:#f2f4f7; --card:#ffffff; --card2:#f7f8fa; --txt:#101828; --mut:#667085; --line:#e4e7ec; --acc:#087443; --accbg:#e7f6ee;
+          --warn:#c4320a; --live:#e11d48; --v:#16a34a; --n:#98a2b3; --d:#dc2626; --dom:#087443; --ext:#2563eb; --star:#eab308;
+          --haut:#0b1712; --ombre:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0b0f14; --card:#141a21; --card2:#10151b; --txt:#e6edf3; --mut:#8b98a5;
+          --line:#232c36; --acc:#3ccf8e; --accbg:#11281c; --warn:#fb923c; --live:#fb7185; --v:#22c55e; --n:#6b7280; --d:#ef4444;
+          --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; --haut:#070b0e; --ombre:none; color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#0b0f14; --card:#141a21; --card2:#10151b; --txt:#e6edf3; --mut:#8b98a5; --line:#232c36; --acc:#3ccf8e;
+          --accbg:#11281c; --warn:#fb923c; --live:#fb7185; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15;
+          --haut:#070b0e; --ombre:none; color-scheme:dark; }
+  :root { --c-pour:#2a78d6; --c-contre:#e34948; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-pour:#3987e5; --c-contre:#e66767; } }
+  :root[data-theme="dark"] { --c-pour:#3987e5; --c-contre:#e66767; }
+
+  /* ---------- base ---------- */
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.4 system-ui, sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:16px; }
-  h1 { margin:8px 0 4px; font-size:24px; } h1 a { color:inherit; text-decoration:none; }
-  .mut { color:var(--mut); font-size:13px; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+         -webkit-font-smoothing:antialiased; }
+  main { max-width:780px; margin:0 auto; padding:12px 16px 32px; }
+  a { color:var(--acc); }
   button { font:inherit; color:var(--txt); }
-  .onglets { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 8px; }
-  .pill, .onglets button { padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--txt); cursor:pointer; text-decoration:none; display:inline-block; }
-  .onglets button[aria-selected="true"] { background:var(--acc); border-color:var(--acc); color:#fff; }
-  .filtres { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 12px; }
-  select, input { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--txt); flex:1 1 160px; min-width:0; }
-  .jours { display:flex; gap:6px; align-items:center; margin-bottom:8px; }
-  .jours button { padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); cursor:pointer; }
-  .jours input { flex:1 1 auto; text-align:center; }
-  .jour-titre { text-align:center; font-weight:600; margin:4px 0 0; text-transform:capitalize; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:20px 0 8px; }
-  .m { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:6px; }
-  .m.direct { border-color:var(--live); }
-  .ligne { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
-  .eq { display:flex; align-items:center; gap:8px; min-width:0; color:inherit; text-decoration:none; }
+  .mut { color:var(--mut); font-size:13px; }
+  h2 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:26px 2px 10px; }
+  [hidden] { display:none !important; }
+  select, input { font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--txt); min-width:0; }
+  select:focus, input:focus, button:focus-visible, a:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card);
+          color:var(--txt); cursor:pointer; text-decoration:none; font-size:14px; font-weight:500; }
+  .pill:hover { border-color:var(--acc); }
+  a.pill[href="#"], a.pill[href^="#equipe"], a.pill[href^="#joueur"] { border:0; background:none; padding:6px 0; color:var(--mut); }
+
+  /* ---------- barre du haut ---------- */
+  .haut { position:sticky; top:0; z-index:30; background:var(--haut); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.06); }
+  .haut-in { max-width:780px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:8px; }
+  .logo { margin:0; font-size:20px; font-weight:800; letter-spacing:-.02em; flex:1; white-space:nowrap; min-width:0; }
+  .logo a { color:#fff; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .logo b { color:#3ccf8e; font-weight:800; }
+  .logo .ballon { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#3ccf8e; color:#0b1712; font-size:17px; }
+  .haut select { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); color:#fff; padding:6px 8px; font-size:13px; max-width:132px; }
+  .haut select option { color:#101828; }
+  .ico { width:36px; height:36px; display:grid; place-items:center; border-radius:10px; border:1px solid rgba(255,255,255,.14);
+         background:rgba(255,255,255,.08); color:#fff; cursor:pointer; font-size:16px; padding:0; }
+  .ico:hover { background:rgba(255,255,255,.16); }
+  #alertes[aria-pressed="true"] { background:#3ccf8e; border-color:#3ccf8e; }
+
+  /* ---------- recherche ---------- */
+  .recherche { position:relative; margin:4px 0 0; }
+  .recherche input { width:100%; padding:12px 14px 12px 40px; font-size:15px; border-radius:12px; box-shadow:var(--ombre);
+    background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m17 17-4.5-4.5'/%3E%3C/svg%3E") 13px 50% no-repeat; }
+  #rg-liste { position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:25; list-style:none; margin:0; padding:6px;
+              background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 12px 32px rgba(16,24,40,.18); max-height:60vh; overflow:auto; }
+  #rg-liste .grp { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); padding:8px 8px 4px; }
+  #rg-liste [role="option"] { display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:8px; cursor:pointer; }
+  #rg-liste [role="option"][aria-selected="true"], #rg-liste [role="option"]:hover { background:var(--accbg); }
+  #rg-liste .sous { color:var(--mut); font-size:12px; margin-left:auto; text-align:right; }
+
+  /* ---------- onglets, filtres, jours ---------- */
+  .onglets { display:flex; gap:2px; margin:14px 0 12px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); }
+  .onglets::-webkit-scrollbar { display:none; }
+  .onglets button { flex:none; padding:10px 11px; border:0; background:none; color:var(--mut); font-weight:600; cursor:pointer;
+                    border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .onglets button[aria-selected="true"] { color:var(--txt); border-bottom-color:var(--acc); }
+  .filtres { display:flex; gap:8px; margin:0 0 12px; }
+  .filtres select { flex:1 1 55%; } .filtres input { flex:1 1 45%; }
+  .jours { display:flex; align-items:center; gap:6px; background:var(--card); border-radius:12px; padding:4px; box-shadow:var(--ombre); }
+  .jours button { border:0; background:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; color:var(--mut); }
+  .jours button:hover { background:var(--card2); color:var(--txt); }
+  .jours input { flex:1; border:0; background:none; text-align:center; padding:6px; }
+  #auj { color:var(--acc); }
+  .jour-titre { font-size:20px; font-weight:800; letter-spacing:-.01em; margin:16px 2px 0; text-transform:capitalize; }
+
+  /* ---------- listes de matchs : un bloc par compétition, une ligne par match ---------- */
+  .grp { background:var(--card); border-radius:14px; box-shadow:var(--ombre); margin:12px 0; overflow:hidden; }
+  :root[data-theme="dark"] .grp { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .grp { border:1px solid var(--line); } }
+  .grp > h3 { margin:0; padding:10px 14px; font-size:13px; font-weight:700; background:var(--card2); border-bottom:1px solid var(--line);
+              display:flex; align-items:center; gap:8px; }
+  .grp > h3 a { color:inherit; text-decoration:none; }
+  .grp.direct > h3 { color:var(--live); }
+  .m { display:grid; grid-template-columns:58px 1fr auto; column-gap:10px; align-items:center; padding:10px 14px; border-top:1px solid var(--line); }
+  .grp > h3 + .m { border-top:0; }
+  .m-etat { grid-row:1 / span 2; font-size:12px; color:var(--mut); text-decoration:none; text-align:center; line-height:1.25; font-variant-numeric:tabular-nums; }
+  .m-etat small { display:block; font-size:11px; opacity:.85; }
+  .m-etat.live { color:var(--live); font-weight:700; }
+  .m-etat.live::before { content:""; display:block; width:7px; height:7px; border-radius:50%; background:var(--live); margin:0 auto 4px; animation:pouls 1.4s infinite; }
+  @keyframes pouls { 50% { opacity:.25; } }
+  .m-eq { display:flex; align-items:center; min-width:0; padding:2px 0; grid-column:2; }
+  .m-eq.gagne .eq span { font-weight:700; }
+  .m-eq.perd .eq span { color:var(--mut); }
+  .m-sc { grid-column:3; font-weight:700; font-size:16px; text-align:right; font-variant-numeric:tabular-nums; text-decoration:none; color:inherit; min-width:22px; }
+  .m-sc.perd { color:var(--mut); font-weight:600; }
+  .m.direct .m-sc { color:var(--live); }
+  .m-plus { grid-column:2 / -1; }
+  .m-meta { grid-column:2 / -1; font-size:12px; color:var(--mut); margin-top:2px; }
+  .eq { display:flex; align-items:center; gap:10px; min-width:0; color:inherit; text-decoration:none; }
   .eq:hover span { text-decoration:underline; }
   .eq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .eq.d { justify-content:flex-end; text-align:right; }
   .eq.fav span::after { content:" ★"; color:var(--star); }
   img.logo { width:22px; height:22px; object-fit:contain; flex:none; }
-  a.s { font-weight:700; min-width:64px; text-align:center; font-variant-numeric:tabular-nums; color:inherit; text-decoration:none;
-        border:1px solid var(--line); border-radius:8px; padding:2px 8px; }
-  a.s:hover { border-color:var(--acc); }
-  .buts { display:grid; grid-template-columns:1fr 1fr; gap:2px 24px; font-size:12px; color:var(--mut); margin-top:6px; }
-  .buts .d { text-align:right; }
-  .pa { opacity:.8; font-style:italic; }
-  .info { color:var(--mut); font-size:12px; margin-top:6px; text-align:center; }
+  .buts { font-size:12px; color:var(--mut); margin-top:4px; display:grid; grid-template-columns:1fr 1fr; gap:2px 16px; }
+  .buts .d { text-align:left; }
+  .pa { opacity:.85; font-style:italic; }
   .live { color:var(--live); font-weight:700; }
-  .plus { display:block; margin:12px auto; padding:8px 16px; border:1px solid var(--line); border-radius:8px; background:var(--card); cursor:pointer; }
-  details.src { font-size:12px; color:var(--mut); margin-top:4px; text-align:center; }
-  details.src summary { cursor:pointer; color:var(--acc); list-style-position:inside; }
-  details.src.ko summary { color:var(--warn); font-weight:600; }
-  .tab-wrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .plus { display:block; margin:14px auto; padding:9px 18px; border:1px solid var(--line); border-radius:999px; background:var(--card); cursor:pointer; font-weight:600; }
+  details.src { font-size:12px; color:var(--mut); margin-top:4px; }
+  details.src summary { cursor:pointer; color:var(--warn); font-weight:600; }
+
+  /* ---------- tableaux ---------- */
+  .tab-wrap { overflow-x:auto; background:var(--card); border-radius:14px; box-shadow:var(--ombre); }
+  :root[data-theme="dark"] .tab-wrap, :root[data-theme="dark"] .bloc, :root[data-theme="dark"] .graphe, :root[data-theme="dark"] .stats { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.tab-wrap, .bloc, .graphe, .stats) { border:1px solid var(--line); } }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-  th, td { padding:8px 6px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
-  th { font-size:12px; color:var(--mut); font-weight:600; }
-  td.g { text-align:left; } td.g .eq { justify-content:flex-start; }
-  td.pts { font-weight:700; }
+  th, td { padding:10px 8px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-size:11px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.04em; background:var(--card2); }
+  td.g, th.g { text-align:left; } td.g .eq { justify-content:flex-start; }
+  td.pts { font-weight:800; }
   tr:last-child td { border-bottom:0; }
   tr.moi td { background:var(--accbg); }
-  table.proj th, table.proj td { padding-left:4px; padding-right:4px; }
+  table.proj th, table.proj td { padding-left:5px; padding-right:5px; }
   table.proj td.g { white-space:normal; } table.proj .eq span { white-space:normal; }
   sup.off { font-size:10px; color:var(--warn); margin-left:4px; font-weight:600; }
+
+  /* ---------- bannière des fiches joueur et équipe ---------- */
+  .hero { position:relative; overflow:hidden; border-radius:18px; margin:6px 0 14px; color:#fff; min-height:210px;
+          background:linear-gradient(135deg, var(--h1, #0b3d26), var(--h2, #0a6b40)); box-shadow:0 8px 24px rgba(16,24,40,.18); }
+  .hero-fond { position:absolute; inset:0; background-size:cover; background-position:center 30%; opacity:0; transition:opacity .5s; }
+  .hero-fond.vu { opacity:.55; }
+  .hero::before { content:""; position:absolute; inset:0; z-index:1;
+                  background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.15) 40%, color-mix(in srgb, var(--h1, #0b3d26) 85%, black) 100%),
+                             repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 40px, transparent 40px 80px); }
+  .hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:4px; z-index:2; background:var(--h3, #3ccf8e); }
+  .hero-in { position:relative; z-index:2; display:flex; align-items:flex-end; gap:16px; padding:56px 18px 20px; min-height:210px; }
+  .hero-img { width:92px; height:92px; flex:none; border-radius:50%; object-fit:cover; object-position:50% 20%; background:rgba(255,255,255,.15);
+              border:3px solid rgba(255,255,255,.9); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .hero-img.logo-eq { object-fit:contain; padding:12px; background:#fff; border-radius:22px; }
+  .hero-txt { min-width:0; flex:1; }
+  .hero-sur { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; opacity:.85; }
+  .hero-nom { margin:2px 0 6px; font-size:30px; line-height:1.05; font-weight:400; letter-spacing:-.02em; text-transform:none; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.35); }
+  .hero-nom b { font-weight:850; display:block; }
+  .hero .identite { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; font-size:13px; }
+  .hero .identite span { background:rgba(0,0,0,.28); backdrop-filter:blur(4px); padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .hero .identite img.drapeau { width:16px; height:auto; vertical-align:-2px; margin-right:4px; }
+  .hero-clubs { margin-top:8px; font-size:13px; } .hero-clubs a { color:#fff; font-weight:600; }
+  .hero-credit { position:absolute; z-index:3; top:8px; right:10px; font-size:10px; color:rgba(255,255,255,.8); text-decoration:none;
+                 background:rgba(0,0,0,.3); padding:2px 8px; border-radius:999px; }
+  .hero .etoile { position:absolute; z-index:3; top:10px; left:12px; }
+  .etoile { padding:6px 12px; border:1px solid rgba(255,255,255,.4); border-radius:999px; background:rgba(0,0,0,.25); color:#fff; cursor:pointer; font-size:13px; font-weight:600; }
+  .etoile[aria-pressed="true"] { border-color:var(--star); color:var(--star); }
+  .identite { margin:2px 0; font-size:14px; }
+  .identite span + span::before { content:""; }
+  img.drapeau { width:18px; height:auto; vertical-align:-2px; }
+  @media (max-width:480px) { .hero-nom { font-size:25px; } .hero-img { width:76px; height:76px; } .hero-in { padding-top:64px; } }
+
+  /* ---------- tuiles de chiffres ---------- */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:1px; background:var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); }
+  .stats div { background:var(--card); padding:14px 8px; text-align:center; font-size:12px; color:var(--mut); }
+  .stats b { display:block; font-size:24px; font-weight:800; color:var(--txt); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .forme { display:flex; gap:5px; }
+  .forme span { width:28px; height:28px; border-radius:8px; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:800; }
+  .forme .V { background:var(--v); } .forme .N { background:var(--n); } .forme .D { background:var(--d); }
+
+  /* ---------- fiche match ---------- */
   .fiche { display:flex; align-items:center; gap:12px; margin:12px 0; flex-wrap:wrap; }
   .fiche img { width:56px; height:56px; object-fit:contain; }
   .fiche h2 { margin:0; font-size:22px; text-transform:none; letter-spacing:0; color:var(--txt); }
-  .etoile { margin-left:auto; padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); cursor:pointer; }
-  .etoile[aria-pressed="true"] { border-color:var(--star); color:var(--star); font-weight:600; }
-  .forme { display:flex; gap:4px; }
-  .forme span { width:24px; height:24px; border-radius:6px; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:700; }
-  .forme .V { background:var(--v); } .forme .N { background:var(--n); } .forme .D { background:var(--d); }
-  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:8px; }
-  .stats div { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; text-align:center; }
-  .stats b { display:block; font-size:20px; }
-  /* fiche match */
-  .entete { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:12px 0; text-align:center; }
-  .entete img { width:48px; height:48px; object-fit:contain; display:block; margin:0 auto 6px; }
-  .entete .score { font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .entete a { color:inherit; text-decoration:none; font-weight:600; }
-  .ev { display:grid; grid-template-columns:1fr 48px 1fr; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .entete { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; border-radius:18px; padding:22px 14px; margin:6px 0 14px;
+            text-align:center; color:#fff; background:linear-gradient(135deg, #0b3d26, #0a6b40); box-shadow:0 8px 24px rgba(16,24,40,.18); }
+  .entete img { width:56px; height:56px; object-fit:contain; display:block; margin:0 auto 8px; background:#fff; border-radius:14px; padding:6px; }
+  .entete .score { font-size:38px; font-weight:850; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .entete a { color:#fff; text-decoration:none; font-weight:700; }
+  .entete .mut, .entete .live { color:rgba(255,255,255,.85); }
+  .ev { display:grid; grid-template-columns:1fr 48px 1fr; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; }
   .ev:last-child { border-bottom:0; }
-  .ev .t { text-align:center; color:var(--mut); font-variant-numeric:tabular-nums; }
+  .ev .t { text-align:center; color:var(--mut); font-variant-numeric:tabular-nums; font-weight:600; }
   .ev .dom { text-align:right; }
-  .bloc { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
-  .barre { margin:10px 0; }
-  .barre .lib { display:flex; justify-content:space-between; font-size:13px; }
-  .barre .lib span:nth-child(2) { color:var(--mut); }
-  .barre .b { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--line); gap:2px; margin-top:4px; }
+  .bloc { background:var(--card); border-radius:14px; padding:10px 14px; box-shadow:var(--ombre); }
+  .barre { margin:12px 0; }
+  .barre .lib { display:flex; justify-content:space-between; font-size:13px; font-weight:600; }
+  .barre .lib span:nth-child(2) { color:var(--mut); font-weight:500; }
+  .barre .b { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--line); gap:2px; margin-top:5px; }
   .barre .b i { display:block; } .barre .b i:first-child { background:var(--dom); } .barre .b i:last-child { background:var(--ext); }
-  .compo { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .compo { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .compo h3 { font-size:14px; margin:0 0 6px; }
   .compo ul { list-style:none; padding:0; margin:0; font-size:13px; }
   .compo li { padding:3px 0; display:flex; gap:6px; }
   .compo li b { width:22px; text-align:right; color:var(--mut); flex:none; font-variant-numeric:tabular-nums; }
   .compo .sub { color:var(--mut); }
-  a { color:var(--acc); }
   a.j { color:inherit; text-decoration:none; } a.j:hover { text-decoration:underline; color:var(--acc); }
-  #sources { padding-left:18px; }
-  /* graphiques (couleurs validées daltonisme + contraste, clair et sombre) */
-  :root { --c-pour:#2a78d6; --c-contre:#e34948; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-pour:#3987e5; --c-contre:#e66767; } }
-  :root[data-theme="dark"] { --c-pour:#3987e5; --c-contre:#e66767; }
-  .graphe { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; }
+  .h2h { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:6px 10px; align-items:center; font-size:14px; }
+  .h2h .d { text-align:right; } .h2h .sc { font-weight:800; text-align:center; font-variant-numeric:tabular-nums; }
+  .h2h .dt { color:var(--mut); font-size:12px; }
+
+  /* ---------- graphiques, pronostics, partage, comparateur ---------- */
+  .graphe { background:var(--card); border-radius:14px; padding:10px; box-shadow:var(--ombre); }
   .graphe svg { width:100%; height:auto; display:block; overflow:visible; }
-  .graphe text { font-size:11px; fill:var(--mut); font-family:system-ui, sans-serif; }
-  .legende { display:flex; gap:16px; font-size:12px; color:var(--mut); margin:4px 4px 0; }
+  .graphe text { font-size:11px; fill:var(--mut); font-family:inherit; }
+  .legende { display:flex; gap:16px; font-size:12px; color:var(--mut); margin:6px 4px 0; }
   .legende i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
   details.table { margin-top:6px; font-size:13px; } details.table summary { cursor:pointer; color:var(--acc); font-size:12px; }
-  #tip { position:fixed; pointer-events:none; background:var(--txt); color:var(--bg); font-size:12px; padding:6px 8px; border-radius:6px; z-index:10; max-width:240px; }
-  .h2h { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:4px 10px; align-items:center; font-size:14px; }
-  .h2h .d { text-align:right; } .h2h .sc { font-weight:700; text-align:center; font-variant-numeric:tabular-nums; }
-  .h2h .dt { color:var(--mut); font-size:12px; }
-  .entete-site { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .entete-site #maj { flex:1 1 200px; }
-  .entete-site select { flex:0 0 auto; padding:6px 8px; }
-  .entete-site .pill { padding:6px 12px; font-size:14px; }
-  #alertes[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); font-weight:600; }
-  #toast { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); background:var(--acc); color:#fff; padding:12px 16px;
-           border-radius:10px; font-weight:600; z-index:20; max-width:calc(100% - 32px); box-shadow:0 4px 16px rgba(0,0,0,.25); }
-  .comparer { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+  #tip { position:fixed; pointer-events:none; background:var(--txt); color:var(--bg); font-size:12px; padding:6px 8px; border-radius:8px; z-index:40; max-width:240px; }
+  #toast { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); background:var(--txt); color:var(--bg); padding:12px 16px;
+           border-radius:12px; font-weight:600; z-index:50; max-width:calc(100% - 32px); box-shadow:0 8px 24px rgba(0,0,0,.25); }
+  .comparer { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
   .comparer input { flex:1 1 200px; }
   .cmp td:nth-child(2) { text-align:center; color:var(--mut); font-size:12px; white-space:normal; }
   .cmp td:first-child, .cmp td:last-child { width:38%; font-variant-numeric:tabular-nums; }
   .cmp td:first-child { text-align:right; } .cmp td:last-child { text-align:left; }
-  .cmp .mieux { color:var(--acc); font-weight:700; }
+  .cmp .mieux { color:var(--acc); font-weight:800; }
   .cmp th img { width:40px; height:40px; object-fit:contain; display:block; margin:0 auto 4px; }
-  .recherche { position:relative; margin:10px 0 0; }
-  .recherche input { width:100%; padding:10px 12px; font-size:15px; }
-  #rg-liste { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:15; list-style:none; margin:0; padding:4px;
-              background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.18); max-height:60vh; overflow:auto; }
-  #rg-liste .grp { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); padding:8px 8px 4px; }
-  #rg-liste [role="option"] { display:flex; align-items:center; gap:8px; padding:8px; border-radius:6px; cursor:pointer; }
-  #rg-liste [role="option"][aria-selected="true"], #rg-liste [role="option"]:hover { background:var(--accbg); }
-  #rg-liste .sous { color:var(--mut); font-size:12px; margin-left:auto; text-align:right; }
   .grille2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
   .grille2 h3 { font-size:14px; margin:0 0 6px; }
-  .prono { margin-top:8px; }
-  .prono .b { display:flex; height:6px; border-radius:3px; overflow:hidden; gap:2px; }
+  .prono { margin-top:6px; }
+  .prono .b { display:flex; height:5px; border-radius:3px; overflow:hidden; gap:2px; }
   .prono .b i { display:block; }
-  .prono .lib { display:flex; justify-content:space-between; font-size:12px; color:var(--mut); margin-top:3px; gap:8px; }
-  .partage { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
-  .partage button { padding:6px 12px; font-size:14px; }
-  .identite { margin:2px 0; font-size:14px; }
-  .fiche img.drapeau { width:18px; height:auto; vertical-align:-2px; }
-  .fiche img.photo { width:64px; height:64px; border-radius:50%; object-fit:cover; object-position:50% 20%; background:var(--line); display:block; }
+  .prono .lib { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-top:3px; gap:8px; }
+  .partage { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
   figure.photo-j { margin:0; text-align:center; font-size:10px; line-height:1.2; }
   figure.photo-j a { color:var(--mut); }
-  [hidden] { display:none !important; }
+
+  /* ---------- pied de page ---------- */
+  .pied { margin-top:36px; padding-top:8px; border-top:1px solid var(--line); }
+  .pied h2 { margin-top:16px; }
+  #sources { padding-left:18px; font-size:13px; }
 </style>
 </head>
 <body>
+<header class="haut"><div class="haut-in">
+  <h1 class="logo"><a href="#"><span class="ballon" aria-hidden="true">⚽</span><span>Base <b>Foot</b></span></a></h1>
+  <select id="saison" aria-label="Saison"></select>
+  <button id="alertes" class="ico" aria-pressed="false" title="Alertes de buts">🔕</button>
+  <button id="theme" class="ico" title="Changer de thème">🌓</button>
+</div></header>
 <main>
-  <h1><a href="#">⚽ Base Foot</a></h1>
-  <div class="entete-site">
-    <span class="mut" id="maj">Chargement…</span>
-    <select id="saison" aria-label="Saison"></select>
-    <button id="alertes" class="pill" aria-pressed="false">🔔 Alertes de buts</button>
-    <button id="theme" class="pill" title="Changer de thème">🌓 Auto</button>
-  </div>
   <div class="recherche">
     <input id="rg" type="search" role="combobox" aria-expanded="false" aria-controls="rg-liste" aria-autocomplete="list"
-           placeholder="🔎 Chercher une équipe, un joueur ou un match (ex. « Marseille Lyon »)" aria-label="Recherche globale" autocomplete="off">
+           placeholder="Équipe, joueur ou match (ex. « Marseille Lyon »)" aria-label="Recherche globale" autocomplete="off">
     <ul id="rg-liste" role="listbox" hidden></ul>
   </div>
   <div id="toast" role="status" aria-live="polite" hidden></div>
@@ -178,13 +260,13 @@
     </div>
     <div class="filtres">
       <select id="ligue" aria-label="Compétition"><option value="">Toutes les compétitions</option><option value="__fav">⭐ Mes équipes</option></select>
-      <input id="equipe" type="search" placeholder="Rechercher une équipe ou un joueur" aria-label="Rechercher une équipe ou un joueur">
+      <input id="equipe" type="search" placeholder="Filtrer…" aria-label="Filtrer par équipe ou joueur">
     </div>
     <div id="nav-jours">
       <div class="jours">
         <button id="prec" aria-label="Jour précédent">◀</button>
         <input id="jour" type="date" aria-label="Choisir un jour">
-        <button id="auj">Aujourd'hui</button>
+        <button id="auj">Auj.</button>
         <button id="suiv" aria-label="Jour suivant">▶</button>
       </div>
       <div class="jour-titre" id="jour-titre"></div>
@@ -193,11 +275,14 @@
   </div>
   <div id="detail" hidden></div>
   <div id="tip" hidden></div>
+  <footer class="pied">
+  <p class="mut" id="maj">Chargement…</p>
   <h2>Sources</h2>
   <ul class="mut" id="sources"></ul>
   <p class="mut">Les scores ESPN sont recoupés avec les autres sources ; ⚠ = scores différents selon les sources.
     Pendant les matchs, la page se rafraîchit toute seule chaque minute. Cliquez sur un score pour la fiche du match.
     Base complète téléchargeable : <a href="https://raw.githubusercontent.com/julien773901-oss/Foot/base/foot.db.xz">foot.db.xz</a> (SQLite compressé) · <a href="matchs.json">matchs.json</a></p>
+  </footer>
   <p><a href="plan.html">Toutes les compétitions, équipes et joueurs</a></p>
 </main>
 <script>
@@ -241,26 +326,30 @@ document.addEventListener("click", e => { if (e.target.closest("[data-tip]")) mo
 function filtreLigue(m) { const l = $("ligue").value; return !l || (l === "__fav" ? estFav(m) : m.ligue === l); }
 
 // ---------- cartes de match ----------
-function carte(m) {
-  const direct = enDirect(m);
-  const score = m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`;
-  const etat = fini(m) ? (/PEN/.test(m.statut) ? "Terminé aux tirs au but" : /AET/.test(m.statut) ? "Terminé après prolongation" : "Terminé")
-    : m.statut === PREVU ? "À venir"
-    : direct ? `<span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : "Reporté / annulé";
+// une ligne par match : état (heure, minute, « Terminé ») à gauche, les deux équipes l'une sous l'autre, le score à droite.
+// groupe = la ligne est dans le bloc de sa compétition : pas besoin de rappeler la compétition ni le jour.
+function carte(m, groupe) {
+  const direct = enDirect(m), joue = m.buts_dom != null, lien = `#match=${encodeURIComponent(m.id)}`;
+  const etat = fini(m) ? (/PEN/.test(m.statut) ? "T.a.b." : /AET/.test(m.statut) ? "Prol." : "Terminé")
+    : m.statut === PREVU ? heure(m.date_utc) : direct ? esc(m.minute || "Direct") : "Reporté";
+  const gagne = c => fini(m) && joue && (c === "dom" ? m.buts_dom > m.buts_ext : m.buts_ext > m.buts_dom);
+  const perd = c => fini(m) && joue && (c === "dom" ? m.buts_dom < m.buts_ext : m.buts_ext < m.buts_dom);
   const passe = b => (m.passes || []).find(p => p.cote === b.cote && p.min === b.min);
   const b = c => [
     ...m.buteurs.filter(x => x.cote === c).map(x => `⚽ ${lienJ(x.nom)} ${esc(x.min)}${passe(x) ? ` <span class="pa">(${lienJ(passe(x).nom)})</span>` : ""}`),
     ...(m.cartons || []).filter(x => x.cote === c && x.type === "R").map(x => `🟥 ${lienJ(x.nom)} ${esc(x.min)}`)].join("<br>");
-  const buts = m.buteurs.length || (m.cartons || []).some(x => x.type === "R") ? `<div class="buts"><div class="d">${b("dom")}</div><div>${b("ext")}</div></div>` : "";
+  const buts = m.buteurs.length || (m.cartons || []).some(x => x.type === "R") ? `<div class="buts m-plus"><div class="d">${b("dom")}</div><div>${b("ext")}</div></div>` : "";
   const src = Object.entries(m.sources || {});
-  const detail = src.map(([n, s]) => `${n} : ${s[0]}-${s[1]}`).join(" · ");
-  const badge = direct || !src.length ? "" : m.ecart
-    ? `<details class="src ko"><summary>⚠ Les sources ne sont pas d'accord</summary>${esc(detail)}</details>`
-    : `<details class="src"><summary>✓ ${src.length} source${src.length > 1 ? "s" : ""}${m.secours ? " (ESPN absent)" : ""}</summary>${esc(detail)}</details>`;
-  return `<div class="m${direct ? " direct" : ""}"><div class="ligne">
-      ${lienEq(m.domicile, m.logo_dom, "d")}<a class="s" href="#match=${esc(m.id)}" title="Fiche du match">${score}</a>${lienEq(m.exterieur, m.logo_ext)}</div>
-    ${buts}${blocProno(m)}<div class="info">${esc(m.ligue)} · ${fmt(m.date_utc)} · ${etat}</div>${badge}</div>`;
+  const badge = m.ecart && !direct ? `<details class="src m-plus"><summary>⚠ Les sources ne sont pas d'accord</summary>${esc(src.map(([n, s]) => `${n} : ${s[0]}-${s[1]}`).join(" · "))}</details>` : "";
+  const ligne = (c, nom, logo, sc) => `<div class="m-eq${gagne(c) ? " gagne" : perd(c) ? " perd" : ""}">${lienEq(nom, logo)}</div>`
+    + `<a class="m-sc${perd(c) ? " perd" : ""}" href="${lien}" aria-label="Fiche du match">${joue ? sc : ""}</a>`;
+  return `<div class="m${direct ? " direct" : ""}">
+    <a class="m-etat${direct ? " live" : ""}" href="${lien}">${groupe ? "" : `<small>${fmt(m.date_utc, { day:"numeric", month:"short" })}</small>`}${etat}</a>
+    ${ligne("dom", m.domicile, m.logo_dom, m.buts_dom)}${ligne("ext", m.exterieur, m.logo_ext, m.buts_ext)}
+    ${buts}${blocProno(m) ? `<div class="m-plus">${blocProno(m)}</div>` : ""}${groupe ? "" : `<div class="m-meta">${esc(m.ligue)}</div>`}${badge}</div>`;
 }
+// bloc d'une liste de matchs avec son titre (compétition, « En direct », « Mes équipes »…)
+const blocMatchs = (titre, ms, groupe, cls = "") => `<section class="grp ${cls}"><h3>${titre}</h3>${ms.map(m => carte(m, groupe)).join("")}</section>`;
 
 function listeMatchs(f, limite) {
   const now = new Date().toISOString().slice(0, 16);
@@ -268,9 +357,9 @@ function listeMatchs(f, limite) {
   const avenir = f.filter(m => m.statut === PREVU && m.date_utc >= now);
   const passes = f.filter(m => !direct.includes(m) && !avenir.includes(m)).reverse();
   return (f.length ? "" : '<p class="mut">Aucun match.</p>')
-    + (direct.length ? "<h2>🔴 En direct</h2>" + direct.map(carte).join("") : "")
-    + (avenir.length ? "<h2>À venir</h2>" + avenir.slice(0, 20).map(carte).join("") : "")
-    + (passes.length ? "<h2>Résultats</h2>" + passes.slice(0, limite).map(carte).join("") : "")
+    + (direct.length ? blocMatchs("🔴 En direct", direct, false, "direct") : "")
+    + (avenir.length ? blocMatchs("À venir", avenir.slice(0, 20), false) : "")
+    + (passes.length ? blocMatchs("Résultats", passes.slice(0, limite), false) : "")
     + (passes.length > limite ? `<button class="plus" id="plus">Voir plus de résultats (${passes.length - limite})</button>` : "");
 }
 
@@ -282,9 +371,9 @@ function vueJour() {
   const favs = duJour.filter(estFav);
   const parLigue = {};
   for (const m of duJour) if (!favs.includes(m)) (parLigue[m.ligue] ??= []).push(m);
-  let h = direct.length ? "<h2>🔴 En direct</h2>" + direct.map(carte).join("") : "";
-  if (favs.length) h += "<h2>⭐ Mes équipes</h2>" + favs.map(carte).join("");
-  for (const lg of Object.keys(parLigue).sort()) h += `<h2>${esc(lg)}</h2>` + parLigue[lg].map(carte).join("");
+  let h = direct.length ? blocMatchs("🔴 En direct", direct, false, "direct") : "";
+  if (favs.length) h += blocMatchs("⭐ Mes équipes", favs, false);
+  for (const lg of Object.keys(parLigue).sort()) h += blocMatchs(esc(lg), parLigue[lg], true);
   if (!duJour.length) {
     const jours = base.map(m => cleJour(m.date_utc)).sort();
     const prochain = jours.find(k => k > jour), precedent = jours.filter(k => k < jour).at(-1);
@@ -445,10 +534,12 @@ function vueEquipe(nom) {
   const forme = fin.slice(-5).reverse().map(m => `<span class="${res(m)}" title="${esc(m.domicile)} ${m.buts_dom}-${m.buts_ext} ${esc(m.exterieur)}">${res(m)}</span>`).join("");
   const classes = [...new Set(data.classement.filter(c => c.equipe === nom).map(c => c.ligue))];
   const sc = joueurs(fin, "buteurs").filter(b => b.eq === nom), pa = joueurs(fin, "passes").filter(b => b.eq === nom);
-  return `<a class="pill" href="#">← Retour</a>
-    <div class="fiche">${lg ? `<img src="${esc(lg)}" alt="">` : ""}<div><h2>${esc(nom)}</h2>
-      <div class="mut">${[...new Set(ms.map(m => m.ligue))].map(esc).join(" · ")}</div></div>
-      <button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Dans mes équipes" : "☆ Ajouter à mes équipes"}</button></div>
+  setTimeout(() => habillerHero(nom, []));  // couleurs du club + photo du stade, une fois la fiche affichée
+  return `<a class="pill" href="#">← Retour</a>` + heroHtml(lg ? `<img class="hero-img logo-eq" src="${esc(lg)}" alt="">` : "",
+      esc(Object.entries(ms.reduce((o, m) => (o[m.ligue] = (o[m.ligue] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1])[0]?.[0] || ""), `<b>${esc(nom)}</b>`,
+      fin.length ? `<div class="identite"><span>${s.V} V · ${s.N} N · ${s.D} D</span><span>${s.bp} buts marqués</span></div>` : "",
+      `<button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Mon équipe" : "☆ Suivre"}</button>`)
+    + `
     ${boutonsPartage("equipe", nom)}
     ${champComparer("e", nom, [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))], "Comparer avec une autre équipe…")}
     ${fin.length ? `<h2>Forme (5 derniers, le plus récent à gauche)</h2><div class="forme">${forme}</div>` : ""}
@@ -536,6 +627,47 @@ const carriere = nom => (carrieresP[paquet(nom)] ??= fetch(`carrieres/${paquet(n
 // identité : [naissance, nationalité, drapeau, taille cm, poids kg, poste, photo, fichier Commons] (même découpage, voir foot.py)
 const identitesP = {};
 const identite = nom => (identitesP[paquet(nom)] ??= fetch(`identites/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom]);
+// ---------- bannières des fiches : couleurs du club + photo (joueur en action, ou stade) ----------
+// equipes.json (foot.py) : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
+let equipesP = null;
+const infosEquipes = () => equipesP ??= fetch("equipes.json").then(r => r.json()).catch(() => ({}));
+const COMMONS = "https://commons.wikimedia.org/wiki/Special:FilePath/";
+const pageCommons = f => "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(f.replaceAll(" ", "_"));
+// couleurs ESPN souvent blanches ou jaunes (Marseille, Lyon, Villarreal…) : on prend la plus foncée pour que le texte blanc reste lisible
+function styleHero(cs) {
+  const ok = (cs || []).filter(h => /^[0-9a-f]{6}$/i.test(h || ""));
+  if (!ok.length) return "";
+  const lum = h => { const n = parseInt(h, 16); return (.299 * (n >> 16) + .587 * (n >> 8 & 255) + .114 * (n & 255)) / 255; };
+  const base = ok.find(h => lum(h) < .7) ?? ok[0], autre = ok.find(h => h !== base) ?? base;
+  const fond = lum(base) < .7 ? `#${base}` : `color-mix(in srgb, #${base} 45%, black)`;
+  return `--h1:color-mix(in srgb, ${fond} 55%, black);--h2:${fond};--h3:#${autre}`;
+}
+// la 1re image qui se charge devient le fond de la bannière (crédit : lien vers la page du fichier)
+function fondHero(fichiers) {
+  const fond = $("hero-fond"), credit = $("hero-credit");
+  const essai = i => {
+    if (!fond || i >= fichiers.length) return;
+    const f = fichiers[i], u = COMMONS + encodeURIComponent(f) + "?width=1280", im = new Image();
+    im.onload = () => { if (!document.body.contains(fond)) return;
+      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu"); credit.href = pageCommons(f); credit.hidden = false; };
+    im.onerror = () => essai(i + 1);
+    im.src = u;
+  };
+  essai(0);
+}
+async function habillerHero(equipe, fichiers) {
+  const eqs = await infosEquipes(), h = $("hero");
+  if (!h) return;
+  const st = styleHero(eqs[equipe]);
+  if (st) h.setAttribute("style", st);
+  const stade = eqs[equipe]?.[2];
+  fondHero([...fichiers, ...(stade ? [stade] : [])]);  // pas de photo du joueur en action : son stade
+}
+const nomHero = nom => { const i = nom.indexOf(" "); return i < 0 ? `<b>${esc(nom)}</b>` : `${esc(nom.slice(0, i))}<b>${esc(nom.slice(i + 1))}</b>`; };
+const heroHtml = (img, sur, nom, bas, avant = "") => `<section class="hero" id="hero"><div class="hero-fond" id="hero-fond"></div>
+  <a class="hero-credit" id="hero-credit" target="_blank" rel="noopener" hidden>Photo : Wikimedia Commons</a>${avant}
+  <div class="hero-in">${img}<div class="hero-txt">${sur ? `<div class="hero-sur">${sur}</div>` : ""}<h2 class="hero-nom">${nom}</h2>${bas}</div></div></section>`;
+
 // photo : celle de l'identité (ESPN, sinon Wikimedia Commons avec crédit), sinon essai ESPN par l'id (retirée si absente)
 function photoJoueur(idt, id) {
   const src = idt?.[6] || (id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(id)}.png` : "");
@@ -549,9 +681,9 @@ function ligneIdentite(v) {
   const auj = new Date().toISOString().slice(0, 10);
   const age = naiss && auj.slice(0, 4) - naiss.slice(0, 4) - (auj.slice(5) < naiss.slice(5));
   return `<div class="identite">${[
-    naiss && `Né le ${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)} (${age} ans)`,
+    naiss && `${age} ans · ${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)}`,
     nat && `${drapeau ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(drapeau)}.png" alt="" onerror="this.remove()"> ` : ""}${esc(nat)}`,
-    taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`, poids && `${poids} kg`, poste && esc(poste)].filter(Boolean).join(" · ")}</div>`;
+    taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`, poids && `${poids} kg`, poste && esc(poste)].filter(Boolean).map(x => `<span>${x}</span>`).join("")}</div>`;
 }
 function tableCarriere(C) {
   // ligne : [saison, équipe, compétition, MJ, tit., buts, pen., PD, J, R, tirs, cadrés, fautes, subies, HJ, arrêts, encaissés]
@@ -603,19 +735,29 @@ async function vueJoueur(nom) {
   const [st, C, idt] = await Promise.all([statsJoueur(nom), carriere(nom), identite(nom)]);
   if (route()[1] !== nom) return;
   if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
+  // club actuel = celui de son match le plus récent hors sélection nationale (sinon la dernière ligne de sa carrière)
+  const sel = new Set(data.selections || []);
+  const club = st?.L.filter(l => !sel.has(l.m.ligue)).at(-1)?.eq
+    ?? C.filter(l => !sel.has(l[2])).sort((a, b) => a[0] - b[0]).at(-1)?.[1] ?? st?.equipes[0] ?? C.at(-1)?.[1];
+  const src = idt?.[6] || (st?.J?.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(st.J.id)}.png` : "");
+  const portrait = src ? `<img class="hero-img" src="${esc(src)}" alt="Photo de ${esc(nom)}" onerror="this.remove()">` : "";
+  // fond : la photo d'origine (non recadrée) montre souvent le joueur en plein match, puis la photo recadrée, puis son stade
+  const f = idt?.[7], fichiers = f ? [...new Set([f.replace(/ \((new )?cropped\)(?=\.\w+$)/i, ""), f])] : [];
+  const equipesSaison = st ? st.equipes : [];
+  const clubs = (equipesSaison.length ? equipesSaison : club ? [club] : []).map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ");
+  const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
+  const habiller = () => habillerHero(club, fichiers);
   if (!st) {  // rien cette saison, mais une carrière ailleurs
-    el.innerHTML = `<a class="pill" href="#">← Retour</a><div class="fiche">${photoJoueur(idt)}<div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}</div></div>${boutonsPartage("joueur", nom)}
-      <p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
+    el.innerHTML = entete + `${boutonsPartage("joueur", nom)}<p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
+    habiller();
     return;
   }
   const { J, L, tot, T, equipes } = st;
   const comps = [...new Set(L.map(l => l.m.ligue))];
-  const photo = photoJoueur(idt, J?.id);
   const gardien = J?.p === "G" || T.arrets > 0;
   const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
     : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
-  el.innerHTML = `<a class="pill" href="#">← Retour</a>
-    <div class="fiche">${photo}<div><h2>${esc(nom)}</h2>${ligneIdentite(idt)}<div class="mut">${equipes.map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ")}</div></div></div>
+  el.innerHTML = `${entete}
     ${boutonsPartage("joueur", nom)}
     ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}
     <h2>Saison (toutes compétitions)</h2>
@@ -633,6 +775,7 @@ async function vueJoueur(nom) {
         <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
     </tbody></table></div>
     <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
+  habiller();
   brancherComparer();
 }
 
@@ -900,7 +1043,7 @@ async function vueComparer(type, a, b) {
     const tete = (n, s) => `${s.logo ? `<img src="${esc(s.logo)}" alt="">` : ""}<a class="j" href="#equipe=${encodeURIComponent(n)}">${esc(n)}</a>`;
     const entre = data.matchs.filter(m => (m.domicile === a && m.exterieur === b) || (m.domicile === b && m.exterieur === a));
     el.innerHTML = retour + `<h2>Comparaison (${titreSaison()}toutes compétitions)</h2>` + tableComparer(tete(a, A), tete(b, B), lignes)
-      + (entre.length ? "<h2>Leurs matchs cette saison</h2>" + entre.map(carte).join("") : "");
+      + (entre.length ? blocMatchs("Leurs matchs cette saison", entre, false) : "");
     return;
   }
   el.innerHTML = retour + '<p class="mut">Chargement…</p>';
@@ -920,7 +1063,8 @@ async function vueComparer(type, a, b) {
 let alertes = false;
 try { alertes = localStorage.getItem("alertes") === "1"; } catch (e) {}
 function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 8000); }
-function majBoutonAlertes() { $("alertes").setAttribute("aria-pressed", alertes); $("alertes").textContent = alertes ? "🔔 Alertes activées" : "🔕 Alertes de buts"; }
+function majBoutonAlertes() { $("alertes").setAttribute("aria-pressed", alertes); $("alertes").textContent = alertes ? "🔔" : "🔕";
+  $("alertes").title = alertes ? "Alertes de buts activées (toucher pour couper)" : "Activer les alertes de buts"; $("alertes").setAttribute("aria-label", $("alertes").title); }
 $("alertes").onclick = async () => {
   if (!alertes) {
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
@@ -1172,9 +1316,9 @@ async function direct() {
 const nomSaison = s => s ? `${s}-${String(s + 1).slice(2)}` : "";
 const saisons = {};
 function remplirEntete() {
-  $("maj").textContent = `${data.matchs.length} matchs · base mise à jour ${fmt(data.maj)}`;
+  $("maj").textContent = `${data.matchs.length.toLocaleString("fr-FR")} matchs cette saison · mise à jour ${fmt(data.maj)}`;
   $("saison").hidden = !(data.saisons?.length > 1);
-  $("saison").innerHTML = (data.saisons || []).map(s => `<option value="${s}"${s === data.saison ? " selected" : ""}>Saison ${nomSaison(s)}</option>`).join("");
+  $("saison").innerHTML = (data.saisons || []).map(s => `<option value="${s}"${s === data.saison ? " selected" : ""}>${nomSaison(s)}</option>`).join("");
   const choix = $("ligue").value;
   while ($("ligue").options.length > 2) $("ligue").remove(2);
   [...new Set(data.matchs.map(m => m.ligue))].sort().forEach(l => $("ligue").add(new Option(l, l)));
@@ -1197,7 +1341,8 @@ $("saison").onchange = async e => {
 
 // ---------- thème : Auto (suit l'appareil) → Clair → Sombre ----------
 const THEMES = { auto: "🌓 Auto", light: "☀️ Clair", dark: "🌙 Sombre" };
-function majTheme() { const t = document.documentElement.dataset.theme || "auto"; $("theme").textContent = THEMES[t]; $("theme").setAttribute("aria-label", "Thème : " + THEMES[t].slice(3) + " (cliquer pour changer)"); }
+function majTheme() { const t = document.documentElement.dataset.theme || "auto"; $("theme").textContent = THEMES[t].split(" ")[0];
+  $("theme").title = "Thème : " + THEMES[t].split(" ")[1] + " (toucher pour changer)"; $("theme").setAttribute("aria-label", $("theme").title); }
 $("theme").onclick = () => {
   const ordre = ["auto", "light", "dark"], t = ordre[(ordre.indexOf(document.documentElement.dataset.theme || "auto") + 1) % 3];
   if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
