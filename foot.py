@@ -1030,12 +1030,17 @@ def main():
     palm = {"titres": [[t["c"], t["a"], t["v"], t["s"]] for t in sorted(tit, key=lambda t: (t["c"], t["a"]))], "trophees": trophees(LOGOS_LIGUES)}
     DB.with_name("palmares.json").write_text(json.dumps(palm, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"[palmarès] {len(tit)} titres ({len(lus)} finales aux tirs au but lues chez ESPN)")
-    # bannières des fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade, sa miniature 960 px]}
+    # fiches joueur et équipe : {équipe: [couleur, 2e couleur, fichier Commons du stade, sa miniature 960 px, logo]}
+    # (logo : le plus récent vu dans les matchs, pour la carrière des joueurs, toutes saisons)
     eqs = {}
     for e, a, b in db.execute("SELECT equipe, c1, c2 FROM couleurs"):
-        eqs[e] = [a, b, None]
+        eqs[e] = [a, b, None, None, None]
     for e, f in db.execute("SELECT equipe, commons FROM stades WHERE commons IS NOT NULL"):
-        eqs.setdefault(e, [None, None, None])[2:] = [f, vignette(f, 960)]
+        eqs.setdefault(e, [None] * 5)[2:4] = [f, vignette(f, 960)]
+    for x in m:
+        for e, lg in ((x["domicile"], x["logo_dom"]), (x["exterieur"], x["logo_ext"])):
+            if lg:
+                eqs.setdefault(e, [None] * 5)[4] = lg
     DB.with_name("equipes.json").write_text(json.dumps(eqs, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     P.ecrire(DB.parent, m, car, clas, courante, maintenant, iden, palm)
     print(f"[photos] {n_photos[2] or 0} joueurs avec photo sur {n_photos[0]} (ESPN : {n_photos[1] or 0}, les autres : Wikimedia Commons)")

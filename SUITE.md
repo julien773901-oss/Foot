@@ -226,6 +226,13 @@
   d'une autre saison (bandeau, calendrier) charge cette saison (`allerAuJour()`, `changerSaison()`).
 - Matchs en direct : seulement sur leur jour (plus en haut de tous les jours).
 
+## Fiche joueur en onglets (27 novembre 2026)
+- Bannière (inchangée), puis onglets Carrière (défaut) / Matchs / Profil / Stats, puis le palmarès (toujours visible).
+- Carrière (`carriereParClub()`) : une ligne par saison et par club (compétitions additionnées), logo du club, colonnes
+  matchs, titulaire, buts, passes D., jaunes, rouges ; en-tête aux couleurs du club actuel. « – » = inconnu (avant les
+  4 saisons détaillées, on ne connaît que buts et cartons).
+- Logos des clubs : 5e valeur de equipes.json (le plus récent vu dans les matchs).
+
 ## Pour relancer la base à la main
     python foot.py
 

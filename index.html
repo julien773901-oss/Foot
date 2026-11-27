@@ -297,6 +297,24 @@
   .tm-s.v { color:#16a34a; } .tm-s.d { color:#dc2626; } .tm-s.live { color:var(--live); }
   .tm-f { color:var(--mut); text-decoration:none; font-size:18px; text-align:center; }
 
+  /* ---------- fiche joueur : carrière par saison et par club, profil ---------- */
+  .carr { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:4px 0 8px; }
+  :root[data-theme="dark"] .carr { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .carr { border:1px solid var(--line); } }
+  .carr-h, .carr-l { display:grid; grid-template-columns:58px minmax(0, 1fr) repeat(6, 21px); align-items:center; gap:3px; padding:10px 8px; }
+  .carr-h { background:var(--h2, #0a6b40); color:#fff; font-size:13px; font-weight:600; }
+  .carr-h span:nth-child(n+3), .carr-l > span:nth-child(n+3) { text-align:center; }
+  .carr-l { border-top:1px solid var(--line); font-size:13px; font-variant-numeric:tabular-nums; }
+  .carr-s { font-size:11px; color:var(--mut); }
+  .carr-e { display:flex; align-items:center; gap:6px; min-width:0; color:inherit; text-decoration:none; font-weight:600; }
+  .carr-e span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .carr-e img, .carr-e .sans-logo { width:22px; height:22px; object-fit:contain; flex:none; }
+  .carr-t { font-weight:800; background:var(--card2); }
+  .profil { background:var(--card); border-radius:14px; box-shadow:var(--ombre); overflow:hidden; }
+  .profil div { display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border-top:1px solid var(--line); }
+  .profil div:first-child { border-top:0; }
+  .profil span { color:var(--mut); } .profil b { text-align:right; }
+
   /* ---------- palmarès ---------- */
   .palmares { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:10px; }
   .trophee { background:var(--card); border-radius:14px; box-shadow:var(--ombre); padding:12px 8px 10px; text-align:center; }
@@ -907,10 +925,35 @@ async function statsJoueur(nom) {
   return { J, L, tot, T: tot(L), equipes: [...new Set(L.map(l => l.eq))] };
 }
 
+// fiche joueur : bannière, puis onglets Carrière / Matchs / Profil / Stats, puis le palmarès (toujours visible)
+let ongletJoueur = "carriere";
+document.addEventListener("click", e => { const b = e.target.closest("[data-oj]"); if (b) { ongletJoueur = b.dataset.oj; afficher(); } });
+// carrière : une ligne par saison et par club (toutes compétitions additionnées), logo du club, en-tête aux couleurs du club
+function carriereParClub(C, eqs, club) {
+  const par = new Map();
+  for (const l of C) {
+    const k = l[0] + "|" + l[1], x = par.get(k) ?? { s: l[0], eq: l[1], comps: [], v: [null, null, 0, 0, null, 0, 0] };
+    x.comps.push(l[2]);
+    [3, 4, 5, 6, 7, 8, 9].forEach((i, j) => { if (l[i] != null) x.v[j] = (x.v[j] ?? 0) + l[i]; });
+    par.set(k, x);
+  }
+  const sel = new Set(data.selections || []);
+  const lignes = [...par.values()].sort((a, b) => b.s - a.s || sel.has(a.comps[0]) - sel.has(b.comps[0]));
+  const tot = j => lignes.reduce((t, x) => x.v[j] == null ? t : (t ?? 0) + x.v[j], null);
+  const logo = e => eqs[e]?.[4] ? `<img src="${esc(eqs[e][4])}" alt="" loading="lazy">` : `<span class="sans-logo"></span>`;
+  const cols = [[0, "👕", "Matchs joués"], [1, "11", "Titulaire"], [2, "⚽", "Buts"], [4, "🎯", "Passes décisives"], [5, "🟨", "Cartons jaunes"], [6, "🟥", "Cartons rouges"]];
+  return `<div class="carr" style="${styleHero(eqs[club])}"><div class="carr-h"><span>Saison</span><span>Équipe</span>${cols.map(([, t, n]) => `<span title="${n}">${t}</span>`).join("")}</div>
+    ${lignes.map(x => `<div class="carr-l"><span class="carr-s">${x.s}/${x.s + 1}</span>
+      <a class="carr-e" href="#equipe=${encodeURIComponent(x.eq)}" title="${esc(x.comps.join(" · "))}">${logo(x.eq)}<span>${esc(x.eq)}</span></a>
+      ${cols.map(([j]) => `<span>${x.v[j] ?? "–"}</span>`).join("")}</div>`).join("")}
+    <div class="carr-l carr-t"><span></span><span class="carr-e">Total</span>${cols.map(([j]) => `<span>${tot(j) ?? "–"}</span>`).join("")}</div></div>
+    <p class="mut">« – » = inconnu (compositions et passes décisives seulement sur les saisons récentes). Toucher un club : sa fiche ; le détail par compétition est dans l'onglet Stats.</p>`;
+}
+
 async function vueJoueur(nom) {
   const el = $("detail");
   el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Chargement…</p>`;
-  const [st, C, idt] = await Promise.all([statsJoueur(nom), carriere(nom), identite(nom)]);
+  const [st, C, idt, eqs] = await Promise.all([statsJoueur(nom), carriere(nom), identite(nom), infosEquipes()]);
   if (route()[1] !== nom) return;
   if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
   // club actuel = celui de son match le plus récent hors sélection nationale (sinon la dernière ligne de sa carrière)
@@ -924,37 +967,45 @@ async function vueJoueur(nom) {
   const equipesSaison = st ? st.equipes : [];
   const clubs = (equipesSaison.length ? equipesSaison : club ? [club] : []).map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ");
   const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
-  const habiller = () => { $("hero")?.classList.add("joueur"); habillerHero(club, fichiers, false); };
-  if (!st) {  // rien cette saison, mais une carrière ailleurs
-    el.innerHTML = entete + `${boutonsPartage("joueur", nom)}<div id="zone-palmares"></div><p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
-    habiller(); remplirPalmares(null, C);
-    return;
+  const onglets = [["carriere", "Carrière"], ...(st ? [["matchs", "Matchs"]] : []), ["profil", "Profil"], ...(st ? [["stats", "Stats"]] : [])];
+  if (!onglets.some(([k]) => k === ongletJoueur)) ongletJoueur = "carriere";
+  const barre = `<div class="onglets onglets-j" role="tablist">${onglets.map(([k, t]) => `<button role="tab" data-oj="${k}" aria-selected="${k === ongletJoueur}">${t}</button>`).join("")}</div>`;
+  // profil : son identité en clair + comparateur
+  const [naiss, nat, , taille, poids, poste] = idt || [];
+  const age = naiss && (() => { const a = new Date().toISOString().slice(0, 10); return a.slice(0, 4) - naiss.slice(0, 4) - (a.slice(5) < naiss.slice(5)); })();
+  const profil = `<div class="profil">${[["Club actuel", club && `<a href="#equipe=${encodeURIComponent(club)}">${esc(club)}</a>`],
+      ["Poste", poste && esc(poste)], ["Naissance", naiss && `${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)} (${age} ans)`],
+      ["Nationalité", nat && esc(nat)], ["Taille", taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`], ["Poids", poids && `${poids} kg`],
+      ["Clubs dans la base", new Set(C.filter(l => !sel.has(l[2])).map(l => l[1])).size || null]]
+    .filter(([, v]) => v).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+    ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}`;
+  let corps = "";
+  if (ongletJoueur === "carriere") corps = C.length ? carriereParClub(C, eqs, club) : '<p class="mut">Pas de carrière en base.</p>';
+  else if (ongletJoueur === "profil") corps = profil;
+  else if (st) {
+    const { J, L, tot, T } = st;
+    const comps = [...new Set(L.map(l => l.m.ligue))];
+    const gardien = J?.p === "G" || T.arrets > 0;
+    const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
+      : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
+    corps = ongletJoueur === "stats" ? `<h2>Saison ${nomSaison(data.saison ?? data.courante)} (toutes compétitions)</h2>
+      <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
+        <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div>
+        ${STATS_J.filter(([k]) => k !== "cadres").map(tuile).join("")}</div>
+      ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
+        ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
+      </tbody></table></div>` : ""}
+      ${C.length ? tableCarriere(C) : ""}`
+    : `<div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Match</th><th>Rôle</th><th>⚽</th><th>PD</th><th>Cartons</th></tr></thead><tbody>
+        ${L.slice().reverse().map(l => `<tr><td>${court(l.m.date_utc)}</td>
+          <td class="g"><a class="j" href="#match=${esc(l.m.id)}">${esc(l.m.domicile)} ${l.m.buts_dom ?? ""}-${l.m.buts_ext ?? ""} ${esc(l.m.exterieur)}</a><div class="mut">${esc(l.m.ligue)}</div></td>
+          <td>${l.role === "T" ? "Titulaire" + (l.sorti ? " ↓" : "") : l.role === "E" ? "Entré ↑" : "?"}</td>
+          <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
+      </tbody></table></div>
+      <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
   }
-  const { J, L, tot, T, equipes } = st;
-  const comps = [...new Set(L.map(l => l.m.ligue))];
-  const gardien = J?.p === "G" || T.arrets > 0;
-  const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
-    : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
-  el.innerHTML = `${entete}
-    ${boutonsPartage("joueur", nom)}
-    ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}
-    <h2>Saison (toutes compétitions)</h2>
-    <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
-      <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div>
-      ${STATS_J.filter(([k]) => k !== "cadres").map(tuile).join("")}</div>
-    <div id="zone-palmares"></div>
-    ${C.length ? tableCarriere(C) : ""}
-    ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
-      ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
-    </tbody></table></div>` : ""}
-    <h2>Ses matchs</h2><div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Match</th><th>Rôle</th><th>⚽</th><th>PD</th><th>Cartons</th></tr></thead><tbody>
-      ${L.slice().reverse().map(l => `<tr><td>${court(l.m.date_utc)}</td>
-        <td class="g"><a class="j" href="#match=${esc(l.m.id)}">${esc(l.m.domicile)} ${l.m.buts_dom ?? ""}-${l.m.buts_ext ?? ""} ${esc(l.m.exterieur)}</a><div class="mut">${esc(l.m.ligue)}</div></td>
-        <td>${l.role === "T" ? "Titulaire" + (l.sorti ? " ↓" : "") : l.role === "E" ? "Entré ↑" : "?"}</td>
-        <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
-    </tbody></table></div>
-    <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
-  habiller(); remplirPalmares(null, C);
+  el.innerHTML = `${entete}${boutonsPartage("joueur", nom)}${barre}${corps}<div id="zone-palmares"></div>`;
+  $("hero")?.classList.add("joueur"); habillerHero(club, fichiers, false); remplirPalmares(null, C);
   brancherComparer();
 }
 
