@@ -230,6 +230,18 @@
   figure.photo-j { margin:0; text-align:center; font-size:10px; line-height:1.2; }
   figure.photo-j a { color:var(--mut); }
 
+  /* ---------- palmarès ---------- */
+  .palmares { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:10px; }
+  .trophee { background:var(--card); border-radius:14px; box-shadow:var(--ombre); padding:12px 8px 10px; text-align:center; }
+  :root[data-theme="dark"] .trophee { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .trophee { border:1px solid var(--line); } }
+  .trophee a { display:block; }
+  .trophee img { display:block; width:100%; height:76px; object-fit:contain; }
+  .trophee .coupe { display:grid; place-items:center; height:76px; font-size:44px; }
+  .trophee .nb { display:block; margin-top:6px; font-size:20px; font-weight:850; letter-spacing:-.02em; color:var(--acc); }
+  .trophee .nom { margin-top:4px; font-size:12px; font-weight:700; line-height:1.25; }
+  .trophee .ans { margin-top:2px; font-size:11px; color:var(--mut); line-height:1.3; }
+
   /* ---------- pied de page ---------- */
   .pied { margin-top:36px; padding-top:8px; border-top:1px solid var(--line); }
   .pied h2 { margin-top:16px; }
@@ -534,7 +546,7 @@ function vueEquipe(nom) {
   const forme = fin.slice(-5).reverse().map(m => `<span class="${res(m)}" title="${esc(m.domicile)} ${m.buts_dom}-${m.buts_ext} ${esc(m.exterieur)}">${res(m)}</span>`).join("");
   const classes = [...new Set(data.classement.filter(c => c.equipe === nom).map(c => c.ligue))];
   const sc = joueurs(fin, "buteurs").filter(b => b.eq === nom), pa = joueurs(fin, "passes").filter(b => b.eq === nom);
-  setTimeout(() => habillerHero(nom, []));  // couleurs du club + photo du stade, une fois la fiche affichée
+  setTimeout(() => { habillerHero(nom, []); remplirPalmares(nom); });  // couleurs, photo du stade, palmarès : une fois la fiche affichée
   return `<a class="pill" href="#">← Retour</a>` + heroHtml(lg ? `<img class="hero-img logo-eq" src="${esc(lg)}" alt="">` : "",
       esc(Object.entries(ms.reduce((o, m) => (o[m.ligue] = (o[m.ligue] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1])[0]?.[0] || ""), `<b>${esc(nom)}</b>`,
       fin.length ? `<div class="identite"><span>${s.V} V · ${s.N} N · ${s.D} D</span><span>${s.bp} buts marqués</span></div>` : "",
@@ -546,6 +558,7 @@ function vueEquipe(nom) {
     <h2>Saison (toutes compétitions)</h2>
     <div class="stats"><div><b>${fin.length}</b>Joués</div><div><b>${s.V}</b>Victoires</div><div><b>${s.N}</b>Nuls</div>
       <div><b>${s.D}</b>Défaites</div><div><b>${s.bp}</b>Buts pour</div><div><b>${s.bc}</b>Buts contre</div></div>
+    <div id="zone-palmares"></div>
     ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}
     ${classes.map(l => { const p = positions(nom, l), n = data.classement.filter(c => c.ligue === l).length;
       return (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, n) : "")
@@ -663,6 +676,31 @@ async function habillerHero(equipe, fichiers) {
   const stade = eqs[equipe]?.[2];
   fondHero([...fichiers, ...(stade ? [stade] : [])]);  // pas de photo du joueur en action : son stade
 }
+// ---------- palmarès (palmares.json, calculé par foot.py avec les classements finaux et les finales) ----------
+let palmaresP = null;
+const chargerPalmares = () => palmaresP ??= fetch("palmares.json").then(r => r.json()).catch(() => ({ titres: [], trophees: {} }));
+// titres = [[compétition, édition (« 2023-24 » ou « 2024 »), vainqueur, [saisons]]] ; d'une équipe, ou d'un joueur d'après sa carrière
+async function titresDe(equipe, carriere) {
+  const P = await chargerPalmares(), vu = new Set((carriere || []).map(l => `${l[0]}|${l[1]}|${l[2]}`));
+  return P.titres.filter(t => carriere ? t[3].some(s => vu.has(`${s}|${t[2]}|${t[0]}`)) : t[2] === equipe);
+}
+async function blocPalmares(titres) {
+  if (!titres.length) return "";
+  const P = await chargerPalmares(), par = {};
+  for (const [c, a] of titres) (par[c] ??= new Set()).add(a);
+  const liste = Object.entries(par).map(([c, as]) => [c, [...as].sort().reverse()]).sort((x, y) => y[1].length - x[1].length || x[0].localeCompare(y[0]));
+  const image = c => { const t = P.trophees[c]; if (!t) return '<span class="coupe">🏆</span>';
+    const img = `<img src="${esc(t[0])}" alt="Trophée : ${esc(c)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;coupe&quot;>🏆</span>'">`;
+    return t[1] ? `<a href="${pageCommons(t[1])}" target="_blank" rel="noopener" title="Photo : Wikimedia Commons">${img}</a>` : img; };
+  return `<h2>Palmarès (${titres.length} titre${titres.length > 1 ? "s" : ""})</h2><div class="palmares">${liste.map(([c, as]) => `<div class="trophee">${image(c)}
+    ${as.length > 1 ? `<b class="nb">×${as.length}</b>` : ""}<div class="nom">${esc(c)}</div><div class="ans">${as.slice(0, 8).join(" · ")}${as.length > 8 ? " …" : ""}</div></div>`).join("")}</div>
+    <p class="mut">Titres trouvés dans la base (classements finaux et finales depuis 1993-94 pour les grands championnats, 2001-02 sinon). Pour un joueur : titres de son équipe dans les compétitions où il a joué cette saison-là.</p>`;
+}
+async function remplirPalmares(equipe, carriere) {
+  const h = await blocPalmares(await titresDe(equipe, carriere)), z = $("zone-palmares");
+  if (z) z.innerHTML = h;
+}
+
 const nomHero = nom => { const i = nom.indexOf(" "); return i < 0 ? `<b>${esc(nom)}</b>` : `${esc(nom.slice(0, i))}<b>${esc(nom.slice(i + 1))}</b>`; };
 const heroHtml = (img, sur, nom, bas, avant = "") => `<section class="hero" id="hero"><div class="hero-fond" id="hero-fond"></div>
   <a class="hero-credit" id="hero-credit" target="_blank" rel="noopener" hidden>Photo : Wikimedia Commons</a>${avant}
@@ -748,8 +786,8 @@ async function vueJoueur(nom) {
   const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
   const habiller = () => habillerHero(club, fichiers);
   if (!st) {  // rien cette saison, mais une carrière ailleurs
-    el.innerHTML = entete + `${boutonsPartage("joueur", nom)}<p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
-    habiller();
+    el.innerHTML = entete + `${boutonsPartage("joueur", nom)}<div id="zone-palmares"></div><p class="mut">Pas de match cette saison.</p>${tableCarriere(C)}`;
+    habiller(); remplirPalmares(null, C);
     return;
   }
   const { J, L, tot, T, equipes } = st;
@@ -764,6 +802,7 @@ async function vueJoueur(nom) {
     <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
       <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div>
       ${STATS_J.filter(([k]) => k !== "cadres").map(tuile).join("")}</div>
+    <div id="zone-palmares"></div>
     ${C.length ? tableCarriere(C) : ""}
     ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
       ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
@@ -775,7 +814,7 @@ async function vueJoueur(nom) {
         <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
     </tbody></table></div>
     <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
-  habiller();
+  habiller(); remplirPalmares(null, C);
   brancherComparer();
 }
 

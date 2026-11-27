@@ -16,6 +16,8 @@ nav{font-size:14px;margin-bottom:8px}.app{display:inline-block;margin:8px 0;padd
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
 th{color:var(--mut);font-weight:600}td.g,th.g{text-align:left}tr:last-child td{border-bottom:0}
 ul.l{columns:3 200px;padding-left:18px}footer{margin:24px 0;font-size:13px}
+.palm{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 20px}.palm div{width:104px;text-align:center;font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 4px}
+.palm img{display:block;width:100%;height:64px;object-fit:contain}.palm b{display:block;font-size:18px;color:var(--acc)}
 figure.ph{float:right;margin:0 0 8px 12px;text-align:center;font-size:11px;color:var(--mut)}
 figure.ph img{width:120px;height:120px;object-fit:cover;object-position:50% 20%;border-radius:50%;background:var(--line);display:block;margin:0 auto 4px}"""
 
@@ -81,10 +83,30 @@ def bloc_photo(nom, v):
     return f'<figure class="ph"><img src="{e(v[6])}" alt="Photo de {e(nom)}" width="120" height="120" loading="lazy"><figcaption>Photo : {credit}</figcaption></figure>'
 
 
-def ecrire(racine, m, car, clas, courante, maj, iden=None):
+def bloc_palmares(titres, trophees):
+    """titres : [[compétition, édition, vainqueur, saisons]] -> cases « photo du trophée, ×N, nom, éditions »."""
+    par = {}
+    for c, a, *_ in titres:
+        par.setdefault(c, set()).add(a)
+    if not par:
+        return ""
+    cases = []
+    for c, ans in sorted(par.items(), key=lambda x: (-len(x[1]), x[0])):
+        t = trophees.get(c)
+        img = f'<img src="{e(t[0])}" alt="Trophée : {e(c)}" loading="lazy">' if t else "🏆"
+        cases.append(f"<div>{img}{f'<b>×{len(ans)}</b>' if len(ans) > 1 else ''}{e(c)}<br><span class=mut>{e(', '.join(sorted(ans, reverse=True)[:6]))}</span></div>")
+    credit = " Photos des trophées : Wikimedia Commons." if any(trophees.get(c, [None, None])[1] for c in par) else ""
+    return f"<h2>Palmarès</h2><div class=palm>{''.join(cases)}</div><p class=mut>Titres trouvés dans la base (classements finaux et finales).{credit}</p>"
+
+
+def ecrire(racine, m, car, clas, courante, maj, iden=None, palm=None):
     """m : matchs exportés ; car : {joueur: lignes de carrière (format foot.carrieres)} ; clas : classements ;
     iden : {joueur: [naissance, nationalité, drapeau, taille, poids, poste]}."""
     iden = iden or {}
+    palm = palm or {"titres": [], "trophees": {}}
+    tit_eq = {}
+    for t in palm["titres"]:
+        tit_eq.setdefault(t[2], []).append(t)
     for d in ("joueur", "equipe", "competition"):
         shutil.rmtree(racine / d, ignore_errors=True)  # un joueur disparu ne doit pas laisser de page morte
         (racine / d).mkdir()
@@ -114,9 +136,12 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None):
         periode = nom_saison(saisons[0]) if len(saisons) == 1 else f"{nom_saison(saisons[0])} à {nom_saison(saisons[-1])}"
         desc = f"{nom} ({', '.join(clubs[:3])}) : {buts} but{'s' * (buts > 1)} en {len(saisons)} saison{'s' * (len(saisons) > 1)} ({periode}). Statistiques saison par saison, club par club."
         idt = ligne_identite(iden[nom], maj) if nom in iden else ""
+        vu = {(l[0], l[1], l[2]) for l in ls}
+        palmares = bloc_palmares([t for eq_ in {l[1] for l in ls} for t in tit_eq.get(eq_, []) if any((s_, t[2], t[0]) in vu for s_ in t[3])],
+                                 palm["trophees"])
         corps = (bloc_photo(nom, iden.get(nom, [])) + f"<h1>{e(nom)}</h1>" + (f"<p>{e(idt)}</p>" if idt else "") + f"<p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
                  f"<p>{e(desc)}</p><h2>Carrière saison par saison</h2>"
-                 + table([("Saison", 0), ("Club", 1), ("Compétition", 1)] + [(t, 0) for t, _ in cols], lignes)
+                 + palmares + table([("Saison", 0), ("Club", 1), ("Compétition", 1)] + [(t, 0) for t, _ in cols], lignes)
                  + "<p class=mut>« – » = inconnu : nombre de matchs et passes décisives seulement sur les saisons récentes.</p>")
         chemin = f"joueur/{sj[nom]}.html"
         (racine / chemin).write_text(page(f"{nom} : stats et carrière | Base Foot", desc, chemin, corps, f"#joueur={quote(nom)}"), encoding="utf-8")
@@ -148,7 +173,7 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None):
         top = sorted(joueurs.items(), key=lambda t: (-t[0][0], -t[1][0], -t[1][1], t[0][1]))[:60]
         ligues_eq = list(dict.fromkeys(x["ligue"] for x in reversed(ms)))[:4]
         desc = f"{eq} : résultats, calendrier, classements et buteurs" + (f" ({', '.join(ligues_eq)})" if ligues_eq else "") + "."
-        corps = (f"<h1>{e(eq)}</h1><p>{e(desc)}</p>"
+        corps = (f"<h1>{e(eq)}</h1><p>{e(desc)}</p>" + bloc_palmares(tit_eq.get(eq, []), palm["trophees"])
                  + (f"<h2>Prochains matchs</h2>{table(ent_m, [ligne_m(x) for x in a_venir])}" if a_venir else "")
                  + (f"<h2>Derniers résultats</h2>{table(ent_m, [ligne_m(x) for x in finis])}" if finis else "")
                  + (f"<h2>Joueurs (saisons récentes)</h2>" + table([("Saison", 0), ("Joueur", 1), ("Buts", 0), ("MJ", 0)],
@@ -216,4 +241,7 @@ if __name__ == "__main__":
     b = bloc_photo("Pep Biel", [None] * 6 + ["https://commons.wikimedia.org/wiki/Special:FilePath/Pep%20Biel.jpg?width=250", "Pep Biel.jpg"])
     assert 'href="https://commons.wikimedia.org/wiki/File:Pep_Biel.jpg"' in b and 'alt="Photo de Pep Biel"' in b
     assert ligne_identite(["2000-11-26", None, None, None, None, None, "u", "f"], "2026-11-25") == "Né le 26/11/2000 (25 ans)"
+    tr = {"Ligue 1": ["https://x/l1.png", None], "Coupe de France": ["https://commons/cdf.jpg", "CDF.jpg"]}
+    b = bloc_palmares([["Ligue 1", "2023-24", "PSG", [2023]], ["Ligue 1", "2022-23", "PSG", [2022]], ["Coupe de France", "2023-24", "PSG", [2023]]], tr)
+    assert b.index("Ligue 1") < b.index("Coupe de France") and "<b>×2</b>" in b and "Wikimedia Commons" in b and bloc_palmares([], tr) == ""
     print("auto-tests OK")
