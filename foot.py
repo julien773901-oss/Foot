@@ -172,8 +172,8 @@ get = S.get  # avec nouvelles tentatives si la source bloque
 def buteurs(c, id_dom):
     out = []
     for d in c.get("details", []):
-        if not d.get("scoringPlay") or d.get("shootout"):
-            continue
+        if not d.get("scoringPlay") or d.get("shootout") or not (d.get("team") or {}).get("id"):
+            continue  # vieux matchs : un but sans équipe (on l'ignore plutôt que de perdre toute la journée)
         noms = d.get("athletesInvolved") or [{"displayName": "?"}]
         tag = " (csc)" if d.get("ownGoal") else " (pen)" if d.get("penaltyKick") else ""
         out.append({"cote": "dom" if d["team"]["id"] == id_dom else "ext",
@@ -185,7 +185,7 @@ def cartons(c, id_dom):
     return [{"cote": "dom" if d["team"]["id"] == id_dom else "ext", "min": d["clock"]["displayValue"],
              "nom": (d.get("athletesInvolved") or [{"displayName": "?"}])[0]["displayName"],
              "type": "R" if d.get("redCard") else "J"}
-            for d in c.get("details", []) if d.get("redCard") or d.get("yellowCard")]
+            for d in c.get("details", []) if (d.get("redCard") or d.get("yellowCard")) and (d.get("team") or {}).get("id")]
 
 
 def passes(summary):
@@ -569,6 +569,12 @@ def titres(m, clas, courante, tab=None, aujourdhui=None):
 # photo du trophée sur Wikimedia Commons (fichiers choisis à la main d'après Wikidata : la photo d'une compétition n'est
 # pas toujours son trophée) ; les autres compétitions ESPN prennent leur logo ESPN, les autres rien (🏆 dans la page)
 TROPHEES = {
+    "mex.1": "Liga MX Trophy.jpg",
+    "tur.1": "2014–15 Süper Lig Cup.jpg",
+    "fifa.intercontinental_cup": "IC Trophy 2024.png",
+    "ned.cup": "Knvbbeker cropped.jpg",
+    "fra.1": "Ligue 1 Trophy 2024.png",
+    "uefa.champions": "Trofeo UEFA Champions League.jpg",
     "eng.1": "Premier League Trophy at Manchester's National Football Museum (Ank Kumar) 02.jpg",
     "uefa.europa.conf": "UEFA Europa Conference League Trophy.jpg",
     "ger.2": "Zweite Bundesliga Schale.png",
@@ -1052,6 +1058,8 @@ if __name__ == "__main__":
     fake["competitions"][0]["details"] = [{"redCard": True, "team": {"id": "20"}, "clock": {"displayValue": "50'"},
                                            "athletesInvolved": [{"displayName": "Y"}]}]
     assert json.loads(parse(fake, "L")[11]) == [{"cote": "ext", "min": "50'", "nom": "Y", "type": "R"}]
+    fake["competitions"][0]["details"].append({"yellowCard": True, "scoringPlay": True, "team": {}, "clock": {"displayValue": "60'"}})
+    assert len(json.loads(parse(fake, "L")[11])) == 1  # événement sans équipe (vieux matchs ESPN) : ignoré, pas d'erreur
     resume = {"header": {"competitions": [{"competitors": [{"homeAway": "home", "team": {"id": "10"}}]}]},
               "keyEvents": [{"type": {"text": "Goal"}, "scoringPlay": True, "team": {"id": "10"}, "clock": {"displayValue": "5'"},
                              "participants": [{"athlete": {"displayName": "X"}}, {"athlete": {"displayName": "Z"}}]},

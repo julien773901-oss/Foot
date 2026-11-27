@@ -192,7 +192,9 @@
 - Joueur : titres de son équipe dans les compétitions où il a une ligne de carrière cette saison-là (club ou sélection).
   Avant les saisons détaillées, la carrière ne contient que buteurs et cartons : palmarès incomplet pour ces années.
 - `palmares.json` : {"titres": [[compétition, édition, vainqueur, [saisons]]], "trophees": {compétition: [image, fichier Commons]}}.
-  Image : photo du trophée (Commons, `TROPHEES`, 21 compétitions vérifiées à la main), sinon logo ESPN, sinon 🏆.
+  Image : photo du trophée (Commons, `TROPHEES`, 27 compétitions vérifiées à la main, en partie trouvées dans les images des
+  articles Wikipédia anglais des compétitions), sinon logo ESPN, sinon 🏆. Wikimedia limite fortement les recherches
+  automatiques (erreurs 429) : en ajouter d'autres à la main en vérifiant que l'image est bien le trophée actuel.
 - football-data.co.uk renvoyait parfois le fichier d'une autre division (la Liga 1993-94 rangée en 2e division écossaise,
   LaLiga 2, Liga Portugal…) : contrôle de la colonne Div (`fd_saison`) et relecture une fois des saisons avant 2001
   (`fd_version` 2 dans jours_lus).
