@@ -20,12 +20,16 @@ jobs:
         run: |
           # base compressée (GitHub refuse les fichiers de plus de 100 Mo) ; foot.db seul = ancien format
           # branche "base" (hors du site) ; 1re fois après le déménagement : encore sur la branche "site"
-          { git fetch --depth=1 origin base && git checkout FETCH_HEAD -- foot.db.xz; } || { git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db.xz; } \
-            && xz -d foot.db.xz || echo "Pas encore de base : remplissage complet"
+          # en morceaux de 90 Mo (foot.db.xz.part00, part01…) : GitHub refuse les fichiers de plus de 100 Mo ; avant : un seul fichier
+          if git fetch --depth=1 origin base && git checkout FETCH_HEAD -- . 2>/dev/null && ls foot.db.xz* >/dev/null 2>&1; then
+            if ls foot.db.xz.part* >/dev/null 2>&1; then cat foot.db.xz.part* | xz -d > foot.db && rm foot.db.xz.part*; else xz -d foot.db.xz; fi
+          else
+            { git fetch --depth=1 origin site && git checkout FETCH_HEAD -- foot.db.xz && xz -d foot.db.xz; } || echo "Pas encore de base : remplissage complet"
+          fi
       - run: python3 foot.py
       - name: Ranger la base sur la branche "base" (hors du site, que GitHub Pages limite à 1 Go)
         run: |
-          mkdir _base && xz -6 -T0 -c foot.db > _base/foot.db.xz && cd _base && git init -q -b base && git add foot.db.xz
+          mkdir _base && xz -6 -T0 -c foot.db | split -b 90m -d - _base/foot.db.xz.part && ls -l _base && cd _base && git init -q -b base && git add -A
           git -c user.name=maj-auto -c user.email=actions@users.noreply.github.com commit -qm "Base $(date -u +%FT%TZ)"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" base
       - name: Ranger les vieilles saisons dans le dépôt Foot-archives (chaque site GitHub Pages est limité à 1 Go)
