@@ -233,6 +233,15 @@
   4 saisons détaillées, on ne connaît que buts et cartons).
 - Logos des clubs : 5e valeur de equipes.json (le plus récent vu dans les matchs).
 
+## Fiche club : onglets Classement et effectif (27 novembre 2026)
+- Onglets Matchs / Classement / Équipe. Classement (`classementsEquipe()`) : chaque championnat du club (club surligné),
+  sa position match après match, le classement final prévu.
+- Équipe : forme, bilan, puis l'effectif complet (`remplirEffectif()`) = joueurs entrés en jeu pour le club cette saison
+  (joueurs*.json), rangés par poste (abréviation ESPN du dernier match, sinon poste de l'identité), avec photo (ESPN ou
+  Commons, sinon initiales), drapeau, âge, matchs, titularisations, buts, passes D. Partis en cours de saison listés à part.
+- Photos : vérifié le 27/11, Wikidata est épuisé (17 600 joueurs sur 72 700 ont une photo libre ; les autres n'en ont pas
+  sur Wikidata). Pas d'autre source gratuite sans clé trouvée.
+
 ## Pour relancer la base à la main
     python foot.py
 

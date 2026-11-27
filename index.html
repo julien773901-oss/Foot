@@ -298,6 +298,19 @@
   .tm-f { color:var(--mut); text-decoration:none; font-size:18px; text-align:center; }
 
   /* ---------- fiche joueur : carrière par saison et par club, profil ---------- */
+  .ef-bloc { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:0 0 12px; }
+  :root[data-theme="dark"] .ef-bloc { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ef-bloc { border:1px solid var(--line); } }
+  .ef-h, .ef-l { display:grid; grid-template-columns:44px minmax(0, 1fr) repeat(4, 24px); align-items:center; gap:6px; padding:8px 10px; }
+  .ef-h { background:var(--h2, #2b3138); color:#fff; font-size:14px; font-weight:600; }
+  .ef-h span:first-child { grid-column:1 / 3; }
+  .ef-h span:nth-child(n+2), .ef-l > span:nth-child(n+3) { text-align:center; }
+  .ef-l { border-top:1px solid var(--line); color:inherit; text-decoration:none; font-size:13px; font-variant-numeric:tabular-nums; }
+  .ef-ph { width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--card2); position:relative; display:block; }
+  .ef-ph::before { content:attr(data-i); position:absolute; inset:0; display:grid; place-items:center; font-weight:700; color:var(--mut); font-size:14px; }
+  .ef-ph img { position:relative; width:100%; height:100%; object-fit:cover; object-position:50% 15%; background:var(--card2); }
+  .ef-n { min-width:0; } .ef-n b, .ef-n small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ef-n small { color:var(--mut); font-size:12px; margin-top:2px; }
   .carr { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:4px 0 8px; }
   :root[data-theme="dark"] .carr { border:1px solid var(--line); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .carr { border:1px solid var(--line); } }
@@ -701,29 +714,72 @@ function vueEquipe(nom) {
   const lg = ms.map(m => m.domicile === nom ? m.logo_dom : m.logo_ext).find(Boolean);
   const forme = fin.slice(-5).reverse().map(m => `<span class="${res(m)}" title="${esc(m.domicile)} ${m.buts_dom}-${m.buts_ext} ${esc(m.exterieur)}">${res(m)}</span>`).join("");
   const classes = [...new Set(data.classement.filter(c => c.equipe === nom).map(c => c.ligue))];
-  const sc = joueurs(fin, "buteurs").filter(b => b.eq === nom), pa = joueurs(fin, "passes").filter(b => b.eq === nom);
-  setTimeout(() => { habillerHero(nom, []); remplirPalmares(nom); });  // couleurs, photo du stade, palmarès : une fois la fiche affichée
+  setTimeout(() => { habillerHero(nom, []); if (ongletEquipe === "equipe") { remplirPalmares(nom); remplirEffectif(nom, fin); } });  // couleurs, photo du stade, palmarès : une fois la fiche affichée
   return `<a class="pill" href="#">← Retour</a>` + heroHtml(lg ? `<img class="hero-img logo-eq" src="${esc(lg)}" alt="">` : "",
       esc(Object.entries(ms.reduce((o, m) => (o[m.ligue] = (o[m.ligue] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1])[0]?.[0] || ""), `<b>${esc(nom)}</b>`,
       fin.length ? `<div class="identite"><span>${s.V} V · ${s.N} N · ${s.D} D</span><span>${s.bp} buts marqués</span></div>` : "",
       `<button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Mon équipe" : "☆ Suivre"}</button>`)
     + `${boutonsPartage("equipe", nom)}
-    <div class="onglets onglets-eq" role="tablist"><button role="tab" data-oe="matchs" aria-selected="${ongletEquipe === "matchs"}">Matchs</button>
-      <button role="tab" data-oe="equipe" aria-selected="${ongletEquipe === "equipe"}">Équipe</button>
+    <div class="onglets onglets-eq" role="tablist">${[["matchs", "Matchs"], ["classement", "Classement"], ["equipe", "Équipe"]]
+      .map(([k, t]) => `<button role="tab" data-oe="${k}" aria-selected="${ongletEquipe === k}">${t}</button>`).join("")}
       ${data.saisons?.length > 1 ? `<select id="saison-eq" aria-label="Saison">${data.saisons.map(x => `<option value="${x}"${x === (data.saison ?? data.courante) ? " selected" : ""}>Saison ${nomSaison(x)}</option>`).join("")}</select>` : ""}</div>`
-    + (ongletEquipe === "matchs" ? matchsEquipe(nom, ms) : `
+    + (ongletEquipe === "matchs" ? matchsEquipe(nom, ms) : ongletEquipe === "classement" ? classementsEquipe(nom, classes) : `
     ${champComparer("e", nom, [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))], "Comparer avec une autre équipe…")}
     ${fin.length ? `<h2>Forme (5 derniers, le plus récent à gauche)</h2><div class="forme">${forme}</div>` : ""}
     <h2>Saison (toutes compétitions)</h2>
     <div class="stats"><div><b>${fin.length}</b>Joués</div><div><b>${s.V}</b>Victoires</div><div><b>${s.N}</b>Nuls</div>
       <div><b>${s.D}</b>Défaites</div><div><b>${s.bp}</b>Buts pour</div><div><b>${s.bc}</b>Buts contre</div></div>
+    <div id="zone-effectif"><p class="mut">Chargement de l'effectif…</p></div>
     <div id="zone-palmares"></div>
-    ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}
-    ${classes.map(l => { const p = positions(nom, l), n = data.classement.filter(c => c.ligue === l).length;
-      return (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, n) : "")
-        + `<h2>Classement ${esc(l)}</h2>` + tableClass(classementDirect(l), c => c.equipe === nom); }).join("")}
-    ${sc.length ? "<h2>Buteurs</h2>" + tableJoueurs(sc, 50, "buteurs") : ""}
-    ${pa.length ? "<h2>Passeurs</h2>" + tableJoueurs(pa, 50, "passes") : ""}`);
+    ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}`);
+}
+// onglet Classement : chaque championnat du club (club surligné), sa position match après match, le classement final prévu
+function classementsEquipe(nom, classes) {
+  if (!classes.length) return '<p class="mut">Pas de classement cette saison pour ce club (seulement des coupes ou des matchs amicaux).</p>';
+  return classes.map(l => { const rows = classementDirect(l), p = positions(nom, l), moi = c => c.equipe === nom;
+    return `<h2>${esc(l)}</h2>` + tableClass(rows, moi)
+      + (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, rows.length) : "")
+      + blocProjection(l, rows, moi); }).join("");
+}
+// onglet Équipe : tout l'effectif de la saison = chaque joueur entré en jeu pour le club (compositions ESPN),
+// rangé par poste, avec photo, âge, nationalité, matchs, buts et passes décisives
+const GROUPES_POSTE = [["G", "Gardiens"], ["D", "Défenseurs"], ["M", "Milieux"], ["A", "Attaquants"], ["?", "Poste inconnu"]];
+function groupePoste(p, poste) {  // p = abréviation ESPN du dernier match (G, CD-L, RB, DM, AM-R, CF…), sinon le poste de l'identité
+  if (p) return p === "G" ? "G" : /^(CD|LB|RB|SW|D$|CB|LWB|RWB)/.test(p) ? "D" : /^(CM|DM|AM|LM|RM|M$)/.test(p) ? "M" : /^(F$|CF|LF|RF|RCF|LCF|ST)/.test(p) ? "A" : "?";
+  return { Gardien: "G", "Défenseur": "D", Milieu: "M", Attaquant: "A" }[poste] || "?";
+}
+async function remplirEffectif(nom, fin) {
+  const J = await chargerJoueurs(), parId = Object.fromEntries(data.matchs.map(m => [m.id, m])), sel = new Set(data.selections || []);
+  const eqDe = ([mid, cote]) => { const m = parId[mid]; return m && (cote === "dom" ? m.domicile : m.exterieur); };
+  const liste = [], partis = [];
+  for (const [n, j] of Object.entries(J)) {
+    const ici = (j.m || []).filter(x => eqDe(x) === nom);
+    if (!ici.length) continue;
+    // parti en cours de saison : son dernier match en club (hors sélection) est avec un autre club
+    const dernier = (j.m || []).filter(x => parId[x[0]] && !sel.has(parId[x[0]].ligue)).sort((a, b) => parId[a[0]].date_utc.localeCompare(parId[b[0]].date_utc)).at(-1);
+    const x = { n, j, mj: ici.length, tit: ici.filter(y => y[2] === "T").length, b: 0, p: 0 };
+    (sel.has(nom) || !dernier || eqDe(dernier) === nom ? liste : partis).push(x);
+  }
+  const compte = (champ, cle) => { for (const m of fin) for (const b of m[champ] || []) if (!b.nom.endsWith("(csc)") && (b.cote === "dom" ? m.domicile : m.exterieur) === nom) {
+    const x = liste.find(y => y.n === sansTag(b.nom)) || partis.find(y => y.n === sansTag(b.nom)); if (x) x[cle]++; } };
+  compte("buteurs", "b"); compte("passes", "p");
+  const [idts, eqs] = await Promise.all([Promise.all(liste.map(x => identite(x.n))), infosEquipes()]);
+  const z = $("zone-effectif");
+  if (!z || route()[1] !== nom) return;
+  if (!liste.length) { z.innerHTML = '<h2>Effectif</h2><p class="mut">Pas de composition d\'équipe en base pour ce club cette saison (ESPN ne les donne pas pour toutes les compétitions).</p>'; return; }
+  const auj = new Date().toISOString().slice(0, 10);
+  liste.forEach((x, i) => { x.idt = idts[i]; x.g = groupePoste(x.j.p, x.idt?.[5]); });
+  const carte = x => { const v = x.idt || [], src = v[6] || (x.j.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(x.j.id)}.png` : "");
+    const age = v[0] && auj.slice(0, 4) - v[0].slice(0, 4) - (auj.slice(5) < v[0].slice(5));
+    const init = x.n.split(" ").map(m => m[0]).join("").slice(0, 2).toUpperCase();
+    return `<a class="ef-l" href="#joueur=${encodeURIComponent(x.n)}"><span class="ef-ph" data-i="${esc(init)}">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</span>
+      <span class="ef-n"><b>${esc(x.n)}</b><small>${[v[1] && `${v[2] ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(v[2])}.png" alt="" loading="lazy" onerror="this.remove()"> ` : ""}${esc(v[1])}`, age && `${age} ans`].filter(Boolean).join(" · ")}</small></span>
+      <span title="Matchs joués">${x.mj}</span><span title="Titulaire">${x.tit}</span><span title="Buts">${x.b || "–"}</span><span title="Passes décisives">${x.p || "–"}</span></a>`; };
+  const nbPhotos = liste.filter(x => x.idt?.[6]).length;
+  z.innerHTML = `<h2>Effectif (${liste.length} joueurs)</h2>` + GROUPES_POSTE.map(([k, t]) => { const l = liste.filter(x => x.g === k).sort((a, b) => b.mj - a.mj || b.tit - a.tit || a.n.localeCompare(b.n));
+      return l.length ? `<div class="ef-bloc" style="${styleHero(eqs[nom])}"><div class="ef-h"><span>${t}</span><span title="Matchs joués">👕</span><span title="Titulaire">11</span><span title="Buts">⚽</span><span title="Passes décisives">🎯</span></div>${l.map(carte).join("")}</div>` : ""; }).join("")
+    + (partis.length ? `<p class="mut">Ont aussi joué pour le club cette saison (partis depuis) : ${partis.map(x => lienJ(x.n)).join(", ")}.</p>` : "")
+    + `<p class="mut">Effectif = joueurs entrés en jeu pour le club cette saison (compositions des matchs). Photos : ESPN ou Wikimedia Commons, ${nbPhotos} sur ${liste.length} trouvées ; sinon les initiales.</p>`;
 }
 
 // ---------- graphiques ----------
