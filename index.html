@@ -273,6 +273,30 @@
   details.pays .nb-pays { font-size:12px; font-weight:600; color:var(--mut); }
   details.pays > .grp { margin:8px 0 8px 10px; }
 
+  /* ---------- fiche club : liste des matchs (blocs par compétition) ---------- */
+  .onglets-eq { align-items:center; }
+  .onglets-eq select { margin-left:auto; flex:none; padding:6px 8px; font-size:13px; }
+  .tm-tri { display:flex; gap:8px; margin:4px 0 12px; }
+  .tm-tri button { flex:1; padding:9px; border:0; border-radius:999px; background:var(--line); color:var(--mut); font-weight:600; cursor:pointer; }
+  .tm-tri button.choisi { background:var(--acc); color:#fff; }
+  :root[data-theme="dark"] .tm-tri button.choisi { color:#0b1712; }
+  .tm-bloc { background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--ombre); margin:0 0 12px; }
+  :root[data-theme="dark"] .tm-bloc { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tm-bloc { border:1px solid var(--line); } }
+  .tm-h { background:#2b3138; color:#fff; padding:9px 12px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .tm-l { display:grid; grid-template-columns:46px 1fr 50px 1fr 18px; align-items:center; gap:6px; padding:8px 10px; font-size:14px; }
+  .tm-l:nth-child(even) { background:var(--card2); }
+  .tm-d { font-size:12px; color:var(--mut); font-variant-numeric:tabular-nums; line-height:1.2; }
+  .tm-d small { display:block; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46px; }
+  .tm-eq { display:flex; align-items:center; gap:4px; min-width:0; color:inherit; text-decoration:none; }
+  .tm-eq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tm-eq.dom { justify-content:flex-end; text-align:right; }
+  .tm-eq.g { font-weight:800; }
+  .tm-eq i.rouge { flex:none; width:8px; height:11px; background:#dc2626; border-radius:1px; }
+  .tm-s { text-align:center; font-weight:800; font-variant-numeric:tabular-nums; text-decoration:none; color:var(--txt); }
+  .tm-s.v { color:#16a34a; } .tm-s.d { color:#dc2626; } .tm-s.live { color:var(--live); }
+  .tm-f { color:var(--mut); text-decoration:none; font-size:18px; text-align:center; }
+
   /* ---------- palmarès ---------- */
   .palmares { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:10px; }
   .trophee { background:var(--card); border-radius:14px; box-shadow:var(--ombre); padding:12px 8px 10px; text-align:center; }
@@ -294,7 +318,6 @@
 <body>
 <header class="haut"><div class="haut-in">
   <h1 class="logo"><a href="#"><span class="ballon" aria-hidden="true">⚽</span><span>Base <b>Foot</b></span></a></h1>
-  <select id="saison" aria-label="Saison"></select>
   <button id="alertes" class="ico" aria-pressed="false" title="Alertes de buts">🔕</button>
   <button id="theme" class="ico" title="Changer de thème">🌓</button>
 </div></header>
@@ -619,6 +642,38 @@ function vueJoueurs(champ) {
 }
 
 // ---------- fiche équipe ----------
+// ---------- fiche club : onglets Matchs / Équipe ; matchs triés par compétition (blocs) ou par date ----------
+let ongletEquipe = "matchs", triEquipe = "ligue";
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-oe],[data-tri]"); if (!b) return;
+  if (b.dataset.oe) ongletEquipe = b.dataset.oe; else triEquipe = b.dataset.tri;
+  afficher();
+});
+// une ligne : date | domicile | score (vert = victoire du club, rouge = défaite) | extérieur ; vainqueur en gras, ■ = carton rouge
+function ligneMatchEquipe(m, nom, avecLigue) {
+  const joue = m.buts_dom != null, nous = m.domicile === nom ? "dom" : "ext";
+  const [p, c] = nous === "dom" ? [m.buts_dom, m.buts_ext] : [m.buts_ext, m.buts_dom];
+  const cls = !joue || !fini(m) ? (enDirect(m) ? "live" : "") : p > c ? "v" : p < c ? "d" : "n";
+  const gagne = cote => fini(m) && joue && (cote === "dom" ? m.buts_dom > m.buts_ext : m.buts_ext > m.buts_dom);
+  const rouges = cote => (m.cartons || []).filter(x => x.cote === cote && x.type === "R").length;
+  const equipe = cote => { const n = cote === "dom" ? m.domicile : m.exterieur;
+    return `<a class="tm-eq ${cote}${gagne(cote) ? " g" : ""}" href="#equipe=${encodeURIComponent(n)}">${cote === "ext" ? '<i class="rouge"></i>'.repeat(rouges(cote)) : ""}<span>${esc(n)}</span>${cote === "dom" ? '<i class="rouge"></i>'.repeat(rouges(cote)) : ""}</a>`; };
+  const score = joue ? `${m.buts_dom}-${m.buts_ext}` : m.statut === PREVU ? "v" : "–";
+  return `<div class="tm-l"><span class="tm-d">${fmt(m.date_utc, { day:"2-digit", month:"2-digit" })}${avecLigue ? `<small>${esc(m.ligue)}</small>` : ""}</span>
+    ${equipe("dom")}<a class="tm-s ${cls}" href="#match=${encodeURIComponent(m.id)}" title="Fiche du match">${score}</a>${equipe("ext")}
+    <a class="tm-f" href="#match=${encodeURIComponent(m.id)}" aria-label="Fiche du match">›</a></div>`;
+}
+function matchsEquipe(nom, ms) {
+  const tri = `<div class="tm-tri"><button data-tri="ligue" class="${triEquipe === "ligue" ? "choisi" : ""}">Trier par ligue</button><button data-tri="date" class="${triEquipe === "date" ? "choisi" : ""}">Trier par date</button></div>`;
+  if (!ms.length) return tri + '<p class="mut">Aucun match cette saison.</p>';
+  const tries = ms.slice().sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  if (triEquipe === "date") return tri + `<div class="tm-bloc">${tries.map(m => ligneMatchEquipe(m, nom, true)).join("")}</div>`;
+  const par = {};
+  for (const m of tries) (par[m.ligue] ??= []).push(m);  // blocs dans l'ordre du 1er match de chaque compétition
+  return tri + Object.entries(par).map(([lg, l]) => { const [pays, drap] = data.pays?.[lg] || ["", "⚽"];
+    return `<div class="tm-bloc"><div class="tm-h"><span>${drap}</span>${pays ? `${esc(pays)} : ` : ""}${esc(lg)}</div>${l.map(m => ligneMatchEquipe(m, nom, false)).join("")}</div>`; }).join("");
+}
+
 function vueEquipe(nom) {
   const ms = data.matchs.filter(m => m.domicile === nom || m.exterieur === nom);
   const fin = ms.filter(fini);
@@ -634,8 +689,11 @@ function vueEquipe(nom) {
       esc(Object.entries(ms.reduce((o, m) => (o[m.ligue] = (o[m.ligue] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1])[0]?.[0] || ""), `<b>${esc(nom)}</b>`,
       fin.length ? `<div class="identite"><span>${s.V} V · ${s.N} N · ${s.D} D</span><span>${s.bp} buts marqués</span></div>` : "",
       `<button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Mon équipe" : "☆ Suivre"}</button>`)
-    + `
-    ${boutonsPartage("equipe", nom)}
+    + `${boutonsPartage("equipe", nom)}
+    <div class="onglets onglets-eq" role="tablist"><button role="tab" data-oe="matchs" aria-selected="${ongletEquipe === "matchs"}">Matchs</button>
+      <button role="tab" data-oe="equipe" aria-selected="${ongletEquipe === "equipe"}">Équipe</button>
+      ${data.saisons?.length > 1 ? `<select id="saison-eq" aria-label="Saison">${data.saisons.map(x => `<option value="${x}"${x === (data.saison ?? data.courante) ? " selected" : ""}>Saison ${nomSaison(x)}</option>`).join("")}</select>` : ""}</div>`
+    + (ongletEquipe === "matchs" ? matchsEquipe(nom, ms) : `
     ${champComparer("e", nom, [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))], "Comparer avec une autre équipe…")}
     ${fin.length ? `<h2>Forme (5 derniers, le plus récent à gauche)</h2><div class="forme">${forme}</div>` : ""}
     <h2>Saison (toutes compétitions)</h2>
@@ -647,8 +705,7 @@ function vueEquipe(nom) {
       return (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, n) : "")
         + `<h2>Classement ${esc(l)}</h2>` + tableClass(classementDirect(l), c => c.equipe === nom); }).join("")}
     ${sc.length ? "<h2>Buteurs</h2>" + tableJoueurs(sc, 50, "buteurs") : ""}
-    ${pa.length ? "<h2>Passeurs</h2>" + tableJoueurs(pa, 50, "passes") : ""}
-    ${listeMatchs(ms, 1000)}`;
+    ${pa.length ? "<h2>Passeurs</h2>" + tableJoueurs(pa, 50, "passes") : ""}`);
 }
 
 // ---------- graphiques ----------
@@ -1339,6 +1396,7 @@ function afficher() {
   if (r === "equipe") {
     $("detail").innerHTML = vueEquipe(arg);
     $("etoile").onclick = () => { fav.has(arg) ? fav.delete(arg) : fav.add(arg); garderFav(); afficher(); };
+    if ($("saison-eq")) $("saison-eq").onchange = e => changerSaison(+e.target.value);
     brancherComparer();
     return;
   }
@@ -1354,14 +1412,14 @@ function afficher() {
   $("vue").innerHTML = onglet === "matchs" ? vueMatchs() : onglet === "class" ? vueClass() : onglet === "stats" ? vueStats()
     : vueJoueurs(onglet === "buteurs" ? "buteurs" : "passes");
   if ($("plus")) $("plus").onclick = () => { nbResultats += 30; afficher(); };
-  document.querySelectorAll("[data-jour]").forEach(b => b.onclick = () => { jour = b.dataset.jour; afficher(); });
+  document.querySelectorAll("[data-jour]").forEach(b => b.onclick = () => allerAuJour(b.dataset.jour));
 }
 
 document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { onglet = b.dataset.o; afficher(); });
 $("ligue").onchange = () => { nbResultats = 30; afficher(); };
 $("equipe").oninput = () => { nbResultats = 30; afficher(); };
 document.addEventListener("click", e => { const b = e.target.closest("[data-statut]"); if (b) { filtreStatut = b.dataset.statut; afficher(); } });
-$("jour").onchange = e => { if (e.target.value) { jour = e.target.value; afficher(); } };
+$("jour").onchange = e => { if (e.target.value) allerAuJour(e.target.value); };
 addEventListener("hashchange", () => { afficher(); scrollTo(0, 0); });
 
 // ---------- direct : la page interroge ESPN elle-même pendant les matchs ----------
@@ -1438,27 +1496,31 @@ const nomSaison = s => s ? `${s}-${String(s + 1).slice(2)}` : "";
 const saisons = {};
 function remplirEntete() {
   $("maj").textContent = `${data.matchs.length.toLocaleString("fr-FR")} matchs cette saison · mise à jour ${fmt(data.maj)}`;
-  $("saison").hidden = !(data.saisons?.length > 1);
-  $("saison").innerHTML = (data.saisons || []).map(s => `<option value="${s}"${s === data.saison ? " selected" : ""}>${nomSaison(s)}</option>`).join("");
   const choix = $("ligue").value;
   while ($("ligue").options.length > 2) $("ligue").remove(2);
   [...new Set(data.matchs.map(m => m.ligue))].sort().forEach(l => $("ligue").add(new Option(l, l)));
   $("ligue").value = [...$("ligue").options].some(o => o.value === choix) ? choix : "";
   $("sources").innerHTML = Object.entries(data.sources || {}).map(([n, s]) => `<li><b>${esc(n)}</b> : ${esc(s)}</li>`).join("");
 }
-$("saison").onchange = async e => {
-  const s = +e.target.value;
+// changement de saison : depuis la fiche d'un club (menu des saisons), ou depuis l'accueil quand le calendrier va sur
+// une date d'une autre saison (on charge alors ses matchs). jourVoulu : le jour à afficher (sinon aujourd'hui ou son dernier jour)
+async function changerSaison(s, jourVoulu) {
   try { saisons[s] ??= await lireJson(`matchs-${s}.json`); }
-  catch (err) { toast("Cette saison n'est pas disponible pour le moment."); e.target.value = data.saison; return; }
+  catch (err) { toast("Cette saison n'est pas disponible pour le moment."); afficher(); return; }
   data = saisons[s];
   rgJoueurs = []; modele = null;  // la recherche et les pronostics dépendent de la saison
   history.replaceState(null, "", (s === data.courante ? location.pathname : `?saison=${s}`) + location.hash);
-  // ancienne saison : on se place sur son dernier jour de match
-  jour = s === data.courante ? cleJour(new Date()) : cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date());
+  jour = jourVoulu ?? (s === data.courante ? cleJour(new Date()) : cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date()));
   nbResultats = 30;
   remplirEntete();
-  if (location.hash.length > 1) location.hash = ""; else afficher();
-};
+  afficher();
+}
+// aller à un jour (bandeau, calendrier) : saison de juillet à juin ; autre saison connue -> on la charge
+function allerAuJour(k) {
+  const s = +k.slice(0, 4) - (+k.slice(5, 7) < 7);
+  if (data.saisons?.includes(s) && s !== (data.saison ?? data.courante)) changerSaison(s, k);
+  else { jour = k; afficher(); }
+}
 
 // ---------- thème : Auto (suit l'appareil) → Clair → Sombre ----------
 const THEMES = { auto: "🌓 Auto", light: "☀️ Clair", dark: "🌙 Sombre" };
