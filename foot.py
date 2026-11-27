@@ -320,7 +320,11 @@ def sparql(q, essais=3):
         try:
             txt = urllib.request.urlopen(urllib.request.Request("https://query.wikidata.org/sparql", data=d, headers=WD_UA),
                                          timeout=120).read().decode()
-            return list(csv.DictReader(io.StringIO(txt), strict=True))
+            lignes = list(csv.DictReader(io.StringIO(txt), strict=True))
+            # réponse coupée en route (sans erreur HTTP) : dernière ligne incomplète -> on redemande
+            if not txt.endswith("\n") or any(None in l.values() or None in l for l in lignes):
+                raise ValueError("réponse Wikidata incomplète")
+            return lignes
         except Exception:  # réponse coupée, serveur surchargé…
             if i == essais - 1:
                 raise
@@ -417,7 +421,7 @@ def apparier_stades(equipes, stades, clubs):
 def photos_stades(equipes):
     """Photos de stade (Wikidata P115 « stade » + P18 « image ») ; 3 requêtes CSV, ~1 min en tout (une fois par jour)."""
     stades, clubs = {}, {}
-    for langues in ('"en","mul"', '"fr","es","de","it","pt"'):  # en deux fois : une seule requête frôle la limite de 60 s
+    for langues in ('"en"', '"mul"', '"fr","es","de","it","pt"'):  # en trois fois : une seule requête frôle la limite de 60 s
         for b in sparql('SELECT DISTINCT ?v ?img ?l WHERE { ?club wdt:P115 ?v . ?v wdt:P18 ?img . { ?v rdfs:label ?l } '
                         'UNION { ?v skos:altLabel ?l } FILTER(lang(?l) IN (%s)) }' % langues):
             if "Special:FilePath/" in b["img"]:

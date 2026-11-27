@@ -197,6 +197,13 @@
   LaLiga 2, Liga Portugal…) : contrôle de la colonne Div (`fd_saison`) et relecture une fois des saisons avant 2001
   (`fd_version` 2 dans jours_lus).
 
+## Corrections de la nuit (27 novembre 2026)
+- Base compressée sur la branche `base` découpée en morceaux de 90 Mo (`foot.db.xz.part00`, `part01`…) : elle faisait 66 Mo
+  et grossit d'environ 2 Mo par passage pendant le rattrapage de l'historique ; GitHub refuse les fichiers de plus de 100 Mo.
+  Lecture : morceaux recollés (`cat foot.db.xz.part* | xz -d`), ou ancien fichier unique.
+- Wikidata coupe parfois sa réponse CSV sans erreur : `sparql()` la redemande si la dernière ligne est incomplète (le PSG
+  n'avait pas la photo du Parc des Princes) ; requête des stades en 3 morceaux.
+
 ## Pour relancer la base à la main
     python foot.py
 
