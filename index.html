@@ -441,10 +441,11 @@ document.addEventListener("toggle", e => { const d = e.target;
 
 function vueJour() {
   const base = data.matchs.filter(filtreLigue), dateJ = m => cleJour(m.date_utc) === jour;
-  const tousJour = base.filter(m => dateJ(m) || enDirect(m)), n = e => tousJour.filter(m => e === "tous" || etatDe(m) === e).length;
+  // un match en direct n'apparaît que sur SON jour (pas en haut de tous les jours)
+  const tousJour = base.filter(dateJ), n = e => tousJour.filter(m => e === "tous" || etatDe(m) === e).length;
   $("statuts").innerHTML = ETATS.map(([e, t]) => `<button data-statut="${e}" class="${e === filtreStatut ? "choisi" : ""}${e === "direct" && n(e) ? " rouge" : ""}">${t}${e === "tous" ? "" : ` <span>${n(e)}</span>`}</button>`).join("");
   const garde = m => filtreStatut === "tous" || etatDe(m) === filtreStatut;
-  const direct = base.filter(m => enDirect(m) && garde(m));
+  const direct = base.filter(m => enDirect(m) && dateJ(m) && garde(m));
   const duJour = base.filter(m => dateJ(m) && !enDirect(m) && garde(m));
   const favs = duJour.filter(estFav);
   const parLigue = {};
