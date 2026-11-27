@@ -218,6 +218,14 @@
   Special:FilePath : ses redirections faisaient bloquer les images par Chrome (ERR_BLOCKED_BY_ORB). equipes.json a une
   4e valeur : la miniature 960 px du stade.
 
+## Fiche club et saisons (27 novembre 2026)
+- Fiche club : onglets « Matchs » (défaut) / « Équipe » (forme, stats, palmarès, graphiques, classements, buteurs) ;
+  Matchs triés par ligue (un bloc par compétition, en-tête « Pays : Compétition ») ou par date ; une ligne par match :
+  date, domicile, score (vert = victoire du club, rouge = défaite), extérieur, vainqueur en gras, ■ = carton rouge, « v » = à venir.
+- Choix de la saison : seulement dans la fiche club (menu à droite des onglets). L'accueil n'a plus de menu : une date
+  d'une autre saison (bandeau, calendrier) charge cette saison (`allerAuJour()`, `changerSaison()`).
+- Matchs en direct : seulement sur leur jour (plus en haut de tous les jours).
+
 ## Pour relancer la base à la main
     python foot.py
 
