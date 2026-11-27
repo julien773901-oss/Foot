@@ -569,6 +569,8 @@ def titres(m, clas, courante, tab=None, aujourdhui=None):
 # photo du trophée sur Wikimedia Commons (fichiers choisis à la main d'après Wikidata : la photo d'une compétition n'est
 # pas toujours son trophée) ; les autres compétitions ESPN prennent leur logo ESPN, les autres rien (🏆 dans la page)
 TROPHEES = {
+    "fra.1": "Ligue 1 Trophy 2024.png",
+    "uefa.champions": "Trofeo UEFA Champions League.jpg",
     "eng.1": "Premier League Trophy at Manchester's National Football Museum (Ank Kumar) 02.jpg",
     "uefa.europa.conf": "UEFA Europa Conference League Trophy.jpg",
     "ger.2": "Zweite Bundesliga Schale.png",
