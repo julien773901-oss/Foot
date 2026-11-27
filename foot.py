@@ -569,6 +569,10 @@ def titres(m, clas, courante, tab=None, aujourdhui=None):
 # photo du trophée sur Wikimedia Commons (fichiers choisis à la main d'après Wikidata : la photo d'une compétition n'est
 # pas toujours son trophée) ; les autres compétitions ESPN prennent leur logo ESPN, les autres rien (🏆 dans la page)
 TROPHEES = {
+    "mex.1": "Liga MX Trophy.jpg",
+    "tur.1": "2014–15 Süper Lig Cup.jpg",
+    "fifa.intercontinental_cup": "IC Trophy 2024.png",
+    "ned.cup": "Knvbbeker cropped.jpg",
     "fra.1": "Ligue 1 Trophy 2024.png",
     "uefa.champions": "Trofeo UEFA Champions League.jpg",
     "eng.1": "Premier League Trophy at Manchester's National Football Museum (Ank Kumar) 02.jpg",
