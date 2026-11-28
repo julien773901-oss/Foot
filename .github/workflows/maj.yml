@@ -41,7 +41,7 @@ jobs:
           # sans jeton (dépôt d'archives pas encore préparé) : tout reste sur le site, comme avant
           [ -n "$JETON" ] || { echo "::warning::Pas de secret ARCHIVES_TOKEN, vieilles saisons gardées sur le site"; exit 0; }
           depot="https://${{ github.repository_owner }}:$JETON@github.com/${{ github.repository }}-archives.git"
-          limite=$(( $(date -u +%Y) - 5 ))   # saisons de plus de 5 ans (en 2026 : 2020-21 et avant)
+          limite=$(( $(date -u +%Y) - 3 ))   # saisons de plus de 3 ans (en 2026 : 2022-23 et avant ; site limité à 1 Go)
           mkdir _archives && touch _archives/.nojekyll
           for f in matchs-*.json joueurs-*.json; do a=${f//[^0-9]/}; [ "$a" -lt "$limite" ] && mv "$f" _archives/ || true; done
           echo "Archives : $(ls _archives | wc -l) fichiers, $(du -sm --apparent-size _archives | cut -f1) Mo"

@@ -251,6 +251,11 @@
   Commons plus grande quand on zoome (`urlTaille()`), la 250 px en secours. Sans visage connu : cadrage d'avant.
 - maj.yml installe opencv-python-headless ; s'il manque, la mise à jour continue sans cadrage.
 
+## Place sur le site (28 novembre 2026 : 897 Mo sur 950)
+- Pages Google des joueurs (`pages.py`, `page_utile()`) : seulement les joueurs avec au moins 1 but ou 10 matchs
+  (~110 000 sur 175 000) : -120 Mo environ. Les autres gardent leur fiche dans le site (#joueur=…), sans page Google.
+- Archives (maj.yml) : saisons de plus de 3 ans au lieu de 5 envoyées dans Foot-archives (2021-22 et 2022-23 en plus) : -40 Mo.
+
 ## Pour relancer la base à la main
     python foot.py
 

@@ -99,6 +99,13 @@ def bloc_palmares(titres, trophees):
     return f"<h2>Palmarès</h2><div class=palm>{''.join(cases)}</div><p class=mut>Titres trouvés dans la base (classements finaux et finales).{credit}</p>"
 
 
+def page_utile(ls):
+    """Page Google seulement pour un joueur qui a marqué ou joué au moins 10 matchs (lignes de carrière : l[3] = matchs,
+    l[5] = buts) : les ~65 000 autres (un ou deux matchs de coupe…) pesaient ~120 Mo pour presque aucune recherche.
+    Leur fiche reste sur le site (#joueur=…)."""
+    return sum(l[5] or 0 for l in ls) >= 1 or sum(l[3] or 0 for l in ls) >= 10
+
+
 def ecrire(racine, m, car, clas, courante, maj, iden=None, palm=None):
     """m : matchs exportés ; car : {joueur: lignes de carrière (format foot.carrieres)} ; clas : classements ;
     iden : {joueur: [naissance, nationalité, drapeau, taille, poids, poste]}."""
@@ -114,9 +121,10 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None, palm=None):
     equipes = {x[k] for x in m for k in ("domicile", "exterieur")}
     ligues = {x["ligue"] for x in m}
     sj, se, sl = slugs(car), slugs(equipes), slugs(ligues)
+    avec_page = {n for n, ls in car.items() if page_utile(ls)}
     lien_e = lambda n: f'<a href="../equipe/{se[n]}.html">{e(n)}</a>' if n in se else e(n)
     lien_l = lambda n: f'<a href="../competition/{sl[n]}.html">{e(n)}</a>' if n in sl else e(n)
-    lien_j = lambda n: f'<a href="../joueur/{sj[n]}.html">{e(n)}</a>'
+    lien_j = lambda n: f'<a href="../joueur/{sj[n]}.html">{e(n)}</a>' if n in avec_page else e(n)
     par_equipe, par_ligue = {}, {}  # (saison, joueur, ligne) pour les listes de joueurs
     adresses = []
 
@@ -137,6 +145,8 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None, palm=None):
         desc = f"{nom} ({', '.join(clubs[:3])}) : {buts} but{'s' * (buts > 1)} en {len(saisons)} saison{'s' * (len(saisons) > 1)} ({periode}). Statistiques saison par saison, club par club."
         idt = ligne_identite(iden[nom], maj) if nom in iden else ""
         vu = {(l[0], l[1], l[2]) for l in ls}
+        if nom not in avec_page:
+            continue
         palmares = bloc_palmares([t for eq_ in {l[1] for l in ls} for t in tit_eq.get(eq_, []) if any((s_, t[2], t[0]) in vu for s_ in t[3])],
                                  palm["trophees"])
         corps = (bloc_photo(nom, iden.get(nom, [])) + f"<h1>{e(nom)}</h1>" + (f"<p>{e(idt)}</p>" if idt else "") + f"<p class=mut>{' · '.join(lien_e(c) for c in clubs[:6])}</p>"
@@ -225,12 +235,14 @@ def ecrire(racine, m, car, clas, courante, maj, iden=None, palm=None):
     for f in racine.glob("sitemap-*.xml"):  # anciens morceaux en trop
         if int(f.stem.split("-")[1]) >= len(morceaux):
             f.unlink()
-    print(f"[pages] {len(car)} joueurs, {len(equipes)} équipes, {len(ligues)} compétitions, {len(morceaux)} sitemaps")
+    print(f"[pages] {len(avec_page)} joueurs (sur {len(car)}), {len(equipes)} équipes, {len(ligues)} compétitions, {len(morceaux)} sitemaps")
 
 
 if __name__ == "__main__":
     assert slug("Kylian Mbappé") == "kylian-mbappe" and slug("Ødegaard!") == "degaard" and slug("") == "x"
     assert slugs(["Nacional", "Nacional!"]) == {"Nacional": "nacional", "Nacional!": "nacional-2"}
+    assert page_utile([[2025, "X", "L1", 3, None, 1]]) and page_utile([[2025, "X", "L1", 12, None, 0]])
+    assert not page_utile([[2025, "X", "L1", 2, None, 0], [2024, "X", "L1", None, None, 0]])
     assert val([1, 2], 5) == "–" and val([1, None], 1) == "–" and val([0], 0) == "0"
     assert ligne_identite(["1998-12-20", "France", "fra", 178, 74, "Attaquant"], "2026-11-25") == \
         "Né le 20/12/1998 (27 ans) · France · 1,78 m · 74 kg · Attaquant"
