@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base Foot : résultats, classements et stats de football</title>
+<meta name="description" content="Matchs en direct, résultats, classements, buteurs et carrières des joueurs de plus de 180 compétitions de football, saison par saison.">
+<link rel="canonical" href="https://julien773901-oss.github.io/Foot/">
+<meta name="google-site-verification" content="wk3Bf6IcOj81B_NRHLt99pwdx8rjgVL3fPzkKaWU_8Y">
+<script>/* thème choisi appliqué avant l'affichage, pour éviter un flash de la mauvaise couleur */
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+  /* ---------- couleurs (clair, sombre automatique, sombre forcé) ---------- */
+  :root { --bg:#f2f4f7; --card:#ffffff; --card2:#f7f8fa; --txt:#101828; --mut:#667085; --line:#e4e7ec; --acc:#087443; --accbg:#e7f6ee;
+          --warn:#c4320a; --live:#e11d48; --v:#16a34a; --n:#98a2b3; --d:#dc2626; --dom:#087443; --ext:#2563eb; --star:#eab308;
+          --haut:#0b1712; --ombre:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.05); color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0b0f14; --card:#141a21; --card2:#10151b; --txt:#e6edf3; --mut:#8b98a5;
+          --line:#232c36; --acc:#3ccf8e; --accbg:#11281c; --warn:#fb923c; --live:#fb7185; --v:#22c55e; --n:#6b7280; --d:#ef4444;
+          --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15; --haut:#070b0e; --ombre:none; color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#0b0f14; --card:#141a21; --card2:#10151b; --txt:#e6edf3; --mut:#8b98a5; --line:#232c36; --acc:#3ccf8e;
+          --accbg:#11281c; --warn:#fb923c; --live:#fb7185; --v:#22c55e; --n:#6b7280; --d:#ef4444; --dom:#3ccf8e; --ext:#60a5fa; --star:#facc15;
+          --haut:#070b0e; --ombre:none; color-scheme:dark; }
+  :root { --c-pour:#2a78d6; --c-contre:#e34948; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-pour:#3987e5; --c-contre:#e66767; } }
+  :root[data-theme="dark"] { --c-pour:#3987e5; --c-contre:#e66767; }
+
+  /* ---------- base ---------- */
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+         -webkit-font-smoothing:antialiased; }
+  main { max-width:780px; margin:0 auto; padding:12px 16px 32px; }
+  a { color:var(--acc); }
+  button { font:inherit; color:var(--txt); }
+  .mut { color:var(--mut); font-size:13px; }
+  h2 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:26px 2px 10px; }
+  [hidden] { display:none !important; }
+  select, input { font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--txt); min-width:0; }
+  select:focus, input:focus, button:focus-visible, a:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card);
+          color:var(--txt); cursor:pointer; text-decoration:none; font-size:14px; font-weight:500; }
+  .pill:hover { border-color:var(--acc); }
+  a.pill[href="#"], a.pill[href^="#equipe"], a.pill[href^="#joueur"] { border:0; background:none; padding:6px 0; color:var(--mut); }
+
+  /* ---------- barre du haut ---------- */
+  .haut { position:sticky; top:0; z-index:30; background:var(--haut); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.06); }
+  .haut-in { max-width:780px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:8px; }
+  .logo { margin:0; font-size:20px; font-weight:800; letter-spacing:-.02em; flex:1; white-space:nowrap; min-width:0; }
+  .logo a { color:#fff; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .logo b { color:#3ccf8e; font-weight:800; }
+  .logo .ballon { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#3ccf8e; color:#0b1712; font-size:17px; }
+  .haut select { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); color:#fff; padding:6px 8px; font-size:13px; max-width:132px; }
+  .haut select option { color:#101828; }
+  .ico { width:36px; height:36px; display:grid; place-items:center; border-radius:10px; border:1px solid rgba(255,255,255,.14);
+         background:rgba(255,255,255,.08); color:#fff; cursor:pointer; font-size:16px; padding:0; }
+  .ico:hover { background:rgba(255,255,255,.16); }
+  #alertes[aria-pressed="true"] { background:#3ccf8e; border-color:#3ccf8e; }
+
+  /* ---------- recherche ---------- */
+  .recherche { position:relative; margin:4px 0 0; }
+  .recherche input { width:100%; padding:12px 14px 12px 40px; font-size:15px; border-radius:12px; box-shadow:var(--ombre);
+    background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m17 17-4.5-4.5'/%3E%3C/svg%3E") 13px 50% no-repeat; }
+  #rg-liste { position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:25; list-style:none; margin:0; padding:6px;
+              background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 12px 32px rgba(16,24,40,.18); max-height:60vh; overflow:auto; }
+  #rg-liste .grp { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); padding:8px 8px 4px; }
+  #rg-liste [role="option"] { display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:8px; cursor:pointer; }
+  #rg-liste [role="option"][aria-selected="true"], #rg-liste [role="option"]:hover { background:var(--accbg); }
+  #rg-liste .sous { color:var(--mut); font-size:12px; margin-left:auto; text-align:right; }
+
+  /* ---------- onglets, filtres, jours ---------- */
+  .onglets { display:flex; gap:2px; margin:14px 0 12px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); }
+  .onglets::-webkit-scrollbar { display:none; }
+  .onglets button { flex:none; padding:10px 11px; border:0; background:none; color:var(--mut); font-weight:600; cursor:pointer;
+                    border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .onglets button[aria-selected="true"] { color:var(--txt); border-bottom-color:var(--acc); }
+  .filtres { display:flex; gap:8px; margin:0 0 12px; }
+  .filtres select { flex:1 1 55%; } .filtres input { flex:1 1 45%; }
+  /* bandeau des jours (défile), bouton calendrier, filtres d'état */
+  .bande { display:flex; align-items:stretch; gap:6px; }
+  .bande-jours { flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px; scroll-snap-type:x proximity; }
+  .bande-jours::-webkit-scrollbar { display:none; }
+  .bande-jours button { flex:none; width:58px; padding:6px 0 7px; border:0; border-radius:12px; background:var(--card); box-shadow:var(--ombre); cursor:pointer;
+                        display:flex; flex-direction:column; align-items:center; line-height:1.15; scroll-snap-align:center; color:var(--txt); }
+  .bande-jours button small { font-size:11px; color:var(--mut); text-transform:capitalize; }
+  .bande-jours button b { font-size:18px; font-weight:800; margin:1px 0; }
+  .bande-jours button.auj small:first-child { color:var(--acc); font-weight:700; }
+  .bande-jours button.choisi { background:var(--acc); }
+  .bande-jours button.choisi, .bande-jours button.choisi small { color:#fff; }
+  :root[data-theme="dark"] .bande-jours button.choisi, :root[data-theme="dark"] .bande-jours button.choisi small { color:#0b1712; }
+  .cal { position:relative; flex:none; width:44px; display:grid; place-items:center; border-radius:12px; background:var(--card); box-shadow:var(--ombre); font-size:18px; cursor:pointer; }
+  .cal input { position:absolute; inset:0; opacity:0; cursor:pointer; border:0; padding:0; }
+  .statuts { display:flex; gap:6px; margin:12px 0 0; overflow-x:auto; scrollbar-width:none; }
+  .statuts button { flex:none; padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); cursor:pointer; font-weight:600; font-size:14px; color:var(--txt); }
+  .statuts button span { color:var(--mut); font-weight:600; margin-left:2px; }
+  .statuts button.choisi { background:var(--txt); border-color:var(--txt); color:var(--bg); }
+  .statuts button.choisi span { color:var(--bg); opacity:.7; }
+  .statuts button.rouge:not(.choisi) { border-color:var(--live); color:var(--live); }
+  .drap-mini { margin-right:8px; font-size:16px; }
+  .jours { display:flex; align-items:center; gap:6px; background:var(--card); border-radius:12px; padding:4px; box-shadow:var(--ombre); }
+  .jours button { border:0; background:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; color:var(--mut); }
+  .jours button:hover { background:var(--card2); color:var(--txt); }
+  .jours input { flex:1; border:0; background:none; text-align:center; padding:6px; }
+  #auj { color:var(--acc); }
+  .jour-titre { font-size:20px; font-weight:800; letter-spacing:-.01em; margin:16px 2px 0; text-transform:capitalize; }
+  .jour-titre + #vue > h2:first-child, #vue > .grp:first-child { margin-top:12px; }
+
+  /* ---------- listes de matchs : un bloc par compétition, une ligne par match ---------- */
+  .grp { background:var(--card); border-radius:14px; box-shadow:var(--ombre); margin:12px 0; overflow:hidden; }
+  :root[data-theme="dark"] .grp { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .grp { border:1px solid var(--line); } }
+  .grp > h3 { margin:0; padding:10px 14px; font-size:13px; font-weight:700; background:var(--card2); border-bottom:1px solid var(--line);
+              display:flex; align-items:center; gap:8px; }
+  .grp > h3 a { color:inherit; text-decoration:none; }
+  .grp.direct > h3 { color:var(--live); }
+  .m { display:grid; grid-template-columns:58px 1fr auto; column-gap:10px; align-items:center; padding:10px 14px; border-top:1px solid var(--line); }
+  .grp > h3 + .m { border-top:0; }
+  .m-etat { grid-row:1 / span 2; font-size:12px; color:var(--mut); text-decoration:none; text-align:center; line-height:1.25; font-variant-numeric:tabular-nums; }
+  .m-etat small { display:block; font-size:11px; opacity:.85; }
+  .m-etat.live { color:var(--live); font-weight:700; }
+  .m-etat.live::before { content:""; display:block; width:7px; height:7px; border-radius:50%; background:var(--live); margin:0 auto 4px; animation:pouls 1.4s infinite; }
+  @keyframes pouls { 50% { opacity:.25; } }
+  .m-eq { display:flex; align-items:center; min-width:0; padding:2px 0; grid-column:2; }
+  .m-eq.gagne .eq span { font-weight:700; }
+  .m-eq.perd .eq span { color:var(--mut); }
+  .m-sc { grid-column:3; font-weight:700; font-size:16px; text-align:right; font-variant-numeric:tabular-nums; text-decoration:none; color:inherit; min-width:22px; }
+  .m-sc.perd { color:var(--mut); font-weight:600; }
+  .m.direct .m-sc { color:var(--live); }
+  .m-plus { grid-column:2 / -1; }
+  .m-meta { grid-column:2 / -1; font-size:12px; color:var(--mut); margin-top:2px; }
+  .eq { display:flex; align-items:center; gap:10px; min-width:0; color:inherit; text-decoration:none; }
+  .eq:hover span { text-decoration:underline; }
+  .eq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .eq.d { justify-content:flex-end; text-align:right; }
+  .eq.fav span::after { content:" ★"; color:var(--star); }
+  img.logo { width:22px; height:22px; object-fit:contain; flex:none; }
+  .buts { font-size:12px; color:var(--mut); margin-top:4px; display:grid; grid-template-columns:1fr 1fr; gap:2px 16px; }
+  .buts .d { text-align:left; }
+  .pa { opacity:.85; font-style:italic; }
+  .live { color:var(--live); font-weight:700; }
+  .plus { display:block; margin:14px auto; padding:9px 18px; border:1px solid var(--line); border-radius:999px; background:var(--card); cursor:pointer; font-weight:600; }
+  details.src { font-size:12px; color:var(--mut); margin-top:4px; }
+  details.src summary { cursor:pointer; color:var(--warn); font-weight:600; }
+
+  /* ---------- tableaux ---------- */
+  .tab-wrap { overflow-x:auto; background:var(--card); border-radius:14px; box-shadow:var(--ombre); }
+  :root[data-theme="dark"] .tab-wrap, :root[data-theme="dark"] .bloc, :root[data-theme="dark"] .graphe, :root[data-theme="dark"] .stats { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.tab-wrap, .bloc, .graphe, .stats) { border:1px solid var(--line); } }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { padding:10px 8px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-size:11px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.04em; background:var(--card2); }
+  td.g, th.g { text-align:left; } td.g .eq { justify-content:flex-start; }
+  td.pts { font-weight:800; }
+  tr:last-child td { border-bottom:0; }
+  tr.moi td { background:var(--accbg); }
+  table.proj th, table.proj td { padding-left:5px; padding-right:5px; }
+  table.proj td.g { white-space:normal; } table.proj .eq span { white-space:normal; }
+  sup.off { font-size:10px; color:var(--warn); margin-left:4px; font-weight:600; }
+
+  /* ---------- bannière des fiches joueur et équipe ---------- */
+  .hero { position:relative; overflow:hidden; border-radius:18px; margin:6px 0 14px; color:#fff; min-height:210px;
+          background:linear-gradient(135deg, var(--h1, #0b3d26), var(--h2, #0a6b40)); box-shadow:0 8px 24px rgba(16,24,40,.18); }
+  .hero-fond { position:absolute; inset:0; background-size:cover; background-position:center 30%; opacity:0; transition:opacity .5s; }
+  .hero-fond.vu { opacity:.55; }
+  /* fiche joueur : la photo (visage) à droite, fondue vers la gauche sous le texte ; détourée ESPN : posée en bas à droite */
+  .hero.joueur .hero-fond { left:34%; background-position:center 10%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 45%);
+                            mask-image:linear-gradient(90deg, transparent, #000 45%); }
+  .hero.joueur .hero-fond.vu { opacity:.95; }
+  .hero.joueur .hero-fond.detoure { background-size:contain; background-position:right bottom; -webkit-mask-image:none; mask-image:none; }
+  .hero.joueur.avec-fond .hero-img { display:none; }  /* le visage est déjà dans la bannière */
+  .hero::before { content:""; position:absolute; inset:0; z-index:1;
+                  background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.15) 40%, color-mix(in srgb, var(--h1, #0b3d26) 85%, black) 100%),
+                             repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 40px, transparent 40px 80px); }
+  .hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:4px; z-index:2; background:var(--h3, #3ccf8e); }
+  .hero-in { position:relative; z-index:2; display:flex; align-items:flex-end; gap:16px; padding:56px 18px 20px; min-height:210px; }
+  .hero-img { width:92px; height:92px; flex:none; border-radius:50%; object-fit:cover; object-position:50% 20%; background:rgba(255,255,255,.15);
+              border:3px solid rgba(255,255,255,.9); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .hero-img.cadre-rond { position:relative; overflow:hidden; display:block; }
+  .hero-img.logo-eq { object-fit:contain; padding:12px; background:#fff; border-radius:22px; }
+  .hero-txt { min-width:0; flex:1; }
+  .hero-sur { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; opacity:.85; }
+  .hero-nom { margin:2px 0 6px; font-size:30px; line-height:1.05; font-weight:400; letter-spacing:-.02em; text-transform:none; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.35); }
+  .hero-nom b { font-weight:850; display:block; }
+  .hero .identite { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; font-size:13px; }
+  .hero .identite span { background:rgba(0,0,0,.28); backdrop-filter:blur(4px); padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .hero .identite img.drapeau { width:16px; height:auto; vertical-align:-2px; margin-right:4px; }
+  .hero-clubs { margin-top:8px; font-size:13px; } .hero-clubs a { color:#fff; font-weight:600; }
+  .hero-credit { position:absolute; z-index:3; top:8px; right:10px; font-size:10px; color:rgba(255,255,255,.8); text-decoration:none;
+                 background:rgba(0,0,0,.3); padding:2px 8px; border-radius:999px; }
+  .hero .etoile { position:absolute; z-index:3; top:10px; left:12px; }
+  .etoile { padding:6px 12px; border:1px solid rgba(255,255,255,.4); border-radius:999px; background:rgba(0,0,0,.25); color:#fff; cursor:pointer; font-size:13px; font-weight:600; }
+  .etoile[aria-pressed="true"] { border-color:var(--star); color:var(--star); }
+  .identite { margin:2px 0; font-size:14px; }
+  .identite span + span::before { content:""; }
+  img.drapeau { width:18px; height:auto; vertical-align:-2px; }
+  @media (max-width:480px) { .hero-nom { font-size:25px; } .hero-img { width:76px; height:76px; } .hero-in { padding-top:64px; } }
+
+  /* ---------- tuiles de chiffres ---------- */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:1px; background:var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); }
+  .stats div { background:var(--card); padding:14px 8px; text-align:center; font-size:12px; color:var(--mut); }
+  .stats b { display:block; font-size:24px; font-weight:800; color:var(--txt); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .forme { display:flex; gap:5px; }
+  .forme span { width:28px; height:28px; border-radius:8px; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:800; }
+  .forme .V { background:var(--v); } .forme .N { background:var(--n); } .forme .D { background:var(--d); }
+
+  /* ---------- fiche match ---------- */
+  .fiche { display:flex; align-items:center; gap:12px; margin:12px 0; flex-wrap:wrap; }
+  .fiche img { width:56px; height:56px; object-fit:contain; }
+  .fiche h2 { margin:0; font-size:22px; text-transform:none; letter-spacing:0; color:var(--txt); }
+  .entete { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; border-radius:18px; padding:22px 14px; margin:6px 0 14px;
+            text-align:center; color:#fff; background:linear-gradient(135deg, #0b3d26, #0a6b40); box-shadow:0 8px 24px rgba(16,24,40,.18); }
+  .entete img { width:56px; height:56px; object-fit:contain; display:block; margin:0 auto 8px; background:#fff; border-radius:14px; padding:6px; }
+  .entete .score { font-size:38px; font-weight:850; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .entete a { color:#fff; text-decoration:none; font-weight:700; }
+  .entete .mut, .entete .live { color:rgba(255,255,255,.85); }
+  .ev { display:grid; grid-template-columns:1fr 48px 1fr; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .ev:last-child { border-bottom:0; }
+  .ev .t { text-align:center; color:var(--mut); font-variant-numeric:tabular-nums; font-weight:600; }
+  .ev .dom { text-align:right; }
+  .bloc { background:var(--card); border-radius:14px; padding:10px 14px; box-shadow:var(--ombre); }
+  .barre { margin:12px 0; }
+  .barre .lib { display:flex; justify-content:space-between; font-size:13px; font-weight:600; }
+  .barre .lib span:nth-child(2) { color:var(--mut); font-weight:500; }
+  .barre .b { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--line); gap:2px; margin-top:5px; }
+  .barre .b i { display:block; } .barre .b i:first-child { background:var(--dom); } .barre .b i:last-child { background:var(--ext); }
+  .compo { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .compo h3 { font-size:14px; margin:0 0 6px; }
+  .compo ul { list-style:none; padding:0; margin:0; font-size:13px; }
+  .compo li { padding:3px 0; display:flex; gap:6px; }
+  .compo li b { width:22px; text-align:right; color:var(--mut); flex:none; font-variant-numeric:tabular-nums; }
+  .compo .sub { color:var(--mut); }
+  a.j { color:inherit; text-decoration:none; } a.j:hover { text-decoration:underline; color:var(--acc); }
+  .h2h { display:grid; grid-template-columns:auto 1fr auto 1fr; gap:6px 10px; align-items:center; font-size:14px; }
+  .h2h .d { text-align:right; } .h2h .sc { font-weight:800; text-align:center; font-variant-numeric:tabular-nums; }
+  .h2h .dt { color:var(--mut); font-size:12px; }
+
+  /* ---------- graphiques, pronostics, partage, comparateur ---------- */
+  .graphe { background:var(--card); border-radius:14px; padding:10px; box-shadow:var(--ombre); }
+  .graphe svg { width:100%; height:auto; display:block; overflow:visible; }
+  .graphe text { font-size:11px; fill:var(--mut); font-family:inherit; }
+  .legende { display:flex; gap:16px; font-size:12px; color:var(--mut); margin:6px 4px 0; }
+  .legende i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  details.table { margin-top:6px; font-size:13px; } details.table summary { cursor:pointer; color:var(--acc); font-size:12px; }
+  #tip { position:fixed; pointer-events:none; background:var(--txt); color:var(--bg); font-size:12px; padding:6px 8px; border-radius:8px; z-index:40; max-width:240px; }
+  #toast { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); background:var(--txt); color:var(--bg); padding:12px 16px;
+           border-radius:12px; font-weight:600; z-index:50; max-width:calc(100% - 32px); box-shadow:0 8px 24px rgba(0,0,0,.25); }
+  .comparer { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+  .comparer input { flex:1 1 200px; }
+  .cmp td:nth-child(2) { text-align:center; color:var(--mut); font-size:12px; white-space:normal; }
+  .cmp td:first-child, .cmp td:last-child { width:38%; font-variant-numeric:tabular-nums; }
+  .cmp td:first-child { text-align:right; } .cmp td:last-child { text-align:left; }
+  .cmp .mieux { color:var(--acc); font-weight:800; }
+  .cmp th img { width:40px; height:40px; object-fit:contain; display:block; margin:0 auto 4px; }
+  .grille2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+  .grille2 h3 { font-size:14px; margin:0 0 6px; }
+  .prono { margin-top:6px; }
+  .prono .b { display:flex; height:5px; border-radius:3px; overflow:hidden; gap:2px; }
+  .prono .b i { display:block; }
+  .prono .lib { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-top:3px; gap:8px; }
+  .partage { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+  figure.photo-j { margin:0; text-align:center; font-size:10px; line-height:1.2; }
+  figure.photo-j a { color:var(--mut); }
+
+  /* ---------- accueil : un bloc repliable par pays ---------- */
+  details.pays { margin:10px 0; }
+  details.pays > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:14px;
+                           background:var(--card); box-shadow:var(--ombre); font-weight:800; font-size:16px; user-select:none; }
+  :root[data-theme="dark"] details.pays > summary { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) details.pays > summary { border:1px solid var(--line); } }
+  details.pays > summary::-webkit-details-marker { display:none; }
+  details.pays > summary::after { content:""; margin-left:6px; width:8px; height:8px; border-right:2px solid var(--mut); border-bottom:2px solid var(--mut);
+                                  transform:rotate(-45deg); transition:transform .2s; }
+  details.pays[open] > summary::after { transform:rotate(45deg); }
+  details.pays .drap { font-size:22px; line-height:1; }
+  details.pays .nom-pays { flex:1; }
+  details.pays .nb-pays { font-size:12px; font-weight:600; color:var(--mut); }
+  details.pays > .grp { margin:8px 0 8px 10px; }
+
+  /* ---------- fiche club : liste des matchs (blocs par compétition) ---------- */
+  .onglets-eq { align-items:center; }
+  .onglets-eq select { margin-left:auto; flex:none; padding:6px 8px; font-size:13px; }
+  .tm-tri { display:flex; gap:8px; margin:4px 0 12px; }
+  .tm-tri button { flex:1; padding:9px; border:0; border-radius:999px; background:var(--line); color:var(--mut); font-weight:600; cursor:pointer; }
+  .tm-tri button.choisi { background:var(--acc); color:#fff; }
+  :root[data-theme="dark"] .tm-tri button.choisi { color:#0b1712; }
+  .tm-bloc { background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--ombre); margin:0 0 12px; }
+  :root[data-theme="dark"] .tm-bloc { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tm-bloc { border:1px solid var(--line); } }
+  .tm-h { background:#2b3138; color:#fff; padding:9px 12px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .tm-l { display:grid; grid-template-columns:46px 1fr 50px 1fr 18px; align-items:center; gap:6px; padding:8px 10px; font-size:14px; }
+  .tm-l:nth-child(even) { background:var(--card2); }
+  .tm-d { font-size:12px; color:var(--mut); font-variant-numeric:tabular-nums; line-height:1.2; }
+  .tm-d small { display:block; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46px; }
+  .tm-eq { display:flex; align-items:center; gap:4px; min-width:0; color:inherit; text-decoration:none; }
+  .tm-eq span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tm-eq.dom { justify-content:flex-end; text-align:right; }
+  .tm-eq.g { font-weight:800; }
+  .tm-eq i.rouge { flex:none; width:8px; height:11px; background:#dc2626; border-radius:1px; }
+  .tm-s { text-align:center; font-weight:800; font-variant-numeric:tabular-nums; text-decoration:none; color:var(--txt); }
+  .tm-s.v { color:#16a34a; } .tm-s.d { color:#dc2626; } .tm-s.live { color:var(--live); }
+  .tm-f { color:var(--mut); text-decoration:none; font-size:18px; text-align:center; }
+
+  /* ---------- fiche joueur : carrière par saison et par club, profil ---------- */
+  .ef-bloc { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:0 0 12px; }
+  :root[data-theme="dark"] .ef-bloc { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ef-bloc { border:1px solid var(--line); } }
+  .ef-h, .ef-l { display:grid; grid-template-columns:44px minmax(0, 1fr) repeat(4, 24px); align-items:center; gap:6px; padding:8px 10px; }
+  .ef-h { background:var(--h2, #2b3138); color:#fff; font-size:14px; font-weight:600; }
+  .ef-h span:first-child { grid-column:1 / 3; }
+  .ef-h span:nth-child(n+2), .ef-l > span:nth-child(n+3) { text-align:center; }
+  .ef-l { border-top:1px solid var(--line); color:inherit; text-decoration:none; font-size:13px; font-variant-numeric:tabular-nums; }
+  .ef-ph { width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--card2); position:relative; display:block; }
+  .ef-ph::before { content:attr(data-i); position:absolute; inset:0; display:grid; place-items:center; font-weight:700; color:var(--mut); font-size:14px; }
+  .ef-ph img { position:relative; width:100%; height:100%; object-fit:cover; object-position:50% 15%; background:var(--card2); }
+  .ef-ph img.cadre, .hero-img img.cadre { position:absolute; height:auto; max-width:none; object-fit:fill; }
+  .ef-n { min-width:0; } .ef-n b, .ef-n small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ef-n small { color:var(--mut); font-size:12px; margin-top:2px; }
+  .carr { background:var(--card); border-radius:14px; overflow:hidden; box-shadow:var(--ombre); margin:4px 0 8px; }
+  :root[data-theme="dark"] .carr { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .carr { border:1px solid var(--line); } }
+  .carr-h, .carr-l { display:grid; grid-template-columns:58px minmax(0, 1fr) repeat(6, 21px); align-items:center; gap:3px; padding:10px 8px; }
+  .carr-h { background:var(--h2, #0a6b40); color:#fff; font-size:13px; font-weight:600; }
+  .carr-h span:nth-child(n+3), .carr-l > span:nth-child(n+3) { text-align:center; }
+  .carr-l { border-top:1px solid var(--line); font-size:13px; font-variant-numeric:tabular-nums; }
+  .carr-s { font-size:11px; color:var(--mut); }
+  .carr-e { display:flex; align-items:center; gap:6px; min-width:0; color:inherit; text-decoration:none; font-weight:600; }
+  .carr-e span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .carr-e img, .carr-e .sans-logo { width:22px; height:22px; object-fit:contain; flex:none; }
+  .carr-t { font-weight:800; background:var(--card2); }
+  .profil { background:var(--card); border-radius:14px; box-shadow:var(--ombre); overflow:hidden; }
+  .profil div { display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border-top:1px solid var(--line); }
+  .profil div:first-child { border-top:0; }
+  .profil span { color:var(--mut); } .profil b { text-align:right; }
+
+  /* ---------- palmarès ---------- */
+  .palmares { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:10px; }
+  .trophee { background:var(--card); border-radius:14px; box-shadow:var(--ombre); padding:12px 8px 10px; text-align:center; }
+  :root[data-theme="dark"] .trophee { border:1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .trophee { border:1px solid var(--line); } }
+  .trophee a { display:block; }
+  .trophee img { display:block; width:100%; height:76px; object-fit:contain; }
+  .trophee .coupe { display:grid; place-items:center; height:76px; font-size:44px; }
+  .trophee .nb { display:block; margin-top:6px; font-size:20px; font-weight:850; letter-spacing:-.02em; color:var(--acc); }
+  .trophee .nom { margin-top:4px; font-size:12px; font-weight:700; line-height:1.25; }
+  .trophee .ans { margin-top:2px; font-size:11px; color:var(--mut); line-height:1.3; }
+
+  /* ---------- pied de page ---------- */
+  .pied { margin-top:36px; padding-top:8px; border-top:1px solid var(--line); }
+  .pied h2 { margin-top:16px; }
+  #sources { padding-left:18px; font-size:13px; }
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <h1 class="logo"><a href="#"><span class="ballon" aria-hidden="true">⚽</span><span>Base <b>Foot</b></span></a></h1>
+  <button id="alertes" class="ico" aria-pressed="false" title="Alertes de buts">🔕</button>
+  <button id="theme" class="ico" title="Changer de thème">🌓</button>
+</div></header>
+<main>
+  <div class="recherche">
+    <input id="rg" type="search" role="combobox" aria-expanded="false" aria-controls="rg-liste" aria-autocomplete="list"
+           placeholder="Équipe, joueur ou match (ex. « Marseille Lyon »)" aria-label="Recherche globale" autocomplete="off">
+    <ul id="rg-liste" role="listbox" hidden></ul>
+  </div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <div id="accueil">
+    <div class="onglets" role="tablist">
+      <button role="tab" data-o="matchs" aria-selected="true">Matchs</button>
+      <button role="tab" data-o="class" aria-selected="false">Classements</button>
+      <button role="tab" data-o="buteurs" aria-selected="false">Buteurs</button>
+      <button role="tab" data-o="passeurs" aria-selected="false">Passeurs</button>
+      <button role="tab" data-o="stats" aria-selected="false">Stats</button>
+    </div>
+    <div class="filtres">
+      <select id="ligue" aria-label="Compétition"><option value="">Toutes les compétitions</option><option value="__fav">⭐ Mes équipes</option></select>
+      <input id="equipe" type="search" placeholder="Filtrer…" aria-label="Filtrer par équipe ou joueur">
+    </div>
+    <div id="nav-jours">
+      <div class="bande"><div class="bande-jours" id="bande-jours"></div>
+        <label class="cal" title="Choisir une date">📅<input id="jour" type="date" aria-label="Choisir un jour"></label></div>
+      <div class="statuts" id="statuts" role="group" aria-label="Filtrer les matchs"></div>
+      <div class="jour-titre" id="jour-titre"></div>
+    </div>
+    <div id="vue"></div>
+  </div>
+  <div id="detail" hidden></div>
+  <div id="tip" hidden></div>
+  <footer class="pied">
+  <p class="mut" id="maj">Chargement…</p>
+  <h2>Sources</h2>
+  <ul class="mut" id="sources"></ul>
+  <p class="mut">Les scores ESPN sont recoupés avec les autres sources ; ⚠ = scores différents selon les sources.
+    Pendant les matchs, la page se rafraîchit toute seule chaque minute. Cliquez sur un score pour la fiche du match.
+    Base complète téléchargeable : <a href="https://github.com/julien773901-oss/Foot/tree/base">foot.db.xz</a> (SQLite compressé, en morceaux à recoller : <code>cat foot.db.xz.part* | xz -d &gt; foot.db</code>) · <a href="matchs.json">matchs.json</a></p>
+  </footer>
+  <p><a href="plan.html">Toutes les compétitions, équipes et joueurs</a></p>
+</main>
+<script>
+let data = { matchs: [], classement: [], ligues: {} }, onglet = "matchs", nbResultats = 30;
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const cleJour = d => { const x = new Date(d); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; };
+const decale = (cle, n) => { const x = new Date(cle + "T12:00:00"); x.setDate(x.getDate() + n); return cleJour(x); };
+let jour = cleJour(new Date());
+const fmt = (d, o) => new Date(d).toLocaleString("fr-FR", o || { weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+const heure = d => fmt(d, { hour:"2-digit", minute:"2-digit" });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const logo = u => u ? `<img class="logo" src="${esc(u)}" alt="" loading="lazy">` : "";
+const cherche = () => $("equipe").value.trim().toLowerCase();
+const PREVU = "STATUS_SCHEDULED";
+const fini = m => /FULL_TIME|FINAL/.test(m.statut);  // FULL_TIME, FINAL_PEN (tirs au but), FINAL_AET (prolongation)
+const enDirect = m => !fini(m) && m.statut !== PREVU && !/POSTPONED|CANCELED|ABANDONED|DELAYED|SUSPENDED/.test(m.statut);
+
+// ---------- favoris (gardés dans ce navigateur) ----------
+let fav = new Set();
+try { fav = new Set(JSON.parse(localStorage.getItem("favoris") || "[]")); } catch (e) {}
+const garderFav = () => { try { localStorage.setItem("favoris", JSON.stringify([...fav])); } catch (e) {} };
+const estFav = m => fav.has(m.domicile) || fav.has(m.exterieur);
+const lienEq = (nom, lg, cote) => `<a class="eq${cote === "d" ? " d" : ""}${fav.has(nom) ? " fav" : ""}" href="#equipe=${encodeURIComponent(nom)}">${cote === "d" ? `<span>${esc(nom)}</span>${logo(lg)}` : `${logo(lg)}<span>${esc(nom)}</span>`}</a>`;
+
+const sansTag = n => n.replace(/ \((pen|csc)\)$/, "");
+const lienJ = (nom, suffixe = "") => `<a class="j" href="#joueur=${encodeURIComponent(sansTag(nom))}">${esc(nom)}</a>${suffixe}`;
+
+// ---------- infobulle des graphiques (souris et toucher) ----------
+function montrerTip(e) {
+  const t = e.target.closest("[data-tip]"), tip = $("tip");
+  if (!t) { tip.hidden = true; return; }
+  tip.textContent = t.dataset.tip; tip.hidden = false;
+  const x = e.clientX ?? 0, y = e.clientY ?? 0;
+  tip.style.left = Math.min(x + 12, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (y + 14) + "px";
+}
+document.addEventListener("mousemove", montrerTip);
+document.addEventListener("click", e => { if (e.target.closest("[data-tip]")) montrerTip(e); else $("tip").hidden = true; });
+
+// ---------- filtres communs ----------
+function filtreLigue(m) { const l = $("ligue").value; return !l || (l === "__fav" ? estFav(m) : m.ligue === l); }
+
+// ---------- cartes de match ----------
+// une ligne par match : état (heure, minute, « Terminé ») à gauche, les deux équipes l'une sous l'autre, le score à droite.
+// groupe = la ligne est dans le bloc de sa compétition : pas besoin de rappeler la compétition ni le jour.
+function carte(m, groupe) {
+  const direct = enDirect(m), joue = m.buts_dom != null, lien = `#match=${encodeURIComponent(m.id)}`;
+  const etat = fini(m) ? (/PEN/.test(m.statut) ? "T.a.b." : /AET/.test(m.statut) ? "Prol." : "Terminé")
+    : m.statut === PREVU ? heure(m.date_utc) : direct ? esc(m.minute || "Direct") : "Reporté";
+  const gagne = c => fini(m) && joue && (c === "dom" ? m.buts_dom > m.buts_ext : m.buts_ext > m.buts_dom);
+  const perd = c => fini(m) && joue && (c === "dom" ? m.buts_dom < m.buts_ext : m.buts_ext < m.buts_dom);
+  const passe = b => (m.passes || []).find(p => p.cote === b.cote && p.min === b.min);
+  const b = c => [
+    ...m.buteurs.filter(x => x.cote === c).map(x => `⚽ ${lienJ(x.nom)} ${esc(x.min)}${passe(x) ? ` <span class="pa">(${lienJ(passe(x).nom)})</span>` : ""}`),
+    ...(m.cartons || []).filter(x => x.cote === c && x.type === "R").map(x => `🟥 ${lienJ(x.nom)} ${esc(x.min)}`)].join("<br>");
+  const buts = m.buteurs.length || (m.cartons || []).some(x => x.type === "R") ? `<div class="buts m-plus"><div class="d">${b("dom")}</div><div>${b("ext")}</div></div>` : "";
+  const src = Object.entries(m.sources || {});
+  const badge = m.ecart && !direct ? `<details class="src m-plus"><summary>⚠ Les sources ne sont pas d'accord</summary>${esc(src.map(([n, s]) => `${n} : ${s[0]}-${s[1]}`).join(" · "))}</details>` : "";
+  const ligne = (c, nom, logo, sc) => `<div class="m-eq${gagne(c) ? " gagne" : perd(c) ? " perd" : ""}">${lienEq(nom, logo)}</div>`
+    + `<a class="m-sc${perd(c) ? " perd" : ""}" href="${lien}" aria-label="Fiche du match">${joue ? sc : ""}</a>`;
+  return `<div class="m${direct ? " direct" : ""}">
+    <a class="m-etat${direct ? " live" : ""}" href="${lien}">${groupe ? "" : `<small>${fmt(m.date_utc, { day:"numeric", month:"short" })}</small>`}${etat}</a>
+    ${ligne("dom", m.domicile, m.logo_dom, m.buts_dom)}${ligne("ext", m.exterieur, m.logo_ext, m.buts_ext)}
+    ${buts}${blocProno(m) ? `<div class="m-plus">${blocProno(m)}</div>` : ""}${groupe ? "" : `<div class="m-meta">${esc(m.ligue)}</div>`}${badge}</div>`;
+}
+// bloc d'une liste de matchs avec son titre (compétition, « En direct », « Mes équipes »…)
+const blocMatchs = (titre, ms, groupe, cls = "") => `<section class="grp ${cls}"><h3>${titre}</h3>${ms.map(m => carte(m, groupe)).join("")}</section>`;
+
+function listeMatchs(f, limite) {
+  const now = new Date().toISOString().slice(0, 16);
+  const direct = f.filter(enDirect);
+  const avenir = f.filter(m => m.statut === PREVU && m.date_utc >= now);
+  const passes = f.filter(m => !direct.includes(m) && !avenir.includes(m)).reverse();
+  return (f.length ? "" : '<p class="mut">Aucun match.</p>')
+    + (direct.length ? blocMatchs("🔴 En direct", direct, false, "direct") : "")
+    + (avenir.length ? blocMatchs("À venir", avenir.slice(0, 20), false) : "")
+    + (passes.length ? blocMatchs("Résultats", passes.slice(0, limite), false) : "")
+    + (passes.length > limite ? `<button class="plus" id="plus">Voir plus de résultats (${passes.length - limite})</button>` : "");
+}
+
+// ---------- calendrier jour par jour ----------
+// ---------- accueil, inspiré des applis de résultats : bandeau des jours, filtres d'état, compétitions phares, pays de A à Z ----------
+let filtreStatut = "tous";  // tous | direct | fini | avenir
+function bandeJours() {
+  const auj = cleJour(new Date()), centre = Math.abs((new Date(jour) - new Date(auj)) / 864e5) <= 7 ? auj : jour;
+  const nom = k => k === auj ? "Auj." : k === decale(auj, -1) ? "Hier" : k === decale(auj, 1) ? "Demain" : fmt(k + "T12:00:00", { weekday:"short" }).replace(".", "");
+  const jours = Array.from({ length: 15 }, (_, i) => decale(centre, i - 7));
+  $("bande-jours").innerHTML = jours.map(k => `<button data-jour="${k}" class="${k === jour ? "choisi" : ""}${k === auj ? " auj" : ""}">
+    <small>${nom(k)}</small><b>${+k.slice(8)}</b><small>${fmt(k + "T12:00:00", { month:"short" }).replace(".", "")}</small></button>`).join("");
+  const c = $("bande-jours").querySelector(".choisi"); if (c) c.scrollIntoView({ inline:"center", block:"nearest" });
+}
+const ETATS = [["tous", "Tous"], ["direct", "En direct"], ["fini", "Terminés"], ["avenir", "À venir"]];
+const etatDe = m => enDirect(m) ? "direct" : fini(m) ? "fini" : m.statut === PREVU ? "avenir" : "autre";
+// compétitions toujours affichées en premier, ouvertes (dans cet ordre)
+const PHARES = ["Ligue 1", "Ligue des champions", "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue Europa", "Ligue Conférence",
+  "Coupe du monde", "Euro", "Ligue des nations UEFA", "Coupe du monde des clubs", "Coupe d'Afrique des nations", "Copa América",
+  "Ligue 2", "Coupe de France", "Trophée des champions", "Supercoupe de l'UEFA", "Éliminatoires Coupe du monde (Europe)", "Liga Portugal", "Eredivisie"];
+
+// pays ouverts / fermés par le visiteur (gardés d'une visite à l'autre)
+let paysOuverts = {};
+try { paysOuverts = JSON.parse(localStorage.getItem("paysOuverts") || "{}"); } catch (e) {}
+document.addEventListener("toggle", e => { const d = e.target;
+  if (d.classList?.contains("pays")) { paysOuverts[d.dataset.pays] = d.open; try { localStorage.setItem("paysOuverts", JSON.stringify(paysOuverts)); } catch (e) {} } }, true);
+
+function vueJour() {
+  const base = data.matchs.filter(filtreLigue), dateJ = m => cleJour(m.date_utc) === jour;
+  // un match en direct n'apparaît que sur SON jour (pas en haut de tous les jours)
+  const tousJour = base.filter(dateJ), n = e => tousJour.filter(m => e === "tous" || etatDe(m) === e).length;
+  $("statuts").innerHTML = ETATS.map(([e, t]) => `<button data-statut="${e}" class="${e === filtreStatut ? "choisi" : ""}${e === "direct" && n(e) ? " rouge" : ""}">${t}${e === "tous" ? "" : ` <span>${n(e)}</span>`}</button>`).join("");
+  const garde = m => filtreStatut === "tous" || etatDe(m) === filtreStatut;
+  const direct = base.filter(m => enDirect(m) && dateJ(m) && garde(m));
+  const duJour = base.filter(m => dateJ(m) && !enDirect(m) && garde(m));
+  const favs = duJour.filter(estFav);
+  const parLigue = {};
+  for (const m of duJour) if (!favs.includes(m)) (parLigue[m.ligue] ??= []).push(m);
+  const paysDe = lg => data.pays?.[lg] || ["Autres", "⚽"], titre = lg => `<span class="drap-mini">${paysDe(lg)[1]}</span>${esc(lg)}`;
+  let h = direct.length ? blocMatchs("🔴 En direct", direct, false, "direct") : "";
+  if (favs.length) h += blocMatchs("⭐ Mes équipes", favs, false);
+  const phares = PHARES.filter(lg => parLigue[lg]);
+  if (phares.length) h += `<h2>Compétitions phares</h2>` + phares.map(lg => blocMatchs(titre(lg), parLigue[lg], true)).join("");
+  // tous les autres, par pays (France, puis Monde et Europe, puis de A à Z), chaque pays repliable ;
+  // dans un pays : les compétitions dans l'ordre de foot.py (1re division d'abord)
+  const ordreLg = Object.values(data.ligues || {}), parPays = {};
+  for (const lg of Object.keys(parLigue)) if (!phares.includes(lg)) (parPays[paysDe(lg)[0]] ??= []).push(lg);
+  const rang = p => ({ France: 0, Monde: 1, Europe: 2 })[p] ?? 3;
+  const pays = Object.keys(parPays).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, "fr"));
+  const peu = duJour.length <= 30;  // petite journée (ou filtre) : tout ouvert
+  if (pays.length) h += `<h2>${phares.length ? "Tous les pays" : "Par pays"}</h2>`;
+  for (const p of pays) {
+    const lgs = parPays[p].sort((a, b) => (ordreLg.indexOf(a) + 1 || 999) - (ordreLg.indexOf(b) + 1 || 999) || a.localeCompare(b, "fr"));
+    const nb = lgs.reduce((t, lg) => t + parLigue[lg].length, 0), ouvert = paysOuverts[p] ?? peu;
+    h += `<details class="pays" data-pays="${esc(p)}"${ouvert ? " open" : ""}><summary><span class="drap">${paysDe(lgs[0])[1]}</span><span class="nom-pays">${esc(p)}</span>
+      <span class="nb-pays">${lgs.length > 1 ? `${lgs.length} compétitions · ` : ""}${nb} match${nb > 1 ? "s" : ""}</span></summary>${lgs.map(lg => blocMatchs(esc(lg), parLigue[lg], true)).join("")}</details>`;
+  }
+  if (!duJour.length && !direct.length) {
+    const jours = base.map(m => cleJour(m.date_utc)).sort();
+    const prochain = jours.find(k => k > jour), precedent = jours.filter(k => k < jour).at(-1);
+    const bouton = (k, t) => `<button class="plus" data-jour="${k}">${t} (${fmt(k + "T12:00:00", { weekday:"long", day:"numeric", month:"long" })})</button>`;
+    h += `<p class="mut">${filtreStatut === "tous" ? "Aucun match ce jour-là." : "Aucun match de ce type ce jour-là."}</p>` + (prochain ? bouton(prochain, "Prochain jour avec des matchs") : "")
+      + (precedent ? bouton(precedent, "Jour précédent avec des matchs") : "");
+  }
+  return h;
+}
+
+function vueMatchs() {
+  const q = cherche();
+  if (!q) return vueJour();
+  return listeMatchs(data.matchs.filter(m => filtreLigue(m) && (m.domicile + " " + m.exterieur).toLowerCase().includes(q)), nbResultats);
+}
+
+// ---------- classements ----------
+function tableClass(rows, surligne) {
+  return `<div class="tab-wrap"><table>
+    <thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th><th>Diff</th></tr></thead><tbody>
+    ${rows.map(c => `<tr class="${surligne(c) ? "moi" : ""}"><td>${c.rang}</td><td class="g">${lienEq(c.equipe, c.logo)}</td>
+      <td class="pts">${c.direct ? '<span title="Match en cours">🔴</span> ' : ""}${c.pts}${c.pts_officiel != null && c.pts_officiel !== c.pts ? `<sup class="off" title="Classement officiel LFP (peut inclure un match en cours)">LFP ${c.pts_officiel}</sup>` : ""}</td>
+      <td>${c.joues}</td><td>${c.g}</td><td>${c.n}</td><td>${c.p}</td><td>${c.bp}</td><td>${c.bc}</td><td>${c.bp - c.bc > 0 ? "+" : ""}${c.bp - c.bc}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+// Classement d'une compétition + matchs joués (ou en cours) qu'il ne compte pas encore : la base ne relit les
+// classements qu'une fois par heure (c.maj = heure de lecture).
+// shortcut: « pas encore compté » = coup d'envoi moins de 1 h 45 avant la lecture ou après (match pas fini à ce moment-là) ;
+// faux si la source met plus longtemps à compter un match fini, ou le 1er jour d'une phase finale qui porte le nom du
+// championnat (ensuite le garde-fou ci-dessous la repère).
+function classementDirect(lg) {
+  const officiel = data.classement.filter(c => c.ligue === lg), rows = officiel.map(c => ({ ...c }));
+  const ms = data.matchs.filter(m => m.ligue === lg && m.buts_dom != null && (fini(m) || enDirect(m)));
+  const groupe = new Map(rows.map(c => [c.equipe, c.groupe]));
+  let change = false;
+  for (const c of rows) {
+    const lu = new Date(c.maj) - 105 * 60e3;
+    const L = ms.filter(m => (m.domicile === c.equipe || m.exterieur === c.equipe) && groupe.get(m.domicile) === groupe.get(m.exterieur));
+    // plus de matchs joués avant la lecture que « J » = ces matchs sont d'une autre phase (play-offs, Apertura/Clausura...)
+    if (L.filter(m => new Date(m.date_utc) <= lu).length > c.joues) return officiel;
+    for (const m of L.filter(m => new Date(m.date_utc) > lu)) {
+      const dom = m.domicile === c.equipe, pour = dom ? m.buts_dom : m.buts_ext, contre = dom ? m.buts_ext : m.buts_dom;
+      c.joues++; c.bp += pour; c.bc += contre;
+      if (pour > contre) { c.g++; c.pts += 3; } else if (pour === contre) { c.n++; c.pts += 1; } else c.p++;
+      c.direct ||= enDirect(m);
+      c.ajoute = change = true;
+    }
+  }
+  if (!change) return rows;  // rien à ajouter : on garde l'ordre officiel (départages exacts)
+  const parGroupe = rows.reduce((o, c) => ((o[c.groupe ?? ""] ??= []).push(c), o), {});  // pas Object.groupBy : vieux iPhone
+  return Object.values(parGroupe).flatMap(g => g.sort((a, b) => b.pts - a.pts || (b.bp - b.bc) - (a.bp - a.bc) || b.bp - a.bp)
+    .map((c, i) => ({ ...c, rang: i + 1 })));
+}
+
+// ---------- classement final prévu : la fin de saison simulée 2 000 fois avec le modèle des pronostics ----------
+// Chaque match à venir reçoit un score tiré au hasard selon les buts attendus (loi de Poisson) ; on compte, pour chaque
+// équipe, ses points moyens et combien de fois elle finit 1re, dans les 4 premiers ou dans les 3 derniers.
+// shortcut: départage = points, différence, buts marqués, puis hasard (pas les confrontations directes) ; les matchs
+// à venir d'une autre phase (play-offs, Apertura/Clausura) sous le même nom de compétition faussent la projection.
+const tirage = l => { let k = 0, p = Math.exp(-l), s = p; const u = Math.random(); while (u > s && k < 15) { k++; p *= l / k; s += p; } return k; };
+function projection(lg, rows, N = 2000) {
+  const groupe = new Map(rows.map(c => [c.equipe, c.groupe ?? ""]));
+  const reste = data.matchs.filter(m => m.ligue === lg && m.statut === PREVU && groupe.has(m.domicile) && groupe.has(m.exterieur)
+    && groupe.get(m.domicile) === groupe.get(m.exterieur));
+  if (!reste.length) return null;
+  const M = getModele(), lam = reste.map(m => M.predire(m.domicile, m.exterieur));
+  const st = Object.fromEntries(rows.map(c => [c.equipe, { pts: 0, p1: 0, top4: 0, bas3: 0 }]));
+  const parGroupe = rows.reduce((o, c) => ((o[c.groupe ?? ""] ??= []).push(c.equipe), o), {});
+  for (let k = 0; k < N; k++) {
+    const t = Object.fromEntries(rows.map(c => [c.equipe, { pts: c.pts, d: c.bp - c.bc, bp: c.bp, h: Math.random() }]));
+    reste.forEach((m, i) => {
+      const a = tirage(lam[i].lh), b = tirage(lam[i].la), D = t[m.domicile], E = t[m.exterieur];
+      D.d += a - b; E.d += b - a; D.bp += a; E.bp += b;
+      if (a > b) D.pts += 3; else if (a < b) E.pts += 3; else { D.pts++; E.pts++; }
+    });
+    for (const eqs of Object.values(parGroupe)) {
+      eqs.slice().sort((x, y) => t[y].pts - t[x].pts || t[y].d - t[x].d || t[y].bp - t[x].bp || t[y].h - t[x].h)
+        .forEach((e, i) => { const x = st[e]; x.pts += t[e].pts; x.p1 += i === 0; x.top4 += i < 4; x.bas3 += i >= eqs.length - 3; });
+    }
+  }
+  return { n: reste.length, lignes: rows.map(c => ({ c, pts: st[c.equipe].pts / N, p1: st[c.equipe].p1 / N, top4: st[c.equipe].top4 / N,
+    bas3: st[c.equipe].bas3 / N })).sort((a, b) => (a.c.groupe ?? "").localeCompare(b.c.groupe ?? "") || b.pts - a.pts) };
+}
+const projections = new Map();  // gardées tant que le modèle ne change pas (un match fini) : pas de calcul à chaque minute de direct
+function blocProjection(lg, rows, surligne) {
+  if (data.saison && data.saison !== data.courante) return "";  // saison terminée : rien à prévoir
+  const M = getModele(), cle = lg + "|" + rows.map(c => c.equipe + c.pts).join();
+  if (projections.get(cle)?.M !== M) projections.set(cle, { M, P: projection(lg, rows) });
+  const P = projections.get(cle).P;
+  if (!P) return "";
+  const pc = x => x === 0 ? "–" : x < .01 ? "<1 %" : x > .99 && x < 1 ? ">99 %" : pct(x) + " %";
+  const g = P.lignes.some(l => (l.c.groupe ?? "") !== (P.lignes[0].c.groupe ?? ""));
+  return `<h2>Classement final prévu</h2><div class="tab-wrap"><table class="proj">
+    <thead><tr><th>#</th><th style="text-align:left">Équipe</th><th title="Points actuels">Pts</th><th title="Points prévus en fin de saison">Prévu</th><th title="Finit 1er">1er</th><th title="Finit dans les 4 premiers">Top 4</th><th title="Finit dans les 3 derniers">Bas 3</th></tr></thead><tbody>
+    ${P.lignes.map((l, i, L) => { const rang = L.slice(0, i + 1).filter(x => (x.c.groupe ?? "") === (l.c.groupe ?? "")).length;
+      return `${g && rang === 1 ? `<tr><td colspan="7" class="g mut">${esc(l.c.groupe ?? "")}</td></tr>` : ""}<tr class="${surligne(l.c) ? "moi" : ""}"><td>${rang}</td><td class="g">${lienEq(l.c.equipe, l.c.logo)}</td><td>${l.c.pts}</td>
+      <td class="pts">${Math.round(l.pts)}</td><td>${pc(l.p1)}</td><td>${pc(l.top4)}</td><td>${pc(l.bas3)}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="mut">Pts = points actuels ; Prévu = points prévus en fin de saison ; 1er, Top 4, Bas 3 = chances de finir 1er, dans les 4 premiers, dans les 3 derniers.
+    Les ${P.n} matchs restants au calendrier, simulés 2 000 fois avec le modèle des pronostics (buts marqués et encaissés cette saison, avantage du terrain). Une estimation, pas une certitude : blessures, transferts et forme du moment ne sont pas pris en compte.</p>`;
+}
+
+function vueClass() {
+  const l = $("ligue").value, q = cherche();
+  const surligne = c => fav.has(c.equipe) || (q && c.equipe.toLowerCase().includes(q));
+  const ligues = l && l !== "__fav" ? [l] : [...new Set(data.classement.filter(c => l !== "__fav" || fav.has(c.equipe)).map(c => c.ligue))].sort();
+  return ligues.map(lg => {
+    const rows = classementDirect(lg);
+    return rows.length ? `<h2>${esc(lg)}</h2>` + tableClass(rows, surligne)
+      + (rows.some(c => c.ajoute) ? `<p class="mut">Classement provisoire : ${rows.some(c => c.direct) ? "🔴 = match en cours compté au score actuel ; " : ""}derniers résultats ajoutés en attendant le classement officiel.</p>` : "")
+      + (ligues.length === 1 ? blocProjection(lg, rows, surligne) : "") : "";
+  }).join("") || `<p class="mut">${l === "__fav" ? "Ajoutez des équipes en favori (★ sur leur fiche)." : "Pas de classement pour cette compétition (coupe)."}</p>`;
+}
+
+// ---------- buteurs / passeurs (calculés depuis les matchs) ----------
+function joueurs(matchs, champ) {
+  const t = {};
+  for (const m of matchs) for (const b of m[champ] || []) {
+    if (b.nom.endsWith("(csc)")) continue;  // un csc ne compte pas pour le joueur
+    const nom = b.nom.replace(/ \(pen\)$/, ""), eq = b.cote === "dom" ? m.domicile : m.exterieur;
+    const k = nom + "|" + eq;
+    t[k] ??= { nom, eq, logo: b.cote === "dom" ? m.logo_dom : m.logo_ext, n: 0, pen: 0 };
+    t[k].n++; if (b.nom.endsWith("(pen)")) t[k].pen++;
+  }
+  return Object.values(t).sort((a, b) => b.n - a.n || a.pen - b.pen || a.nom.localeCompare(b.nom));
+}
+
+function tableJoueurs(liste, n, champ) {
+  let rang = 0, prec = null;
+  const buts = champ === "buteurs";
+  return `<div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Joueur</th><th style="text-align:left">Équipe</th><th>${buts ? "Buts" : "Passes D."}</th>${buts ? "<th>Pen.</th>" : ""}</tr></thead><tbody>
+    ${liste.slice(0, n).map((b, i) => { if (b.n !== prec) { rang = i + 1; prec = b.n; }
+      return `<tr class="${fav.has(b.eq) ? "moi" : ""}"><td>${rang}</td><td class="g">${lienJ(b.nom)}</td><td class="g">${lienEq(b.eq, b.logo)}</td><td class="pts">${b.n}</td>${buts ? `<td>${b.pen || ""}</td>` : ""}</tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+
+function vueJoueurs(champ) {
+  const l = $("ligue").value, q = cherche();
+  const ligues = l && l !== "__fav" ? [l] : [...new Set(data.matchs.map(m => m.ligue))].sort();
+  return (ligues.map(lg => {
+    let liste = joueurs(data.matchs.filter(m => m.ligue === lg), champ);
+    if (l === "__fav") liste = liste.filter(b => fav.has(b.eq));
+    if (q) liste = liste.filter(b => (b.nom + " " + b.eq).toLowerCase().includes(q));
+    return liste.length ? `<h2>${esc(lg)}</h2>` + tableJoueurs(liste, l ? 50 : 10, champ) : "";
+  }).join("") || '<p class="mut">Aucun joueur trouvé.</p>')
+    + (champ === "passes" ? '<p class="mut">Passes décisives lues dans la fiche de chaque match (récupérées petit à petit, 400 matchs par mise à jour).</p>' : "");
+}
+
+// ---------- fiche équipe ----------
+// ---------- fiche club : onglets Matchs / Équipe ; matchs triés par compétition (blocs) ou par date ----------
+let ongletEquipe = "matchs", triEquipe = "ligue";
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-oe],[data-tri]"); if (!b) return;
+  if (b.dataset.oe) ongletEquipe = b.dataset.oe; else triEquipe = b.dataset.tri;
+  afficher();
+});
+// une ligne : date | domicile | score (vert = victoire du club, rouge = défaite) | extérieur ; vainqueur en gras, ■ = carton rouge
+function ligneMatchEquipe(m, nom, avecLigue) {
+  const joue = m.buts_dom != null, nous = m.domicile === nom ? "dom" : "ext";
+  const [p, c] = nous === "dom" ? [m.buts_dom, m.buts_ext] : [m.buts_ext, m.buts_dom];
+  const cls = !joue || !fini(m) ? (enDirect(m) ? "live" : "") : p > c ? "v" : p < c ? "d" : "n";
+  const gagne = cote => fini(m) && joue && (cote === "dom" ? m.buts_dom > m.buts_ext : m.buts_ext > m.buts_dom);
+  const rouges = cote => (m.cartons || []).filter(x => x.cote === cote && x.type === "R").length;
+  const equipe = cote => { const n = cote === "dom" ? m.domicile : m.exterieur;
+    return `<a class="tm-eq ${cote}${gagne(cote) ? " g" : ""}" href="#equipe=${encodeURIComponent(n)}">${cote === "ext" ? '<i class="rouge"></i>'.repeat(rouges(cote)) : ""}<span>${esc(n)}</span>${cote === "dom" ? '<i class="rouge"></i>'.repeat(rouges(cote)) : ""}</a>`; };
+  const score = joue ? `${m.buts_dom}-${m.buts_ext}` : m.statut === PREVU ? "v" : "–";
+  return `<div class="tm-l"><span class="tm-d">${fmt(m.date_utc, { day:"2-digit", month:"2-digit" })}${avecLigue ? `<small>${esc(m.ligue)}</small>` : ""}</span>
+    ${equipe("dom")}<a class="tm-s ${cls}" href="#match=${encodeURIComponent(m.id)}" title="Fiche du match">${score}</a>${equipe("ext")}
+    <a class="tm-f" href="#match=${encodeURIComponent(m.id)}" aria-label="Fiche du match">›</a></div>`;
+}
+function matchsEquipe(nom, ms) {
+  const tri = `<div class="tm-tri"><button data-tri="ligue" class="${triEquipe === "ligue" ? "choisi" : ""}">Trier par ligue</button><button data-tri="date" class="${triEquipe === "date" ? "choisi" : ""}">Trier par date</button></div>`;
+  if (!ms.length) return tri + '<p class="mut">Aucun match cette saison.</p>';
+  const tries = ms.slice().sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  if (triEquipe === "date") return tri + `<div class="tm-bloc">${tries.map(m => ligneMatchEquipe(m, nom, true)).join("")}</div>`;
+  const par = {};
+  for (const m of tries) (par[m.ligue] ??= []).push(m);  // blocs dans l'ordre du 1er match de chaque compétition
+  return tri + Object.entries(par).map(([lg, l]) => { const [pays, drap] = data.pays?.[lg] || ["", "⚽"];
+    return `<div class="tm-bloc"><div class="tm-h"><span>${drap}</span>${pays ? `${esc(pays)} : ` : ""}${esc(lg)}</div>${l.map(m => ligneMatchEquipe(m, nom, false)).join("")}</div>`; }).join("");
+}
+
+function vueEquipe(nom) {
+  const ms = data.matchs.filter(m => m.domicile === nom || m.exterieur === nom);
+  const fin = ms.filter(fini);
+  const res = m => { const [p, c] = m.domicile === nom ? [m.buts_dom, m.buts_ext] : [m.buts_ext, m.buts_dom]; return p > c ? "V" : p < c ? "D" : "N"; };
+  const s = { V:0, N:0, D:0, bp:0, bc:0 };
+  for (const m of fin) { s[res(m)]++; const dom = m.domicile === nom; s.bp += dom ? m.buts_dom : m.buts_ext; s.bc += dom ? m.buts_ext : m.buts_dom; }
+  const lg = ms.map(m => m.domicile === nom ? m.logo_dom : m.logo_ext).find(Boolean);
+  const forme = fin.slice(-5).reverse().map(m => `<span class="${res(m)}" title="${esc(m.domicile)} ${m.buts_dom}-${m.buts_ext} ${esc(m.exterieur)}">${res(m)}</span>`).join("");
+  const classes = [...new Set(data.classement.filter(c => c.equipe === nom).map(c => c.ligue))];
+  setTimeout(() => { habillerHero(nom, []); if (ongletEquipe === "equipe") { remplirPalmares(nom); remplirEffectif(nom, fin); } });  // couleurs, photo du stade, palmarès : une fois la fiche affichée
+  return `<a class="pill" href="#">← Retour</a>` + heroHtml(lg ? `<img class="hero-img logo-eq" src="${esc(lg)}" alt="">` : "",
+      esc(Object.entries(ms.reduce((o, m) => (o[m.ligue] = (o[m.ligue] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1])[0]?.[0] || ""), `<b>${esc(nom)}</b>`,
+      fin.length ? `<div class="identite"><span>${s.V} V · ${s.N} N · ${s.D} D</span><span>${s.bp} buts marqués</span></div>` : "",
+      `<button class="etoile" id="etoile" aria-pressed="${fav.has(nom)}">${fav.has(nom) ? "★ Mon équipe" : "☆ Suivre"}</button>`)
+    + `${boutonsPartage("equipe", nom)}
+    <div class="onglets onglets-eq" role="tablist">${[["matchs", "Matchs"], ["classement", "Classement"], ["equipe", "Équipe"]]
+      .map(([k, t]) => `<button role="tab" data-oe="${k}" aria-selected="${ongletEquipe === k}">${t}</button>`).join("")}
+      ${data.saisons?.length > 1 ? `<select id="saison-eq" aria-label="Saison">${data.saisons.map(x => `<option value="${x}"${x === (data.saison ?? data.courante) ? " selected" : ""}>Saison ${nomSaison(x)}</option>`).join("")}</select>` : ""}</div>`
+    + (ongletEquipe === "matchs" ? matchsEquipe(nom, ms) : ongletEquipe === "classement" ? classementsEquipe(nom, classes) : `
+    ${champComparer("e", nom, [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))], "Comparer avec une autre équipe…")}
+    ${fin.length ? `<h2>Forme (5 derniers, le plus récent à gauche)</h2><div class="forme">${forme}</div>` : ""}
+    <h2>Saison (toutes compétitions)</h2>
+    <div class="stats"><div><b>${fin.length}</b>Joués</div><div><b>${s.V}</b>Victoires</div><div><b>${s.N}</b>Nuls</div>
+      <div><b>${s.D}</b>Défaites</div><div><b>${s.bp}</b>Buts pour</div><div><b>${s.bc}</b>Buts contre</div></div>
+    <div id="zone-effectif"><p class="mut">Chargement de l'effectif…</p></div>
+    <div id="zone-palmares"></div>
+    ${fin.length ? `<h2>Buts marqués et encaissés (${Math.min(20, fin.length)} derniers matchs)</h2>` + grapheButs(fin.slice(-20), nom) : ""}`);
+}
+// onglet Classement : chaque championnat du club (club surligné), sa position match après match, le classement final prévu
+function classementsEquipe(nom, classes) {
+  if (!classes.length) return '<p class="mut">Pas de classement cette saison pour ce club (seulement des coupes ou des matchs amicaux).</p>';
+  return classes.map(l => { const rows = classementDirect(l), p = positions(nom, l), moi = c => c.equipe === nom;
+    return `<h2>${esc(l)}</h2>` + tableClass(rows, moi)
+      + (p.length > 1 ? `<h2>Position en ${esc(l)}, match après match</h2>` + graphePositions(p, rows.length) : "")
+      + blocProjection(l, rows, moi); }).join("");
+}
+// onglet Équipe : tout l'effectif de la saison = chaque joueur entré en jeu pour le club (compositions ESPN),
+// rangé par poste, avec photo, âge, nationalité, matchs, buts et passes décisives
+const GROUPES_POSTE = [["G", "Gardiens"], ["D", "Défenseurs"], ["M", "Milieux"], ["A", "Attaquants"], ["?", "Poste inconnu"]];
+function groupePoste(p, poste) {  // p = abréviation ESPN du dernier match (G, CD-L, RB, DM, AM-R, CF…), sinon le poste de l'identité
+  if (p) return p === "G" ? "G" : /^(CD|LB|RB|SW|D$|CB|LWB|RWB)/.test(p) ? "D" : /^(CM|DM|AM|LM|RM|M$)/.test(p) ? "M" : /^(F$|CF|LF|RF|RCF|LCF|ST)/.test(p) ? "A" : "?";
+  return { Gardien: "G", "Défenseur": "D", Milieu: "M", Attaquant: "A" }[poste] || "?";
+}
+async function remplirEffectif(nom, fin) {
+  const J = await chargerJoueurs(), parId = Object.fromEntries(data.matchs.map(m => [m.id, m])), sel = new Set(data.selections || []);
+  const eqDe = ([mid, cote]) => { const m = parId[mid]; return m && (cote === "dom" ? m.domicile : m.exterieur); };
+  const liste = [], partis = [];
+  for (const [n, j] of Object.entries(J)) {
+    const ici = (j.m || []).filter(x => eqDe(x) === nom);
+    if (!ici.length) continue;
+    // parti en cours de saison : son dernier match en club (hors sélection) est avec un autre club
+    const dernier = (j.m || []).filter(x => parId[x[0]] && !sel.has(parId[x[0]].ligue)).sort((a, b) => parId[a[0]].date_utc.localeCompare(parId[b[0]].date_utc)).at(-1);
+    const x = { n, j, mj: ici.length, tit: ici.filter(y => y[2] === "T").length, b: 0, p: 0 };
+    (sel.has(nom) || !dernier || eqDe(dernier) === nom ? liste : partis).push(x);
+  }
+  const compte = (champ, cle) => { for (const m of fin) for (const b of m[champ] || []) if (!b.nom.endsWith("(csc)") && (b.cote === "dom" ? m.domicile : m.exterieur) === nom) {
+    const x = liste.find(y => y.n === sansTag(b.nom)) || partis.find(y => y.n === sansTag(b.nom)); if (x) x[cle]++; } };
+  compte("buteurs", "b"); compte("passes", "p");
+  const [idts, eqs] = await Promise.all([Promise.all(liste.map(x => identite(x.n))), infosEquipes()]);
+  const z = $("zone-effectif");
+  if (!z || route()[1] !== nom) return;
+  if (!liste.length) { z.innerHTML = '<h2>Effectif</h2><p class="mut">Pas de composition d\'équipe en base pour ce club cette saison (ESPN ne les donne pas pour toutes les compétitions).</p>'; return; }
+  const auj = new Date().toISOString().slice(0, 10);
+  liste.forEach((x, i) => { x.idt = idts[i]; x.g = groupePoste(x.j.p, x.idt?.[5]); });
+  const carte = x => { const v = x.idt || [], src = v[6] || (x.j.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(x.j.id)}.png` : "");
+    const age = v[0] && auj.slice(0, 4) - v[0].slice(0, 4) - (auj.slice(5) < v[0].slice(5));
+    const init = x.n.split(" ").map(m => m[0]).join("").slice(0, 2).toUpperCase();
+    return `<a class="ef-l" href="#joueur=${encodeURIComponent(x.n)}"><span class="ef-ph" data-i="${esc(init)}">${src ? imgVisage(src, v[8], 44) : ""}</span>
+      <span class="ef-n"><b>${esc(x.n)}</b><small>${[v[1] && `${v[2] ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(v[2])}.png" alt="" loading="lazy" onerror="this.remove()"> ` : ""}${esc(v[1])}`, age && `${age} ans`].filter(Boolean).join(" · ")}</small></span>
+      <span title="Matchs joués">${x.mj}</span><span title="Titulaire">${x.tit}</span><span title="Buts">${x.b || "–"}</span><span title="Passes décisives">${x.p || "–"}</span></a>`; };
+  const nbPhotos = liste.filter(x => x.idt?.[6]).length;
+  z.innerHTML = `<h2>Effectif (${liste.length} joueurs)</h2>` + GROUPES_POSTE.map(([k, t]) => { const l = liste.filter(x => x.g === k).sort((a, b) => b.mj - a.mj || b.tit - a.tit || a.n.localeCompare(b.n));
+      return l.length ? `<div class="ef-bloc" style="${styleHero(eqs[nom])}"><div class="ef-h"><span>${t}</span><span title="Matchs joués">👕</span><span title="Titulaire">11</span><span title="Buts">⚽</span><span title="Passes décisives">🎯</span></div>${l.map(carte).join("")}</div>` : ""; }).join("")
+    + (partis.length ? `<p class="mut">Ont aussi joué pour le club cette saison (partis depuis) : ${partis.map(x => lienJ(x.n)).join(", ")}.</p>` : "")
+    + `<p class="mut">Effectif = joueurs entrés en jeu pour le club cette saison (compositions des matchs). Photos : ESPN ou Wikimedia Commons, ${nbPhotos} sur ${liste.length} trouvées ; sinon les initiales.</p>`;
+}
+
+// ---------- graphiques ----------
+const court = d => fmt(d, { day:"numeric", month:"short" });
+const adv = (m, nom) => m.domicile === nom ? m.exterieur : m.domicile;
+const largeurGraphe = () => Math.max(300, Math.min(640, innerWidth - 50));  // texte lisible aussi sur téléphone
+
+// Classement recalculé après chaque journée à partir des scores
+// shortcut: départage simplifié (points, diff., buts marqués) ; les vrais règlements varient selon les ligues.
+function positions(nom, ligue) {
+  const ms = data.matchs.filter(m => m.ligue === ligue && fini(m)).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  const t = {}, out = [];
+  for (let i = 0; i < ms.length;) {
+    const k = ms[i].date_utc.slice(0, 10), lot = [];
+    while (i < ms.length && ms[i].date_utc.slice(0, 10) === k) lot.push(ms[i++]);
+    for (const m of lot) for (const [e, p, c] of [[m.domicile, m.buts_dom, m.buts_ext], [m.exterieur, m.buts_ext, m.buts_dom]]) {
+      const x = t[e] ??= { pts: 0, bp: 0, bc: 0 }; x.bp += p; x.bc += c; x.pts += p > c ? 3 : p === c ? 1 : 0; }
+    const joue = lot.find(m => m.domicile === nom || m.exterieur === nom);
+    if (joue) {
+      const cl = Object.entries(t).sort(([a, x], [b, y]) => y.pts - x.pts || (y.bp - y.bc) - (x.bp - x.bc) || y.bp - x.bp || a.localeCompare(b));
+      out.push({ m: joue, rang: cl.findIndex(([e]) => e === nom) + 1, pts: t[nom].pts });
+    }
+  }
+  return out;
+}
+
+function graphePositions(p, nEq) {
+  const W = largeurGraphe(), H = 220, ml = 34, mr = 12, mt = 10, mb = 26, n = p.length;
+  const x = i => ml + i * (W - ml - mr) / Math.max(1, n - 1), y = r => mt + (r - 1) * (H - mt - mb) / Math.max(1, nEq - 1);
+  const graduations = [1, 5, 10, 15, 20, 25, 30, 36].filter(r => r <= nEq);
+  const pas = (W - ml - mr) / Math.max(1, n - 1);
+  const tip = (q, i) => `Match ${i + 1} · ${court(q.m.date_utc)} · ${q.rang}e (${q.pts} pts) · ${q.m.domicile} ${q.m.buts_dom}-${q.m.buts_ext} ${q.m.exterieur}`;
+  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Position au classement après chaque match">
+    ${graduations.map(r => `<line x1="${ml}" x2="${W - mr}" y1="${y(r)}" y2="${y(r)}" stroke="var(--line)"/><text x="${ml - 8}" y="${y(r) + 4}" text-anchor="end">${r}e</text>`).join("")}
+    ${p.map((q, i) => i % Math.ceil(n / 10) === 0 || i === n - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${i + 1}</text>` : "").join("")}
+    <path d="${p.map((q, i) => `${i ? "L" : "M"}${x(i)},${y(q.rang)}`).join("")}" fill="none" stroke="var(--c-pour)" stroke-width="2" stroke-linejoin="round"/>
+    ${p.map((q, i) => `<circle cx="${x(i)}" cy="${y(q.rang)}" r="4" fill="var(--c-pour)" stroke="var(--card)" stroke-width="2"/>`).join("")}
+    <text x="${x(n - 1)}" y="${y(p[n - 1].rang) - 10}" text-anchor="end" style="fill:var(--txt);font-weight:600">${p[n - 1].rang}e</text>
+    ${p.map((q, i) => `<rect x="${x(i) - pas / 2}" y="${mt - 6}" width="${pas}" height="${H - mt - mb + 12}" fill="transparent" data-tip="${esc(tip(q, i))}"/>`).join("")}
+  </svg><div class="mut" style="margin:0 4px">En bas : numéro du match. Position le jour de chaque match, recalculée à partir des scores (départage simplifié) ; elle peut différer du classement actuel si d'autres équipes ont joué depuis.</div>
+  <details class="table"><summary>Voir en tableau</summary><div class="tab-wrap"><table><thead><tr><th>#</th><th>Date</th><th style="text-align:left">Match</th><th>Position</th><th>Pts</th></tr></thead><tbody>
+    ${p.map((q, i) => `<tr><td>${i + 1}</td><td>${court(q.m.date_utc)}</td><td class="g">${esc(q.m.domicile)} ${q.m.buts_dom}-${q.m.buts_ext} ${esc(q.m.exterieur)}</td><td>${q.rang}e</td><td>${q.pts}</td></tr>`).join("")}
+  </tbody></table></div></details></div>`;
+}
+
+function grapheButs(ms, nom) {
+  const W = largeurGraphe(), H = 200, ml = 26, mr = 8, mt = 8, mb = 8, n = ms.length;
+  const pour = m => m.domicile === nom ? m.buts_dom : m.buts_ext, contre = m => m.domicile === nom ? m.buts_ext : m.buts_dom;
+  const max = Math.max(3, ...ms.map(pour), ...ms.map(contre));
+  const y0 = mt + (H - mt - mb) / 2, h = v => v * (H - mt - mb) / 2 / max, pas = (W - ml - mr) / n, bw = Math.min(18, pas * 0.6), r = 3;
+  const barre = (cx, v, haut, coul) => { if (!v) return ""; const x = cx - bw / 2, e = haut ? y0 - h(v) : y0 + h(v), s = haut ? 1 : -1;
+    // extrémité arrondie côté donnée, base droite sur la ligne zéro
+    return `<path d="M${x},${y0} V${e + s * r} Q${x},${e} ${x + r},${e} H${x + bw - r} Q${x + bw},${e} ${x + bw},${e + s * r} V${y0} Z" fill="${coul}"/>`; };
+  const tip = m => `${court(m.date_utc)} · ${m.ligue} · ${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}`;
+  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Buts marqués (vers le haut) et encaissés (vers le bas) par match">
+    ${[max, 0, max].map((v, i) => `<text x="${ml - 6}" y="${[mt + 8, y0 + 4, H - mb][i]}" text-anchor="end">${v}</text>`).join("")}
+    <line x1="${ml}" x2="${W - mr}" y1="${y0}" y2="${y0}" stroke="var(--mut)"/>
+    ${ms.map((m, i) => { const cx = ml + pas * (i + .5); return barre(cx, pour(m), true, "var(--c-pour)") + barre(cx, contre(m), false, "var(--c-contre)")
+      + `<rect x="${cx - pas / 2}" y="${mt}" width="${pas}" height="${H - mt - mb}" fill="transparent" data-tip="${esc(tip(m))}"/>`; }).join("")}
+  </svg><div class="legende"><span><i style="background:var(--c-pour)"></i>Buts marqués (vers le haut)</span><span><i style="background:var(--c-contre)"></i>Buts encaissés (vers le bas)</span></div>
+  <details class="table"><summary>Voir en tableau</summary><div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Adversaire</th><th>Marqués</th><th>Encaissés</th></tr></thead><tbody>
+    ${ms.map(m => `<tr><td>${court(m.date_utc)}</td><td class="g">${esc(adv(m, nom))}</td><td>${pour(m)}</td><td>${contre(m)}</td></tr>`).join("")}
+  </tbody></table></div></details></div>`;
+}
+
+// ---------- fiche joueur ----------
+const STATS_J = [["tirs", "Tirs"], ["cadres", "Cadrés"], ["fautes", "Fautes"], ["subies", "Fautes subies"], ["hj", "Hors-jeu"], ["arrets", "Arrêts"], ["enc", "Buts encaissés"]];
+// carrière toutes saisons : 64 fichiers, même découpage que paquet() dans foot.py
+const carrieresP = {};
+const paquet = n => [...n].reduce((s, c) => s + c.codePointAt(0), 0) % 64;
+const carriere = nom => (carrieresP[paquet(nom)] ??= fetch(`carrieres/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom] || []);
+// identité : [naissance, nationalité, drapeau, taille cm, poids kg, poste, photo, fichier Commons] (même découpage, voir foot.py)
+const identitesP = {};
+const identite = nom => (identitesP[paquet(nom)] ??= fetch(`identites/${paquet(nom)}.json`).then(r => r.json()).catch(() => ({}))).then(d => d[nom]);
+// ---------- bannières des fiches : couleurs du club + photo (joueur en action, ou stade) ----------
+// equipes.json (foot.py) : {équipe: [couleur, 2e couleur, fichier Commons de la photo du stade]}
+let equipesP = null;
+const infosEquipes = () => equipesP ??= fetch("equipes.json").then(r => r.json()).catch(() => ({}));
+const pageCommons = f => "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(f.replaceAll(" ", "_"));
+// couleurs ESPN souvent blanches ou jaunes (Marseille, Lyon, Villarreal…) : on prend la plus foncée pour que le texte blanc reste lisible
+function styleHero(cs) {
+  const ok = (cs || []).filter(h => /^[0-9a-f]{6}$/i.test(h || ""));
+  if (!ok.length) return "";
+  const lum = h => { const n = parseInt(h, 16); return (.299 * (n >> 16) + .587 * (n >> 8 & 255) + .114 * (n & 255)) / 255; };
+  const base = ok.find(h => lum(h) < .7) ?? ok[0], autre = ok.find(h => h !== base) ?? base;
+  const fond = lum(base) < .7 ? `#${base}` : `color-mix(in srgb, #${base} 45%, black)`;
+  return `--h1:color-mix(in srgb, ${fond} 55%, black);--h2:${fond};--h3:#${autre}`;
+}
+// la 1re image qui se charge devient le fond de la bannière : [adresse, fichier Commons pour le crédit] ; sans fichier = ESPN (détourée)
+function fondHero(images) {
+  const fond = $("hero-fond"), credit = $("hero-credit");
+  const essai = i => {
+    if (!fond || i >= images.length) return;
+    const [u, f, v] = images[i], espn = !f, im = new Image();
+    im.onload = () => { if (!document.body.contains(fond)) return;
+      fond.style.backgroundImage = `url("${u}")`; fond.classList.add("vu");
+      if (v) cadrerFond(fond, v); fond.classList.toggle("detoure", espn); $("hero")?.classList.add("avec-fond");
+      if (!espn) { credit.href = pageCommons(f); credit.hidden = false; } };
+    im.onerror = () => essai(i + 1);
+    im.src = u;
+  };
+  essai(0);
+}
+// bannière d'un joueur : visage large d'environ 26 % de la hauteur de la bannière, un peu à droite du milieu de la zone photo
+function cadrerFond(fond, v) {
+  const r = fond.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const c = cadreVisage(v, r.width, r.height, .26 * r.height / r.width, .6, .44);
+  fond.style.backgroundSize = `${c.s.toFixed(0)}px auto`;
+  fond.style.backgroundPosition = `${c.left.toFixed(0)}px ${c.top.toFixed(0)}px`;
+}
+async function habillerHero(equipe, fichiers, stade = true) {
+  const eqs = await infosEquipes(), h = $("hero");
+  if (!h) return;
+  const st = styleHero(eqs[equipe]);
+  if (st) h.setAttribute("style", st);
+  // fiche club : photo du stade ; fiche joueur : sa photo seulement (sinon juste les couleurs du club)
+  fondHero([...fichiers, ...(stade && eqs[equipe]?.[3] ? [[eqs[equipe][3], eqs[equipe][2]]] : [])]);
+}
+// ---------- palmarès (palmares.json, calculé par foot.py avec les classements finaux et les finales) ----------
+let palmaresP = null;
+const chargerPalmares = () => palmaresP ??= fetch("palmares.json").then(r => r.json()).catch(() => ({ titres: [], trophees: {} }));
+// titres = [[compétition, édition (« 2023-24 » ou « 2024 »), vainqueur, [saisons]]] ; d'une équipe, ou d'un joueur d'après sa carrière
+async function titresDe(equipe, carriere) {
+  const P = await chargerPalmares(), vu = new Set((carriere || []).map(l => `${l[0]}|${l[1]}|${l[2]}`));
+  return P.titres.filter(t => carriere ? t[3].some(s => vu.has(`${s}|${t[2]}|${t[0]}`)) : t[2] === equipe);
+}
+async function blocPalmares(titres) {
+  if (!titres.length) return "";
+  const P = await chargerPalmares(), par = {};
+  for (const [c, a] of titres) (par[c] ??= new Set()).add(a);
+  const liste = Object.entries(par).map(([c, as]) => [c, [...as].sort().reverse()]).sort((x, y) => y[1].length - x[1].length || x[0].localeCompare(y[0]));
+  const image = c => { const t = P.trophees[c]; if (!t) return '<span class="coupe">🏆</span>';
+    const img = `<img src="${esc(t[0])}" alt="Trophée : ${esc(c)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;coupe&quot;>🏆</span>'">`;
+    return t[1] ? `<a href="${pageCommons(t[1])}" target="_blank" rel="noopener" title="Photo : Wikimedia Commons">${img}</a>` : img; };
+  return `<h2>Palmarès (${titres.length} titre${titres.length > 1 ? "s" : ""})</h2><div class="palmares">${liste.map(([c, as]) => `<div class="trophee">${image(c)}
+    ${as.length > 1 ? `<b class="nb">×${as.length}</b>` : ""}<div class="nom">${esc(c)}</div><div class="ans">${as.slice(0, 8).join(" · ")}${as.length > 8 ? " …" : ""}</div></div>`).join("")}</div>
+    <p class="mut">Titres trouvés dans la base (classements finaux et finales depuis 1993-94 pour les grands championnats, 2001-02 sinon). Pour un joueur : titres de son équipe dans les compétitions où il a joué cette saison-là.</p>`;
+}
+async function remplirPalmares(equipe, carriere) {
+  const h = await blocPalmares(await titresDe(equipe, carriere)), z = $("zone-palmares");
+  if (z) z.innerHTML = h;
+}
+
+const nomHero = nom => { const i = nom.indexOf(" "); return i < 0 ? `<b>${esc(nom)}</b>` : `${esc(nom.slice(0, i))}<b>${esc(nom.slice(i + 1))}</b>`; };
+const heroHtml = (img, sur, nom, bas, avant = "") => `<section class="hero" id="hero"><div class="hero-fond" id="hero-fond"></div>
+  <a class="hero-credit" id="hero-credit" target="_blank" rel="noopener" hidden>Photo : Wikimedia Commons</a>${avant}
+  <div class="hero-in">${img}<div class="hero-txt">${sur ? `<div class="hero-sur">${sur}</div>` : ""}<h2 class="hero-nom">${nom}</h2>${bas}</div></div></section>`;
+
+// ---------- cadrage sur le visage ----------
+// f = [x, y, largeur du visage, hauteur de la photo], en millièmes de la largeur de la photo (foot.py, detecter_visage).
+// Boîte Bw×Bh : le visage prend la part q de la largeur de la boîte, son centre va en (ax, ay) ; jamais de bord vide.
+// Renvoie la largeur affichée de la photo et son décalage (mêmes unités que la boîte).
+function cadreVisage(f, Bw, Bh, q, ax = .5, ay = .45) {
+  const [x, y, l, h] = f.map(v => v / 1000);
+  const s = Math.max(q * Bw / l, Bw, Bh / h);
+  return { s, left: Math.min(0, Math.max(Bw - s, Bw * ax - x * s)), top: Math.min(0, Math.max(Bh - s * h, Bh * ay - y * s)) };
+}
+// miniature Commons assez grande pour le zoom (tailles standard de Wikimedia) ; la 250 px reste en secours (onerror)
+const urlTaille = (u, px) => { const w = [250, 330, 500, 960, 1280].find(t => t >= px * (devicePixelRatio || 1)) || 1280;
+  return u.includes("/250px-") ? u.replace("/250px-", `/${w}px-`) : u; };
+// photo ronde (ou carrée) cadrée sur le visage, en pourcentages : la même pour toutes les tailles d'affichage
+function imgVisage(src, f, px, alt = "") {
+  if (!f) return `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.remove()">`;
+  const c = cadreVisage(f, 1, 1, .5, .5, .48), pc = v => (v * 100).toFixed(1) + "%";
+  return `<img class="cadre" src="${esc(urlTaille(src, px * c.s))}" alt="${esc(alt)}" loading="lazy" style="width:${pc(c.s)};left:${pc(c.left)};top:${pc(c.top)}"
+    onerror="if (this.src !== '${esc(src)}') this.src = '${esc(src)}'; else this.remove()">`;
+}
+
+// photo : celle de l'identité (ESPN, sinon Wikimedia Commons avec crédit), sinon essai ESPN par l'id (retirée si absente)
+function photoJoueur(idt, id) {
+  const src = idt?.[6] || (id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(id)}.png` : "");
+  if (!src) return "";
+  const credit = idt?.[7] ? `<figcaption><a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(idt[7].replaceAll(" ", "_"))}" target="_blank" rel="noopener">Photo : Commons</a></figcaption>` : "";
+  return `<figure class="photo-j"><img class="photo" src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.remove()">${credit}</figure>`;
+}
+function ligneIdentite(v) {
+  if (!v) return "";
+  const [naiss, nat, drapeau, taille, poids, poste] = v;
+  const auj = new Date().toISOString().slice(0, 10);
+  const age = naiss && auj.slice(0, 4) - naiss.slice(0, 4) - (auj.slice(5) < naiss.slice(5));
+  return `<div class="identite">${[
+    naiss && `${age} ans · ${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)}`,
+    nat && `${drapeau ? `<img class="drapeau" src="https://a.espncdn.com/i/teamlogos/countries/500/${encodeURIComponent(drapeau)}.png" alt="" onerror="this.remove()"> ` : ""}${esc(nat)}`,
+    taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`, poids && `${poids} kg`, poste && esc(poste)].filter(Boolean).map(x => `<span>${x}</span>`).join("")}</div>`;
+}
+function tableCarriere(C) {
+  // ligne : [saison, équipe, compétition, MJ, tit., buts, pen., PD, J, R, tirs, cadrés, fautes, subies, HJ, arrêts, encaissés]
+  const cols = [["MJ", 3], ["Tit.", 4], ["Buts", 5], ["PD", 7], ["🟨", 8], ["🟥", 9], ...STATS_J.map(([, t], i) => [t, 10 + i])]
+    .filter(([, i]) => i < 10 ? true : i >= 15 ? C.some(l => l[15] > 0) : C.some(l => l[i] != null));  // arrêts : gardiens seulement
+  const somme = (ls, i) => ls.reduce((s, l) => l[i] == null ? s : (s ?? 0) + l[i], null);
+  const cell = (v, i, pen) => `<td${i === 5 ? ' class="pts"' : ""}>${v ?? "–"}${i === 5 && pen ? ` <span class="mut">(${pen} pen.)</span>` : ""}</td>`;
+  const L = C.slice().sort((a, b) => b[0] - a[0]);
+  return `<h2>Carrière (toutes saisons en base)</h2><div class="tab-wrap"><table><thead><tr><th>Saison</th><th style="text-align:left">Club · compétition</th>${cols.map(([t]) => `<th>${t}</th>`).join("")}</tr></thead><tbody>
+    ${L.map(l => `<tr><td>${nomSaison(l[0])}</td><td class="g"><a href="#equipe=${encodeURIComponent(l[1])}">${esc(l[1])}</a><div class="mut">${esc(l[2])}</div></td>${cols.map(([, i]) => cell(l[i], i, l[6])).join("")}</tr>`).join("")}
+    <tr><td></td><td class="g"><b>Total</b></td>${cols.map(([, i]) => cell(somme(L, i), i, somme(L, 6))).join("")}</tr>
+  </tbody></table></div>
+  <p class="mut">« – » = inconnu : compositions et passes décisives seulement sur les saisons récentes ; tirs, fautes et arrêts selon ESPN.</p>`;
+}
+// vieilles saisons rangées dans un 2e dépôt GitHub (chaque site GitHub Pages est limité à 1 Go) : on lit d'abord ici, puis là-bas
+const ARCHIVES = "https://julien773901-oss.github.io/Foot-archives/";
+async function lireJson(nom) {
+  let r = await fetch(nom, { cache: "no-store" });
+  if (!r.ok) r = await fetch(ARCHIVES + nom);
+  if (!r.ok) throw new Error(nom + " introuvable");
+  return r.json();
+}
+const joueursP = {};  // un fichier par saison, chargé à la demande
+const chargerJoueurs = () => joueursP[data.saison ?? ""] ??=
+  lireJson(data.saison ? `joueurs-${data.saison}.json` : "joueurs.json").catch(() => ({}));
+
+async function statsJoueur(nom) {
+  const J = (await chargerJoueurs())[nom];
+  const parId = Object.fromEntries(data.matchs.map(m => [m.id, m]));
+  const lignes = new Map();
+  for (const [mid, cote, role, sorti, ...st] of J?.m || []) if (parId[mid]) lignes.set(mid, { m: parId[mid], cote, role, sorti, st });
+  for (const m of data.matchs) for (const champ of ["buteurs", "passes", "cartons"]) for (const x of m[champ] || [])
+    if (!x.nom.endsWith("(csc)") && sansTag(x.nom) === nom && !lignes.has(m.id)) lignes.set(m.id, { m, cote: x.cote, role: "?" });
+  const L = [...lignes.values()].sort((a, b) => a.m.date_utc.localeCompare(b.m.date_utc));
+  if (!L.length) return null;
+  const de = (l, champ) => (l.m[champ] || []).filter(x => x.cote === l.cote && sansTag(x.nom) === nom && !x.nom.endsWith("(csc)"));
+  for (const l of L) { l.b = de(l, "buteurs"); l.p = de(l, "passes"); l.c = de(l, "cartons"); l.eq = l.cote === "dom" ? l.m.domicile : l.m.exterieur; }
+  const tot = ls => ({ mj: ls.filter(l => l.role !== "?").length, tit: ls.filter(l => l.role === "T").length, b: ls.reduce((s, l) => s + l.b.length, 0),
+    pen: ls.reduce((s, l) => s + l.b.filter(x => x.nom.endsWith("(pen)")).length, 0), p: ls.reduce((s, l) => s + l.p.length, 0),
+    j: ls.reduce((s, l) => s + l.c.filter(x => x.type === "J").length, 0), r: ls.reduce((s, l) => s + l.c.filter(x => x.type === "R").length, 0),
+    // stats ESPN (tirs, cadrés, fautes, subies, hors-jeu, arrêts, encaissés) : null si aucun match ne les donne
+    ...Object.fromEntries(STATS_J.map(([k], i) => [k, ls.reduce((s, l) => l.st?.[i] == null ? s : (s ?? 0) + l.st[i], null)])) });
+  return { J, L, tot, T: tot(L), equipes: [...new Set(L.map(l => l.eq))] };
+}
+
+// fiche joueur : bannière, puis onglets Carrière / Matchs / Profil / Stats, puis le palmarès (toujours visible)
+let ongletJoueur = "carriere";
+document.addEventListener("click", e => { const b = e.target.closest("[data-oj]"); if (b) { ongletJoueur = b.dataset.oj; afficher(); } });
+// carrière : une ligne par saison et par club (toutes compétitions additionnées), logo du club, en-tête aux couleurs du club
+function carriereParClub(C, eqs, club) {
+  const par = new Map();
+  for (const l of C) {
+    const k = l[0] + "|" + l[1], x = par.get(k) ?? { s: l[0], eq: l[1], comps: [], v: [null, null, 0, 0, null, 0, 0] };
+    x.comps.push(l[2]);
+    [3, 4, 5, 6, 7, 8, 9].forEach((i, j) => { if (l[i] != null) x.v[j] = (x.v[j] ?? 0) + l[i]; });
+    par.set(k, x);
+  }
+  const sel = new Set(data.selections || []);
+  const lignes = [...par.values()].sort((a, b) => b.s - a.s || sel.has(a.comps[0]) - sel.has(b.comps[0]));
+  const tot = j => lignes.reduce((t, x) => x.v[j] == null ? t : (t ?? 0) + x.v[j], null);
+  const logo = e => eqs[e]?.[4] ? `<img src="${esc(eqs[e][4])}" alt="" loading="lazy">` : `<span class="sans-logo"></span>`;
+  const cols = [[0, "👕", "Matchs joués"], [1, "11", "Titulaire"], [2, "⚽", "Buts"], [4, "🎯", "Passes décisives"], [5, "🟨", "Cartons jaunes"], [6, "🟥", "Cartons rouges"]];
+  return `<div class="carr" style="${styleHero(eqs[club])}"><div class="carr-h"><span>Saison</span><span>Équipe</span>${cols.map(([, t, n]) => `<span title="${n}">${t}</span>`).join("")}</div>
+    ${lignes.map(x => `<div class="carr-l"><span class="carr-s">${x.s}/${x.s + 1}</span>
+      <a class="carr-e" href="#equipe=${encodeURIComponent(x.eq)}" title="${esc(x.comps.join(" · "))}">${logo(x.eq)}<span>${esc(x.eq)}</span></a>
+      ${cols.map(([j]) => `<span>${x.v[j] ?? "–"}</span>`).join("")}</div>`).join("")}
+    <div class="carr-l carr-t"><span></span><span class="carr-e">Total</span>${cols.map(([j]) => `<span>${tot(j) ?? "–"}</span>`).join("")}</div></div>
+    <p class="mut">« – » = inconnu (compositions et passes décisives seulement sur les saisons récentes). Toucher un club : sa fiche ; le détail par compétition est dans l'onglet Stats.</p>`;
+}
+
+async function vueJoueur(nom) {
+  const el = $("detail");
+  el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Chargement…</p>`;
+  const [st, C, idt, eqs] = await Promise.all([statsJoueur(nom), carriere(nom), identite(nom), infosEquipes()]);
+  if (route()[1] !== nom) return;
+  if (!st && !C.length) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Aucune donnée pour ce joueur.</p>`; return; }
+  // club actuel = celui de son match le plus récent hors sélection nationale (sinon la dernière ligne de sa carrière)
+  const sel = new Set(data.selections || []);
+  const club = st?.L.filter(l => !sel.has(l.m.ligue)).at(-1)?.eq
+    ?? C.filter(l => !sel.has(l[2])).sort((a, b) => a[0] - b[0]).at(-1)?.[1] ?? st?.equipes[0] ?? C.at(-1)?.[1];
+  const src = idt?.[6] || (st?.J?.id ? `https://a.espncdn.com/i/headshots/soccer/players/full/${encodeURIComponent(st.J.id)}.png` : "");
+  const portrait = !src ? "" : idt?.[8] ? `<span class="hero-img cadre-rond">${imgVisage(src, idt[8], 92, "Photo de " + nom)}</span>`
+    : `<img class="hero-img" src="${esc(src)}" alt="Photo de ${esc(nom)}" onerror="this.remove()">`;
+  // fond : sa photo (Commons, souvent recadrée sur le visage) ou sa photo détourée ESPN ; sinon rien (couleurs du club)
+  const fichiers = idt?.[7] ? [[idt[6].replace("/250px-", "/960px-"), idt[7], idt[8]]] : src ? [[src, null]] : [];
+  const equipesSaison = st ? st.equipes : [];
+  const clubs = (equipesSaison.length ? equipesSaison : club ? [club] : []).map(e => `<a href="#equipe=${encodeURIComponent(e)}">${esc(e)}</a>`).join(" · ");
+  const entete = `<a class="pill" href="#">← Retour</a>` + heroHtml(portrait, club ? esc(club) : "", nomHero(nom), ligneIdentite(idt) + (clubs ? `<div class="hero-clubs">${clubs}</div>` : ""));
+  const onglets = [["carriere", "Carrière"], ...(st ? [["matchs", "Matchs"]] : []), ["profil", "Profil"], ...(st ? [["stats", "Stats"]] : [])];
+  if (!onglets.some(([k]) => k === ongletJoueur)) ongletJoueur = "carriere";
+  const barre = `<div class="onglets onglets-j" role="tablist">${onglets.map(([k, t]) => `<button role="tab" data-oj="${k}" aria-selected="${k === ongletJoueur}">${t}</button>`).join("")}</div>`;
+  // profil : son identité en clair + comparateur
+  const [naiss, nat, , taille, poids, poste] = idt || [];
+  const age = naiss && (() => { const a = new Date().toISOString().slice(0, 10); return a.slice(0, 4) - naiss.slice(0, 4) - (a.slice(5) < naiss.slice(5)); })();
+  const profil = `<div class="profil">${[["Club actuel", club && `<a href="#equipe=${encodeURIComponent(club)}">${esc(club)}</a>`],
+      ["Poste", poste && esc(poste)], ["Naissance", naiss && `${naiss.slice(8, 10)}/${naiss.slice(5, 7)}/${naiss.slice(0, 4)} (${age} ans)`],
+      ["Nationalité", nat && esc(nat)], ["Taille", taille && `${(taille / 100).toFixed(2).replace(".", ",")} m`], ["Poids", poids && `${poids} kg`],
+      ["Clubs dans la base", new Set(C.filter(l => !sel.has(l[2])).map(l => l[1])).size || null]]
+    .filter(([, v]) => v).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+    ${champComparer("j", nom, Object.keys(await chargerJoueurs()), "Comparer avec un autre joueur…")}`;
+  let corps = "";
+  if (ongletJoueur === "carriere") corps = C.length ? carriereParClub(C, eqs, club) : '<p class="mut">Pas de carrière en base.</p>';
+  else if (ongletJoueur === "profil") corps = profil;
+  else if (st) {
+    const { J, L, tot, T } = st;
+    const comps = [...new Set(L.map(l => l.m.ligue))];
+    const gardien = J?.p === "G" || T.arrets > 0;
+    const tuile = ([k, t]) => T[k] == null || (!gardien && (k === "arrets" || k === "enc")) ? ""
+      : `<div><b>${T[k]}</b>${t}${k === "tirs" && T.cadres != null ? ` <span class="mut">(${T.cadres} cadrés)</span>` : ""}</div>`;
+    corps = ongletJoueur === "stats" ? `<h2>Saison ${nomSaison(data.saison ?? data.courante)} (toutes compétitions)</h2>
+      <div class="stats"><div><b>${T.mj}</b>Matchs joués</div><div><b>${T.tit}</b>Titulaire</div><div><b>${T.b}</b>Buts${T.pen ? ` <span class="mut">(${T.pen} pen.)</span>` : ""}</div>
+        <div><b>${T.p}</b>Passes D.</div><div><b>${T.j}</b>Cartons jaunes</div><div><b>${T.r}</b>Cartons rouges</div>
+        ${STATS_J.filter(([k]) => k !== "cadres").map(tuile).join("")}</div>
+      ${comps.length > 1 ? `<h2>Par compétition</h2><div class="tab-wrap"><table><thead><tr><th style="text-align:left">Compétition</th><th>MJ</th><th>Tit.</th><th>Buts</th><th>PD</th><th>🟨</th><th>🟥</th></tr></thead><tbody>
+        ${comps.map(c => { const t = tot(L.filter(l => l.m.ligue === c)); return `<tr><td class="g">${esc(c)}</td><td>${t.mj}</td><td>${t.tit}</td><td class="pts">${t.b}</td><td>${t.p}</td><td>${t.j || ""}</td><td>${t.r || ""}</td></tr>`; }).join("")}
+      </tbody></table></div>` : ""}
+      ${C.length ? tableCarriere(C) : ""}`
+    : `<div class="tab-wrap"><table><thead><tr><th>Date</th><th style="text-align:left">Match</th><th>Rôle</th><th>⚽</th><th>PD</th><th>Cartons</th></tr></thead><tbody>
+        ${L.slice().reverse().map(l => `<tr><td>${court(l.m.date_utc)}</td>
+          <td class="g"><a class="j" href="#match=${esc(l.m.id)}">${esc(l.m.domicile)} ${l.m.buts_dom ?? ""}-${l.m.buts_ext ?? ""} ${esc(l.m.exterieur)}</a><div class="mut">${esc(l.m.ligue)}</div></td>
+          <td>${l.role === "T" ? "Titulaire" + (l.sorti ? " ↓" : "") : l.role === "E" ? "Entré ↑" : "?"}</td>
+          <td class="pts">${l.b.length || ""}</td><td>${l.p.length || ""}</td><td>${l.c.map(x => x.type === "R" ? "🟥" : "🟨").join("")}</td></tr>`).join("")}
+      </tbody></table></div>
+      <p class="mut">Matchs joués d'après les compositions ESPN (récupérées petit à petit) ; « ? » = présence connue seulement par un but, une passe ou un carton.</p>`;
+  }
+  el.innerHTML = `${entete}${boutonsPartage("joueur", nom)}${barre}${corps}<div id="zone-palmares"></div>`;
+  $("hero")?.classList.add("joueur"); habillerHero(club, fichiers, false); remplirPalmares(null, C);
+  brancherComparer();
+}
+
+// ---------- partage ----------
+let partageCible = null;
+function boutonsPartage(type, cible) {
+  partageCible = { type, cible };
+  return `<div class="partage"><button class="pill" data-partage="lien">🔗 Partager</button>${type === "match" && cible.buts_dom !== null ? '<button class="pill" data-partage="image">🖼 Image du score</button>' : ""}</div>`;
+}
+const lienActuel = () => location.origin + location.pathname + (data.saison && data.saison !== data.courante ? `?saison=${data.saison}` : "") + location.hash;
+async function partagerLien() {
+  const { type, cible } = partageCible, url = lienActuel();
+  const titre = type === "match" ? `${cible.domicile} ${cible.buts_dom ?? ""}${cible.buts_dom === null ? "–" : "-"}${cible.buts_ext ?? ""} ${cible.exterieur}` : cible;
+  if (navigator.share) { try { await navigator.share({ title: titre, text: titre + " · Base Foot", url }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(url); toast("Lien copié : collez-le où vous voulez."); }
+  catch (e) { prompt("Copiez ce lien :", url); }
+}
+async function partagerImage() {
+  const m = partageCible.cible, W = 1080, H = 608, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"), police = (t, p = 400) => `${p} ${t}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+  g.fillStyle = "#0a3d2a"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0f5c3f"; g.fillRect(0, H - 70, W, 70);
+  g.fillStyle = "#cfe9dc"; g.textAlign = "center"; g.font = police(30);
+  g.fillText(`${m.ligue} · ${fmt(m.date_utc, { weekday:"long", day:"numeric", month:"long", year:"numeric" })}`, W / 2, 70);
+  // noms d'équipes : réduits si trop longs
+  const nom = (t, x) => { let s = 52; g.font = police(s, 700); while (g.measureText(t).width > 380 && s > 28) g.font = police(s -= 2, 700); g.fillText(t, x, 250); };
+  g.fillStyle = "#fff"; nom(m.domicile, 250); nom(m.exterieur, W - 250);
+  g.font = police(140, 800); g.fillText(`${m.buts_dom} - ${m.buts_ext}`, W / 2, 290);
+  if (enDirect(m)) { g.font = police(30, 700); g.fillStyle = "#f87171"; g.fillText(`EN DIRECT${m.minute ? " · " + m.minute : ""}`, W / 2, 345); }
+  else if (/PEN/.test(m.statut)) { g.font = police(28); g.fillStyle = "#cfe9dc"; g.fillText("après tirs au but", W / 2, 345); }
+  g.font = police(26); g.fillStyle = "#cfe9dc";
+  for (const [cote, x] of [["dom", 250], ["ext", W - 250]])
+    m.buteurs.filter(b => b.cote === cote).slice(0, 5).forEach((b, i) => g.fillText(`⚽ ${b.nom} ${b.min}`, x, 400 + i * 34));
+  g.fillStyle = "#fff"; g.font = police(28, 700); g.fillText("⚽ Base Foot", W / 2, H - 25);
+  const blob = await new Promise(r => c.toBlob(r, "image/png"));
+  const fichier = new File([blob], `${m.domicile}-${m.exterieur}.png`.replace(/[^\w.\-]+/g, "_"), { type: "image/png" });
+  if (navigator.canShare?.({ files: [fichier] })) { try { await navigator.share({ files: [fichier], title: `${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}` }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fichier.name; a.click();  // sinon : téléchargement
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast("Image enregistrée dans vos téléchargements.");
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-partage]"); if (!b || !partageCible) return;
+  b.dataset.partage === "image" ? partagerImage() : partagerLien(); });
+
+// ---------- pronostics (modèle de Poisson sur les buts marqués / encaissés de la saison) ----------
+// shortcut: toutes compétitions mélangées (une équipe de Ligue 2 et une de Premier League sont jugées sur la même échelle) ;
+// suffisant à l'intérieur d'un championnat, approximatif en coupe entre divisions différentes.
+let modele = null;
+const poisson = (l, k) => { let p = Math.exp(-l); for (let i = 1; i <= k; i++) p *= l / i; return p; };
+function probas(lh, la) {
+  let h = 0, n = 0, a = 0, best = [0, 0, 0];
+  for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) {
+    const p = poisson(lh, i) * poisson(la, j);
+    if (i > j) h += p; else if (i === j) n += p; else a += p;
+    if (p > best[2]) best = [i, j, p];
+  }
+  const s = h + n + a;
+  return { p: [h / s, n / s, a / s], score: best.slice(0, 2) };
+}
+function getModele() {
+  if (modele) return modele;
+  const ms = data.matchs.filter(fini).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  const eq = {}, K = 4;  // K = nombre de matchs "moyens" ajoutés à chaque équipe (prudence en début de saison)
+  let gH = 0, gA = 0, nM = 0;
+  const predire = (d, e) => {
+    const avgH = nM ? gH / nM : 1.45, avgA = nM ? gA / nM : 1.15, avg = (avgH + avgA) / 2;
+    const s = n => eq[n] ?? { mj: 0, bp: 0, bc: 0 }, A = s(d), B = s(e);
+    const att = x => (x.bp + K * avg) / (x.mj + K) / avg, def = x => (x.bc + K * avg) / (x.mj + K) / avg;
+    const lh = avgH * att(A) * def(B), la = avgA * att(B) * def(A);
+    return { ...probas(lh, la), lh, la, info: Math.min(A.mj, B.mj) };
+  };
+  const histo = [];  // pronostic fait AVANT chaque match passé, avec seulement les matchs précédents
+  for (const m of ms) {
+    const pr = predire(m.domicile, m.exterieur);
+    if (pr.info >= 3) histo.push({ m, p: pr.p, r: m.buts_dom > m.buts_ext ? 0 : m.buts_dom === m.buts_ext ? 1 : 2 });
+    for (const [n, p, c] of [[m.domicile, m.buts_dom, m.buts_ext], [m.exterieur, m.buts_ext, m.buts_dom]]) {
+      const x = eq[n] ??= { mj: 0, bp: 0, bc: 0 }; x.mj++; x.bp += p; x.bc += c; }
+    gH += m.buts_dom; gA += m.buts_ext; nM++;
+  }
+  return modele = { predire, histo };
+}
+const pct = x => Math.round(x * 100);
+function blocProno(m, detail) {
+  if (m.statut !== PREVU) return "";
+  const pr = getModele().predire(m.domicile, m.exterieur);
+  if (pr.info < 3) return detail ? '<p class="mut">Pas assez de matchs joués par ces équipes pour un pronostic.</p>' : "";
+  const [h, n, a] = pr.p.map(pct);
+  return `<div class="prono"><div class="b" aria-hidden="true"><i style="width:${h}%;background:var(--c-pour)"></i><i style="width:${n}%;background:var(--n)"></i><i style="width:${a}%;background:var(--c-contre)"></i></div>
+    <div class="lib"><span>${detail ? esc(m.domicile) + " " : "1 · "}${h} %</span><span>Nul ${n} %</span><span>${detail ? esc(m.exterieur) + " " : "2 · "}${a} %</span></div>
+    ${detail ? `<p class="mut" style="margin:6px 0 0">Score le plus probable : ${pr.score[0]}-${pr.score[1]}. Calculé à partir des buts marqués et encaissés cette saison et de l'avantage du terrain.</p>` : ""}</div>`;
+}
+function vueJustesse(lg) {
+  const H = getModele().histo, h = H.filter(x => x.m.ligue === lg);
+  const bilan = arr => { if (!arr.length) return null;
+    const bon = arr.filter(x => x.p.indexOf(Math.max(...x.p)) === x.r).length;
+    const brier = arr.reduce((s, x) => s + x.p.reduce((t, p, i) => t + (p - (i === x.r ? 1 : 0)) ** 2, 0), 0) / arr.length;
+    const dom = arr.filter(x => x.r === 0).length;
+    const surs = arr.filter(x => Math.max(...x.p) >= .6), bonSurs = surs.filter(x => x.p.indexOf(Math.max(...x.p)) === x.r).length;
+    return { n: arr.length, bon: pct(bon / arr.length), brier: Math.round(brier * 1000) / 1000, dom: pct(dom / arr.length),
+      surs: surs.length, bonSurs: surs.length ? pct(bonSurs / surs.length) : null }; };
+  const L = bilan(h), T = bilan(H);
+  if (!T) return "";
+  const ligne = (t, b) => b ? `<tr><td class="g">${t}</td><td>${b.n}</td><td class="pts">${b.bon} %</td><td>${b.dom} %</td><td>${b.bonSurs ?? "–"}${b.bonSurs != null ? " %" : ""} <span class="mut">(${b.surs})</span></td><td>${b.brier}</td></tr>` : "";
+  return `<h2>Justesse des pronostics (saison ${esc(nomSaison(data.saison))})</h2>
+    <div class="tab-wrap"><table><thead><tr><th style="text-align:left"></th><th>Matchs</th><th>Bon résultat</th><th>Si on pariait toujours « domicile »</th><th>Quand le favori est donné à 60 % ou plus</th><th>Score de Brier</th></tr></thead><tbody>
+      ${ligne(esc(lg), L)}${ligne("Toutes compétitions", T)}</tbody></table></div>
+    <p class="mut">Chaque match passé a été pronostiqué avec uniquement les matchs joués avant lui. Score de Brier : 0 = parfait, 0,667 = pronostic au hasard (plus bas = meilleur).</p>`;
+}
+
+// ---------- statistiques avancées (calculées depuis les matchs de la compétition) ----------
+function vueStats() {
+  let lg = $("ligue").value;
+  const ligues = [...new Set(data.matchs.map(m => m.ligue))].sort();
+  if (!lg || lg === "__fav") lg = ligues.includes("Ligue 1") ? "Ligue 1" : ligues[0];
+  const fin = data.matchs.filter(m => m.ligue === lg && fini(m)).sort((a, b) => a.date_utc.localeCompare(b.date_utc));
+  if (!fin.length) return `<p class="mut">Pas encore de match terminé en ${esc(lg)}.</p>`;
+  const eq = {}, logoDe = {};
+  const ligne = n => eq[n] ??= { dom: { j: 0, g: 0, n: 0, p: 0, bp: 0, bc: 0 }, ext: { j: 0, g: 0, n: 0, p: 0, bp: 0, bc: 0 }, res: [], jaunes: 0, rouges: 0 };
+  for (const m of fin) {
+    logoDe[m.domicile] ??= m.logo_dom; logoDe[m.exterieur] ??= m.logo_ext;
+    for (const [n, cote, p, c] of [[m.domicile, "dom", m.buts_dom, m.buts_ext], [m.exterieur, "ext", m.buts_ext, m.buts_dom]]) {
+      const e = ligne(n), x = e[cote];
+      x.j++; x.bp += p; x.bc += c; x[p > c ? "g" : p < c ? "p" : "n"]++;
+      e.res.push({ r: p > c ? "V" : p < c ? "D" : "N", cs: c === 0 });
+      for (const k of m.cartons || []) if (k.cote === cote) k.type === "R" ? e.rouges++ : e.jaunes++;
+    }
+  }
+  const noms = Object.keys(eq);
+  const pts = x => 3 * x.g + x.n;
+  const tableLieu = cote => { const rows = noms.map(nom => ({ nom, ...eq[nom][cote] })).filter(r => r.j)  // "n" = nuls, d'où "nom"
+      .sort((a, b) => pts(b) - pts(a) || (b.bp - b.bc) - (a.bp - a.bc) || b.bp - a.bp || a.nom.localeCompare(b.nom));
+    return `<div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr class="${fav.has(r.nom) ? "moi" : ""}"><td>${i + 1}</td><td class="g">${lienEq(r.nom, logoDe[r.nom])}</td><td class="pts">${pts(r)}</td><td>${r.j}</td><td>${r.g}</td><td>${r.n}</td><td>${r.p}</td><td>${r.bp}</td><td>${r.bc}</td></tr>`).join("")}
+      </tbody></table></div>`; };
+  // séries en cours : on remonte depuis le dernier match tant que la condition tient
+  const serie = (n, ok) => { let k = 0; for (const x of [...eq[n].res].reverse()) { if (!ok(x)) break; k++; } return k; };
+  // croissant = true : le plus petit est le meilleur (ex. buts encaissés)
+  const top = (titre, val, unite, min = 1, croissant = false) => { const rows = noms.map(e => ({ e, v: val(e) })).filter(r => r.v >= min)
+      .sort((a, b) => (croissant ? a.v - b.v : b.v - a.v) || a.e.localeCompare(b.e)).slice(0, 5);
+    return `<div><h3>${titre}</h3>${rows.length ? `<div class="tab-wrap"><table><tbody>${rows.map(r => `<tr class="${fav.has(r.e) ? "moi" : ""}"><td class="g">${lienEq(r.e, logoDe[r.e])}</td><td class="pts">${r.v}${unite}</td></tr>`).join("")}</tbody></table></div>` : '<p class="mut">Aucune en cours.</p>'}</div>`; };
+  const tot = n => { const d = eq[n].dom, x = eq[n].ext; return { j: d.j + x.j, bp: d.bp + x.bp, bc: d.bc + x.bc }; };
+  const moy = v => Math.round(v * 100) / 100;
+  const disc = noms.map(n => ({ n, j: eq[n].jaunes, r: eq[n].rouges, m: tot(n).j })).sort((a, b) => (b.j + 3 * b.r) - (a.j + 3 * a.r) || a.n.localeCompare(b.n));
+  return `<h2>${esc(lg)} · ${fin.length} matchs terminés</h2>
+    ${$("ligue").value !== lg ? `<p class="mut">${esc(lg)} est affichée par défaut ; choisissez une autre compétition dans la liste ci-dessus.</p>` : ""}
+    <h2>Séries en cours</h2><div class="grille2">
+      ${top("Invaincus", n => serie(n, x => x.r !== "D"), " matchs", 2)}${top("Victoires d'affilée", n => serie(n, x => x.r === "V"), " matchs", 2)}
+      ${top("Sans victoire", n => serie(n, x => x.r !== "V"), " matchs", 2)}${top("Sans encaisser de but", n => serie(n, x => x.cs), " matchs", 2)}</div>
+    <h2>Attaques et défenses</h2><div class="grille2">
+      ${top("Meilleures attaques (buts / match)", n => moy(tot(n).bp / tot(n).j), "", 0)}
+      ${top("Meilleures défenses (buts encaissés / match)", n => moy(tot(n).bc / tot(n).j), "", 0, true)}</div>
+    <h2>Classement à domicile</h2>${tableLieu("dom")}
+    <h2>Classement à l'extérieur</h2>${tableLieu("ext")}
+    ${vueJustesse(lg)}
+    <h2>Discipline</h2><div class="tab-wrap"><table><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>🟨</th><th>🟥</th><th>Cartons / match</th></tr></thead><tbody>
+      ${disc.map((r, i) => `<tr class="${fav.has(r.n) ? "moi" : ""}"><td>${i + 1}</td><td class="g">${lienEq(r.n, logoDe[r.n])}</td><td>${r.j}</td><td>${r.r}</td><td>${r.m ? moy((r.j + r.r) / r.m) : 0}</td></tr>`).join("")}
+    </tbody></table></div><p class="mut">Classées de la plus sanctionnée à la moins sanctionnée (un rouge compte comme 3 jaunes). Cartons d'après ESPN, parfois absents pour certains matchs.</p>`;
+}
+
+// ---------- recherche globale ----------
+const sansAccent = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+let rgItems = [], rgActif = -1, rgJoueurs = [];
+async function chercherGlobal(q) {
+  const qn = sansAccent(q.trim()), mots = qn.split(/[\s\-–]+|\bvs\b|\bcontre\b/).filter(Boolean);
+  if (qn.length < 2) return [];
+  const score = n => { const s = sansAccent(n); return s.startsWith(qn) ? 0 : s.split(/[\s\-]+/).some(w => w.startsWith(qn)) ? 1 : s.includes(qn) ? 2 : 9; };
+  const equipes = [...new Set(data.matchs.flatMap(m => [m.domicile, m.exterieur]))];
+  const logo = n => data.matchs.map(m => m.domicile === n ? m.logo_dom : m.exterieur === n ? m.logo_ext : null).find(Boolean);
+  const res = [];
+  equipes.map(n => [n, score(n)]).filter(x => x[1] < 9).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])).slice(0, 6)
+    .forEach(([n]) => res.push({ grp: "Équipes", txt: n, img: logo(n), href: "#equipe=" + encodeURIComponent(n),
+      sous: [...new Set(data.matchs.filter(m => m.domicile === n || m.exterieur === n).map(m => m.ligue))].slice(0, 2).join(" · ") }));
+  if (!rgJoueurs.length) rgJoueurs = [...new Set([...Object.keys(await chargerJoueurs()),
+    ...data.matchs.flatMap(m => [...m.buteurs, ...(m.passes || [])].filter(b => !b.nom.endsWith("(csc)")).map(b => sansTag(b.nom)))])];
+  rgJoueurs.map(n => [n, score(n)]).filter(x => x[1] < 9).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0])).slice(0, 6)
+    .forEach(([n]) => res.push({ grp: "Joueurs", txt: n, href: "#joueur=" + encodeURIComponent(n) }));
+  if (mots.length >= 2) {  // « marseille lyon » → leurs matchs
+    data.matchs.filter(m => { const a = sansAccent(m.domicile), b = sansAccent(m.exterieur);
+        return mots.every(w => a.includes(w) || b.includes(w)) && mots.some(w => a.includes(w)) && mots.some(w => b.includes(w)); })
+      .sort((a, b) => b.date_utc.localeCompare(a.date_utc)).slice(0, 5)
+      .forEach(m => res.push({ grp: "Matchs", txt: `${m.domicile} ${m.buts_dom ?? ""}${m.buts_dom === null ? "–" : "-"}${m.buts_ext ?? ""} ${m.exterieur}`,
+        href: "#match=" + m.id, sous: `${m.ligue} · ${court(m.date_utc)}` }));
+  }
+  return res;
+}
+function afficherSuggestions() {
+  const ul = $("rg-liste"); let grp = "";
+  ul.innerHTML = rgItems.length ? rgItems.map((it, i) => (it.grp !== grp ? `<li class="grp" role="presentation">${grp = it.grp}</li>` : "")
+      + `<li role="option" id="rg-${i}" aria-selected="${i === rgActif}" data-i="${i}">${it.img ? logo(it.img) : ""}<span>${esc(it.txt)}</span>${it.sous ? `<span class="sous">${esc(it.sous)}</span>` : ""}</li>`).join("")
+    : '<li class="grp" role="presentation">Aucun résultat</li>';
+  ul.hidden = false; $("rg").setAttribute("aria-expanded", "true");
+  $("rg").setAttribute("aria-activedescendant", rgActif >= 0 ? "rg-" + rgActif : "");
+  ul.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+}
+function fermerSuggestions() { $("rg-liste").hidden = true; $("rg").setAttribute("aria-expanded", "false"); rgActif = -1; }
+function allerA(i) { const it = rgItems[i]; if (!it) return; fermerSuggestions(); $("rg").value = ""; $("rg").blur(); location.hash = it.href.slice(1); }
+let rgJeton = 0;
+$("rg").oninput = async () => {
+  const q = $("rg").value, j = ++rgJeton;
+  if (q.trim().length < 2) return fermerSuggestions();
+  const r = await chercherGlobal(q);
+  if (j !== rgJeton) return;  // une frappe plus récente est arrivée entre-temps
+  rgItems = r; rgActif = r.length ? 0 : -1; afficherSuggestions();
+};
+$("rg").onkeydown = e => {
+  if ($("rg-liste").hidden) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); rgActif = (rgActif + (e.key === "ArrowDown" ? 1 : -1) + rgItems.length) % rgItems.length; afficherSuggestions(); }
+  else if (e.key === "Enter") { e.preventDefault(); allerA(rgActif); }
+  else if (e.key === "Escape") fermerSuggestions();
+};
+$("rg-liste").onmousedown = e => { const li = e.target.closest("[data-i]"); if (li) { e.preventDefault(); allerA(+li.dataset.i); } };
+$("rg").onblur = () => setTimeout(fermerSuggestions, 150);
+
+// ---------- comparateur ----------
+function champComparer(type, nom, liste, texte) {
+  return `<div class="comparer"><input id="cmp-in" list="cmp-liste" placeholder="⚖ ${esc(texte)}" aria-label="${esc(texte)}" data-type="${type}" data-nom="${esc(nom)}">
+    <datalist id="cmp-liste">${liste.filter(x => x !== nom).sort().map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>`;
+}
+function brancherComparer() {
+  const i = $("cmp-in"); if (!i) return;
+  const ok = new Set([...$("cmp-liste").options].map(o => o.value));
+  i.onchange = () => { if (ok.has(i.value)) location.hash = "comparer=" + encodeURIComponent(`${i.dataset.type}|${i.dataset.nom}|${i.value}`); };
+}
+
+const titreSaison = () => data.saison ? `saison ${nomSaison(data.saison)}, ` : "";
+
+function statsEquipe(nom) {
+  const fin = data.matchs.filter(m => fini(m) && (m.domicile === nom || m.exterieur === nom));
+  const s = { mj: fin.length, V: 0, N: 0, D: 0, bp: 0, bc: 0, cs: 0, forme: [] };
+  for (const m of fin) {
+    const dom = m.domicile === nom, p = dom ? m.buts_dom : m.buts_ext, c = dom ? m.buts_ext : m.buts_dom;
+    s[p > c ? "V" : p < c ? "D" : "N"]++; s.bp += p; s.bc += c; if (!c) s.cs++;
+    s.forme.push(p > c ? "V" : p < c ? "D" : "N");
+  }
+  s.forme = s.forme.slice(-5).reverse();
+  s.logo = data.matchs.map(m => m.domicile === nom ? m.logo_dom : m.exterieur === nom ? m.logo_ext : null).find(Boolean);
+  return s;
+}
+
+// lignes : [libellé, valeur A, valeur B, sens (1 = plus c'est haut mieux c'est, -1 = l'inverse, 0 = neutre), affichage]
+function tableComparer(ta, tb, lignes) {
+  const f = (v, aff) => aff ? aff(v) : esc(v);
+  return `<div class="tab-wrap"><table class="cmp"><thead><tr><th>${ta}</th><th></th><th>${tb}</th></tr></thead><tbody>
+    ${lignes.map(([lib, a, b, sens, aff]) => { const ma = sens && a !== b && (sens > 0 ? a > b : a < b), mb = sens && a !== b && !ma;
+      return `<tr><td class="${ma ? "mieux" : ""}">${f(a, aff)}</td><td>${lib}</td><td class="${mb ? "mieux" : ""}">${f(b, aff)}</td></tr>`; }).join("")}
+  </tbody></table></div><p class="mut">En vert : la meilleure valeur.</p>`;
+}
+
+async function vueComparer(type, a, b) {
+  const el = $("detail"), retour = `<a class="pill" href="#${type === "e" ? "equipe" : "joueur"}=${encodeURIComponent(a)}">← Retour</a>`;
+  const r1 = n => Math.round(n * 100) / 100, pct = n => Math.round(n) + " %";
+  if (type === "e") {
+    const A = statsEquipe(a), B = statsEquipe(b);
+    const forme = f => `<span class="forme" style="justify-content:inherit;display:inline-flex">${f.map(r => `<span class="${r}">${r}</span>`).join("")}</span>`;
+    const lignes = [["Matchs joués", A.mj, B.mj, 0], ["Victoires", A.V, B.V, 1], ["Nuls", A.N, B.N, 0], ["Défaites", A.D, B.D, -1],
+      ["% de victoires", A.mj ? 100 * A.V / A.mj : 0, B.mj ? 100 * B.V / B.mj : 0, 1, pct],
+      ["Buts marqués", A.bp, B.bp, 1], ["Buts encaissés", A.bc, B.bc, -1],
+      ["Buts marqués / match", A.mj ? r1(A.bp / A.mj) : 0, B.mj ? r1(B.bp / B.mj) : 0, 1],
+      ["Buts encaissés / match", A.mj ? r1(A.bc / A.mj) : 0, B.mj ? r1(B.bc / B.mj) : 0, -1],
+      ["Matchs sans encaisser", A.cs, B.cs, 1], ["Forme (5 derniers)", A.forme, B.forme, 0, forme]];
+    for (const lg of [...new Set(data.classement.filter(c => c.equipe === a).map(c => c.ligue))]) {
+      const ca = data.classement.find(c => c.ligue === lg && c.equipe === a), cb = data.classement.find(c => c.ligue === lg && c.equipe === b);
+      if (ca && cb) lignes.push([`Classement ${esc(lg)}`, ca.rang, cb.rang, -1, v => v + "e"], [`Points ${esc(lg)}`, ca.pts, cb.pts, 1]);
+    }
+    const tete = (n, s) => `${s.logo ? `<img src="${esc(s.logo)}" alt="">` : ""}<a class="j" href="#equipe=${encodeURIComponent(n)}">${esc(n)}</a>`;
+    const entre = data.matchs.filter(m => (m.domicile === a && m.exterieur === b) || (m.domicile === b && m.exterieur === a));
+    el.innerHTML = retour + `<h2>Comparaison (${titreSaison()}toutes compétitions)</h2>` + tableComparer(tete(a, A), tete(b, B), lignes)
+      + (entre.length ? blocMatchs("Leurs matchs cette saison", entre, false) : "");
+    return;
+  }
+  el.innerHTML = retour + '<p class="mut">Chargement…</p>';
+  const [A, B] = await Promise.all([statsJoueur(a), statsJoueur(b)]);
+  if (route()[0] !== "comparer") return;
+  const vide = { T: { mj: 0, tit: 0, b: 0, pen: 0, p: 0, j: 0, r: 0 }, equipes: [] };
+  const x = A || vide, y = B || vide;
+  const tete = (n, s) => `<a class="j" href="#joueur=${encodeURIComponent(n)}">${esc(n)}</a><div class="mut" style="font-weight:400">${s.equipes.map(esc).join(", ")}</div>`;
+  el.innerHTML = retour + `<h2>Comparaison (${titreSaison()}toutes compétitions)</h2>` + tableComparer(tete(a, x), tete(b, y), [
+    ["Matchs joués", x.T.mj, y.T.mj, 1], ["Titularisations", x.T.tit, y.T.tit, 1], ["Buts", x.T.b, y.T.b, 1],
+    ["dont penaltys", x.T.pen, y.T.pen, 0], ["Passes décisives", x.T.p, y.T.p, 1], ["Buts + passes", x.T.b + x.T.p, y.T.b + y.T.p, 1],
+    ["Buts / match", x.T.mj ? r1(x.T.b / x.T.mj) : 0, y.T.mj ? r1(y.T.b / y.T.mj) : 0, 1],
+    ["Cartons jaunes", x.T.j, y.T.j, -1], ["Cartons rouges", x.T.r, y.T.r, -1]]);
+}
+
+// ---------- alertes de buts (équipes favorites, tant que la page est ouverte) ----------
+let alertes = false;
+try { alertes = localStorage.getItem("alertes") === "1"; } catch (e) {}
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 8000); }
+function majBoutonAlertes() { $("alertes").setAttribute("aria-pressed", alertes); $("alertes").textContent = alertes ? "🔔" : "🔕";
+  $("alertes").title = alertes ? "Alertes de buts activées (toucher pour couper)" : "Activer les alertes de buts"; $("alertes").setAttribute("aria-label", $("alertes").title); }
+$("alertes").onclick = async () => {
+  if (!alertes) {
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+    if ("Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) {} }
+  }
+  alertes = !alertes;
+  try { localStorage.setItem("alertes", alertes ? "1" : "0"); } catch (e) {}
+  majBoutonAlertes();
+  if (!alertes) return toast("Alertes désactivées.");
+  if (!fav.size) return toast("Alertes activées. Ajoutez des équipes favorites (☆ sur leur fiche) pour être prévenu de leurs buts.");
+  toast(("Notification" in window && Notification.permission === "granted")
+    ? "Alertes activées : notification à chaque but de vos équipes favorites, tant que le site est ouvert."
+    : "Alertes activées dans la page (le navigateur a refusé les notifications).");
+};
+async function alerteBut(m, cote) {
+  const b = [...(m.buteurs || [])].reverse().find(x => x.cote === cote);
+  const titre = `⚽ But pour ${cote === "dom" ? m.domicile : m.exterieur} !`;
+  const corps = `${m.domicile} ${m.buts_dom}-${m.buts_ext} ${m.exterieur}${b ? ` · ${b.nom} ${b.min}` : ""}`;
+  toast(`${titre} ${corps}`);
+  try { navigator.vibrate?.([200, 100, 200]); } catch (e) {}
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    reg ? await reg.showNotification(titre, { body: corps, tag: m.id + "-" + m.buts_dom + "-" + m.buts_ext }) : new Notification(titre, { body: corps });
+  } catch (e) { /* notifications impossibles ici : le bandeau suffit */ }
+}
+function detecterButs(avant) {
+  if (!alertes) return;
+  for (const m of data.matchs) {
+    const a = avant.get(m.id); if (!a || m.buts_dom === null) continue;
+    if (fav.has(m.domicile) && m.buts_dom > (a[0] ?? 0)) alerteBut(m, "dom");
+    if (fav.has(m.exterieur) && m.buts_ext > (a[1] ?? 0)) alerteBut(m, "ext");
+  }
+}
+
+// ---------- fiche match (chargée à la demande chez ESPN) ----------
+const STATS = [["Possession", "Possession (%)"], ["SHOTS", "Tirs"], ["ON GOAL", "Tirs cadrés"], ["Corner Kicks", "Corners"],
+  ["Fouls", "Fautes"], ["Offsides", "Hors-jeu"], ["Yellow Cards", "Cartons jaunes"], ["Red Cards", "Cartons rouges"],
+  ["Saves", "Arrêts"], ["Passes", "Passes"], ["Accurate Passes", "Passes réussies"]];
+let ficheTimer = null;
+
+async function vueMatch(id) {
+  clearTimeout(ficheTimer);
+  const m = data.matchs.find(x => x.id === id);
+  const el = $("detail");
+  if (!m) { el.innerHTML = `<a class="pill" href="#">← Retour</a><p class="mut">Match introuvable.</p>`; return; }
+  const code = Object.keys(data.ligues).find(k => data.ligues[k] === m.ligue);
+  const entete = `<a class="pill" href="#">← Retour</a>
+    <div class="entete"><div><a href="#equipe=${encodeURIComponent(m.domicile)}">${m.logo_dom ? `<img src="${esc(m.logo_dom)}" alt="">` : ""}${esc(m.domicile)}</a></div>
+      <div><div class="score">${m.buts_dom === null ? heure(m.date_utc) : `${m.buts_dom} - ${m.buts_ext}`}</div>
+        <div class="mut">${esc(m.ligue)}<br>${fmt(m.date_utc)}${enDirect(m) ? `<br><span class="live">🔴 En direct${m.minute ? " · " + esc(m.minute) : ""}</span>` : ""}</div></div>
+      <div><a href="#equipe=${encodeURIComponent(m.exterieur)}">${m.logo_ext ? `<img src="${esc(m.logo_ext)}" alt="">` : ""}${esc(m.exterieur)}</a></div></div>`;
+  const fd = id.startsWith("fd");  // match historique de football-data.co.uk : score seulement
+  if (fd || code?.startsWith("ls:")) {  // pas de fiche ESPN : on montre ce qui est en base
+    const evs = [...(m.buteurs || []).map(e => ({ ...e, i: "⚽" })), ...(m.cartons || []).map(e => ({ ...e, i: e.type === "R" ? "🟥" : "🟨" }))]
+      .sort((a, b) => parseInt(a.min) - parseInt(b.min));
+    el.innerHTML = entete.replace('<div class="entete"', `<div data-fiche="${esc(id)}" class="entete"`)
+      + boutonsPartage("match", m)
+      + (m.statut === PREVU ? "<h2>Pronostic</h2><div class=\"bloc\">" + blocProno(m, true) + "</div>" : "")
+      + "<h2>Événements</h2>" + (evs.length ? `<div class="bloc">${evs.map(e => { const t = `${e.i} ${lienJ(e.nom)}`;
+          return `<div class="ev"><div class="dom">${e.cote === "dom" ? t : ""}</div><div class="t">${esc(e.min)}</div><div>${e.cote === "ext" ? t : ""}</div></div>`; }).join("")}</div>`
+        : fd ? "" : '<p class="mut">Pas encore d\'événements (ils arrivent à la mise à jour qui suit la fin du match).</p>')
+      + (fd ? '<p class="mut">Source : football-data.co.uk (archives). Seul le score est connu pour ce match.</p>'
+            : '<p class="mut">Source : LiveScore. Statistiques et compositions non disponibles pour cette compétition.</p>');
+    return;
+  }
+  if (!el.innerHTML.includes(`data-fiche="${id}"`)) el.innerHTML = entete + '<p class="mut">Chargement de la fiche…</p>';
+  let s;
+  try {
+    s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/summary?event=${encodeURIComponent(id)}`, { cache: "no-store" })).json();
+  } catch (e) { el.innerHTML = entete + '<p class="mut">Fiche indisponible pour le moment (ESPN injoignable).</p>'; return; }
+  if (location.hash !== "#match=" + id) return;  // l'utilisateur est parti entre-temps
+  const idDom = s.header?.competitions?.[0]?.competitors?.find(t => t.homeAway === "home")?.team?.id;
+  const cote = teamId => teamId === idDom ? "dom" : "ext";
+
+  // événements
+  const evs = (s.keyEvents || []).filter(k => /Goal|Penalty - Scored|Card|Substitution/.test(k.type?.text || ""));
+  const icone = t => /Red/.test(t) ? "🟥" : /Yellow/.test(t) ? "🟨" : /Substitution/.test(t) ? "🔁" : "⚽";
+  const texte = k => { const p = (k.participants || []).map(x => x.athlete?.displayName ? lienJ(x.athlete.displayName) : "?");
+    if (/Substitution/.test(k.type.text)) return `↑ ${p[0] || "?"}<br><span class="mut">↓ ${p[1] || "?"}</span>`;
+    if (/Own/.test(k.type.text)) return `${p[0] || "?"} <span class="mut">(csc)</span>`;
+    if (/Penalty/.test(k.type.text)) return `${p[0] || "?"} <span class="mut">(pen)</span>`;
+    return (p[0] || "?") + (/Goal/.test(k.type.text) && p[1] ? ` <span class="mut">(passe : ${p[1]})</span>` : ""); };
+  const htmlEv = evs.length ? `<div class="bloc">${evs.map(k => { const c = cote(k.team?.id), t = `${icone(k.type.text)} ${texte(k)}`;
+      return `<div class="ev"><div class="dom">${c === "dom" ? t : ""}</div><div class="t">${esc(k.clock?.displayValue || "")}</div><div>${c === "ext" ? t : ""}</div></div>`; }).join("")}</div>`
+    : '<p class="mut">Pas encore d\'événements.</p>';
+
+  // statistiques
+  const eqs = s.boxscore?.teams || [];
+  const val = (t, lab) => { const x = (t?.statistics || []).find(z => z.label === lab); return x ? parseFloat(x.displayValue) : null; };
+  const tD = eqs.find(t => t.team?.id === idDom), tE = eqs.find(t => t.team?.id !== idDom);
+  const htmlStats = STATS.map(([lab, nom]) => { const a = val(tD, lab), b = val(tE, lab); if (a === null || b === null) return "";
+      const tot = a + b || 1; return `<div class="barre"><div class="lib"><span>${a}</span><span>${nom}</span><span>${b}</span></div>
+        <div class="b"><i style="width:${a / tot * 100}%"></i><i style="width:${b / tot * 100}%"></i></div></div>`; }).join("");
+
+  // compositions
+  const ros = s.rosters || [];
+  const compo = t => { if (!t) return ""; const r = t.roster || [];
+    const li = p => `<li><b>${esc(p.jersey || "")}</b><span>${p.athlete?.displayName ? lienJ(p.athlete.displayName) : "?"}${p.subbedOut ? " ↓" : ""}${p.subbedIn ? " ↑" : ""}</span></li>`;
+    return `<div><h3>${esc(t.team?.displayName)}${t.formation ? ` <span class="mut">${esc(t.formation)}</span>` : ""}</h3>
+      <ul>${r.filter(p => p.starter).map(li).join("")}</ul>
+      ${r.some(p => !p.starter) ? `<p class="mut" style="margin:8px 0 4px">Remplaçants</p><ul class="sub">${r.filter(p => !p.starter).map(li).join("")}</ul>` : ""}</div>`; };
+  const rD = ros.find(t => t.team?.id === idDom), rE = ros.find(t => t.team?.id !== idDom);
+  const htmlCompo = ros.some(t => (t.roster || []).length) ? `<div class="bloc compo">${compo(rD)}${compo(rE)}</div>` : '<p class="mut">Compositions pas encore annoncées.</p>';
+
+  // forme récente (5 derniers matchs de chaque équipe, toutes compétitions)
+  const RES = { W: "V", D: "N", L: "D" };
+  const formes = (s.lastFiveGames || []).slice().sort((a, b) => (b.team?.id === idDom) - (a.team?.id === idDom)).map(t => {
+    const ev = (t.events || []).slice().sort((a, b) => (b.gameDate || "").localeCompare(a.gameDate || "")).slice(0, 5);
+    return ev.length ? `<div style="margin:6px 0"><b>${esc(t.team?.displayName)}</b> <span class="mut">(le plus récent à gauche)</span><div class="forme" style="margin-top:4px">${ev.map(e => {
+      const r = RES[e.gameResult] || "?";
+      return `<span class="${r}" data-tip="${esc(`${court(e.gameDate)} · ${e.atVs === "@" ? "à" : "contre"} ${e.opponent?.displayName || ""} · ${e.score || ""} · ${e.leagueAbbreviation || ""}`)}">${r}</span>`; }).join("")}</div></div>` : ""; }).join("");
+
+  // confrontations directes (5 dernières, d'après ESPN)
+  const serie = (s.seasonseries || []).find(x => x.type === "head-to-head") || (s.seasonseries || [])[0];
+  const h2h = (serie?.events || []).filter(e => e.statusType?.completed && e.competitors?.length === 2).sort((a, b) => b.date.localeCompare(a.date));
+  let htmlH2h = "";
+  if (h2h.length) {
+    const bilan = {}; let nuls = 0;
+    for (const e of h2h) {  // d'après le score (un nul gagné aux tirs au but reste un nul)
+      const [c1, c2] = e.competitors, d = +c1.score - +c2.score, w = d > 0 ? c1 : d < 0 ? c2 : null;
+      w ? bilan[w.team.displayName] = (bilan[w.team.displayName] || 0) + 1 : nuls++; }
+    htmlH2h = `<div class="bloc"><p class="mut" style="margin:4px 0 10px">Bilan : ${Object.entries(bilan).map(([e, n]) => `${esc(e)} ${n} victoire${n > 1 ? "s" : ""}`).join(" · ")}${nuls ? ` · ${nuls} nul${nuls > 1 ? "s" : ""}` : ""}</p>
+      <div class="h2h">${h2h.map(e => { const h = e.competitors.find(c => c.homeAway === "home"), a = e.competitors.find(c => c.homeAway === "away");
+        return `<span class="dt">${fmt(e.date, { day:"numeric", month:"short", year:"numeric" })}</span><span class="d">${esc(h?.team?.displayName)}</span><span class="sc">${esc(h?.score)} - ${esc(a?.score)}</span><span>${esc(a?.team?.displayName)}</span>`; }).join("")}</div></div>`;
+  }
+
+  el.innerHTML = entete.replace('<div class="entete"', `<div data-fiche="${esc(id)}" class="entete"`)
+    + boutonsPartage("match", m)
+    + (m.statut === PREVU ? "<h2>Pronostic</h2><div class=\"bloc\">" + blocProno(m, true) + "</div>" : "")
+    + "<h2>Événements</h2>" + htmlEv
+    + (htmlStats ? "<h2>Statistiques</h2><div class=\"bloc\">" + htmlStats + "</div>" : "")
+    + (formes ? "<h2>Forme récente</h2><div class=\"bloc\">" + formes + "</div>" : "")
+    + "<h2>Confrontations directes</h2>" + (htmlH2h || '<p class="mut">Pas de confrontation récente connue.</p>')
+    + "<h2>Compositions</h2>" + htmlCompo;
+  if (enDirect(m) || (m.statut === PREVU && Math.abs(new Date(m.date_utc) - new Date()) < 3 * 3600e3))
+    ficheTimer = setTimeout(() => location.hash === "#match=" + id && vueMatch(id), 60e3);
+}
+
+// ---------- navigation ----------
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  return h.startsWith("equipe=") ? ["equipe", h.slice(7)] : h.startsWith("match=") ? ["match", h.slice(6)]
+    : h.startsWith("joueur=") ? ["joueur", h.slice(7)] : h.startsWith("comparer=") ? ["comparer", ...h.slice(9).split("|")] : ["accueil"];
+}
+
+function afficher() {
+  const [r, arg, arg2, arg3] = route();
+  $("accueil").hidden = r !== "accueil"; $("detail").hidden = r === "accueil";
+  if (r === "equipe") {
+    $("detail").innerHTML = vueEquipe(arg);
+    $("etoile").onclick = () => { fav.has(arg) ? fav.delete(arg) : fav.add(arg); garderFav(); afficher(); };
+    if ($("saison-eq")) $("saison-eq").onchange = e => changerSaison(+e.target.value);
+    brancherComparer();
+    return;
+  }
+  if (r === "match") { vueMatch(arg); return; }
+  if (r === "joueur") { vueJoueur(arg); return; }
+  if (r === "comparer") { vueComparer(arg, arg2, arg3); return; }
+  document.querySelectorAll("[data-o]").forEach(b => b.setAttribute("aria-selected", b.dataset.o === onglet));
+  const modeJour = onglet === "matchs" && !cherche();
+  $("nav-jours").hidden = !modeJour;
+  $("jour").value = jour;
+  bandeJours();
+  $("jour-titre").textContent = jour === cleJour(new Date()) ? "Aujourd'hui" : fmt(jour + "T12:00:00", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  $("vue").innerHTML = onglet === "matchs" ? vueMatchs() : onglet === "class" ? vueClass() : onglet === "stats" ? vueStats()
+    : vueJoueurs(onglet === "buteurs" ? "buteurs" : "passes");
+  if ($("plus")) $("plus").onclick = () => { nbResultats += 30; afficher(); };
+  document.querySelectorAll("[data-jour]").forEach(b => b.onclick = () => allerAuJour(b.dataset.jour));
+}
+
+document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { onglet = b.dataset.o; afficher(); });
+$("ligue").onchange = () => { nbResultats = 30; afficher(); };
+$("equipe").oninput = () => { nbResultats = 30; afficher(); };
+document.addEventListener("click", e => { const b = e.target.closest("[data-statut]"); if (b) { filtreStatut = b.dataset.statut; afficher(); } });
+$("jour").onchange = e => { if (e.target.value) allerAuJour(e.target.value); };
+addEventListener("hashchange", () => { afficher(); scrollTo(0, 0); });
+
+// ---------- direct : la page interroge ESPN elle-même pendant les matchs ----------
+function parseESPN(ev, ligue) {
+  const c = ev.competitions[0], h = c.competitors.find(t => t.homeAway === "home"), a = c.competitors.find(t => t.homeAway === "away");
+  const statut = ev.status.type.name, joue = statut !== PREVU;
+  const sc = t => joue && t.score !== undefined && t.score !== "" ? +t.score : null;
+  const det = c.details || [], cote = d => d.team?.id === h.team.id ? "dom" : "ext", nomDe = d => (d.athletesInvolved || [])[0]?.displayName || "?";
+  // compétition féminine : même nom d'équipe que chez les hommes chez ESPN, on garde le « (F) » ajouté par foot.py
+  const nomEq = t => (data.feminin || []).includes(ligue) ? t.team.displayName.replace(/ \(F\)$/, "") + " (F)" : t.team.displayName;
+  return { id: ev.id, ligue, date_utc: ev.date, domicile: nomEq(h), exterieur: nomEq(a),
+    buts_dom: sc(h), buts_ext: sc(a), statut, logo_dom: h.team.logo, logo_ext: a.team.logo,
+    buteurs: det.filter(d => d.scoringPlay && !d.shootout).map(d => ({ cote: cote(d), min: d.clock?.displayValue || "",
+      nom: nomDe(d) + (d.ownGoal ? " (csc)" : d.penaltyKick ? " (pen)" : "") })),
+    cartons: det.filter(d => d.redCard || d.yellowCard).map(d => ({ cote: cote(d), min: d.clock?.displayValue || "", nom: nomDe(d), type: d.redCard ? "R" : "J" })),
+    minute: ev.status.type.shortDetail || ev.status.displayClock };
+}
+
+const RELAIS = "https://foot-direct.julien773901.workers.dev/";  // relais Cloudflare (code : relais-cloudflare.js)
+// statuts LiveScore -> ESPN : même table que LS_STATUT dans sources.py (sinon c'est une minute : match en cours)
+const LS_STATUT = { FT: "STATUS_FULL_TIME", AET: "STATUS_FINAL_AET", AP: "STATUS_FINAL_PEN", NS: PREVU, "Postp.": "STATUS_POSTPONED",
+  "Canc.": "STATUS_CANCELED", "Int.": "STATUS_SUSPENDED", "Abd.": "STATUS_ABANDONED", "Aband.": "STATUS_ABANDONED", AW: "STATUS_FINAL_AWARDED" };
+function lsMatch(eid, t1, t2, eps) {  // même calcul que direct.py
+  const statut = LS_STATUT[eps] || "STATUS_IN_PROGRESS";
+  const joue = t1 != null && t1 !== "" && ![PREVU, "STATUS_POSTPONED", "STATUS_CANCELED"].includes(statut);
+  return { id: "ls" + eid, buts_dom: joue ? +t1 : null, buts_ext: joue ? +t2 : null, statut,
+    minute: eps === "HT" ? "Mi-temps" : statut === "STATUS_IN_PROGRESS" ? eps : "" };
+}
+
+let premierPassage = true;
+async function direct() {
+  // match prévu dans les 3 h, ou commencé il y a moins de 5 h : le fichier horaire peut avoir 1 h 30 de retard
+  const auj = new Date(), proche = d => new Date(d) - auj < 3 * 3600e3 && auj - new Date(d) < 5 * 3600e3;
+  const saisonPassee = data.saison && data.saison !== data.courante;  // pas de direct sur une ancienne saison
+  const actifs = saisonPassee ? [] : data.matchs.filter(m => enDirect(m) || (m.statut === PREVU && proche(m.date_utc)));
+  const avant = new Map(data.matchs.map(m => [m.id, [m.buts_dom, m.buts_ext]]));
+  if (actifs.length) {
+    const codes = Object.entries(data.ligues).filter(([c, n]) => !c.startsWith("ls:") && actifs.some(m => m.ligue === n));
+    // LiveScore refuse les navigateurs : on passe par le relais Cloudflare (relais-cloudflare.js, chaque minute) ;
+    // s'il ne répond pas, direct.json, refait toutes les 5 min par GitHub (direct.py : 5 à 15 min de retard)
+    const lsActifs = actifs.filter(m => m.id.startsWith("ls")), lsIds = new Set(lsActifs.map(m => m.id));
+    const majLS = n => { const i = lsIds.has(n.id) ? data.matchs.findIndex(m => m.id === n.id) : -1; if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n }; };
+    if (lsIds.size) try {
+      if (!RELAIS) throw 0;
+      const jours = [...new Set(lsActifs.map(m => m.date_utc.slice(0, 10).replace(/-/g, "")))];
+      for (const l of await Promise.all(jours.map(j => fetch(`${RELAIS}?j=${j}`).then(r => r.ok ? r.json() : Promise.reject(r.status)))))
+        for (const [eid, t1, t2, eps] of l) majLS(lsMatch(eid, t1, t2, eps));
+    } catch (e) {
+      try {
+        const d = await (await fetch("https://raw.githubusercontent.com/julien773901-oss/Foot/direct/direct.json", { cache: "no-store" })).json();
+        if (!data.maj || d.maj > data.maj) d.matchs.forEach(majLS);
+      } catch (e) { /* rien de joignable : on garde les données horaires */ }
+    }
+    await Promise.all(codes.map(async ([code, nom]) => {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard`, { cache: "no-store" });
+        for (const ev of (await r.json()).events || []) {
+          const n = parseESPN(ev, nom), i = data.matchs.findIndex(m => m.id === n.id);
+          if (i >= 0) data.matchs[i] = { ...data.matchs[i], ...n, sources: fini(n) ? data.matchs[i].sources : {} };
+        }
+      } catch (e) { /* ESPN injoignable : on garde les données du fichier */ }
+    }));
+    modele = null;  // des matchs ont pu se terminer : pronostics à recalculer
+    if (!premierPassage) detecterButs(avant);  // au 1er passage, les "nouveaux" buts datent d'avant l'ouverture de la page
+    // pas de rafraîchissement pendant une saisie ni sur une fiche match (elle a son propre minuteur)
+    if (document.activeElement?.tagName !== "INPUT" && !["match", "comparer"].includes(route()[0])) afficher();
+  }
+  premierPassage = false;
+  setTimeout(direct, actifs.length ? 60e3 : 10 * 60e3);
+}
+
+// ---------- saisons ----------
+const nomSaison = s => s ? `${s}-${String(s + 1).slice(2)}` : "";
+const saisons = {};
+function remplirEntete() {
+  $("maj").textContent = `${data.matchs.length.toLocaleString("fr-FR")} matchs cette saison · mise à jour ${fmt(data.maj)}`;
+  const choix = $("ligue").value;
+  while ($("ligue").options.length > 2) $("ligue").remove(2);
+  [...new Set(data.matchs.map(m => m.ligue))].sort().forEach(l => $("ligue").add(new Option(l, l)));
+  $("ligue").value = [...$("ligue").options].some(o => o.value === choix) ? choix : "";
+  $("sources").innerHTML = Object.entries(data.sources || {}).map(([n, s]) => `<li><b>${esc(n)}</b> : ${esc(s)}</li>`).join("");
+}
+// changement de saison : depuis la fiche d'un club (menu des saisons), ou depuis l'accueil quand le calendrier va sur
+// une date d'une autre saison (on charge alors ses matchs). jourVoulu : le jour à afficher (sinon aujourd'hui ou son dernier jour)
+async function changerSaison(s, jourVoulu) {
+  try { saisons[s] ??= await lireJson(`matchs-${s}.json`); }
+  catch (err) { toast("Cette saison n'est pas disponible pour le moment."); afficher(); return; }
+  data = saisons[s];
+  rgJoueurs = []; modele = null;  // la recherche et les pronostics dépendent de la saison
+  history.replaceState(null, "", (s === data.courante ? location.pathname : `?saison=${s}`) + location.hash);
+  jour = jourVoulu ?? (s === data.courante ? cleJour(new Date()) : cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date()));
+  nbResultats = 30;
+  remplirEntete();
+  afficher();
+}
+// aller à un jour (bandeau, calendrier) : saison de juillet à juin ; autre saison connue -> on la charge
+function allerAuJour(k) {
+  const s = +k.slice(0, 4) - (+k.slice(5, 7) < 7);
+  if (data.saisons?.includes(s) && s !== (data.saison ?? data.courante)) changerSaison(s, k);
+  else { jour = k; afficher(); }
+}
+
+// ---------- thème : Auto (suit l'appareil) → Clair → Sombre ----------
+const THEMES = { auto: "🌓 Auto", light: "☀️ Clair", dark: "🌙 Sombre" };
+function majTheme() { const t = document.documentElement.dataset.theme || "auto"; $("theme").textContent = THEMES[t].split(" ")[0];
+  $("theme").title = "Thème : " + THEMES[t].split(" ")[1] + " (toucher pour changer)"; $("theme").setAttribute("aria-label", $("theme").title); }
+$("theme").onclick = () => {
+  const ordre = ["auto", "light", "dark"], t = ordre[(ordre.indexOf(document.documentElement.dataset.theme || "auto") + 1) % 3];
+  if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch (e) {}
+  majTheme();
+};
+majTheme();
+
+// page restée ouverte (onglet, téléphone en veille) : on recharge les données dès qu'une mise à jour horaire est publiée,
+// sinon résultats et classements restent ceux de l'ouverture de la page
+let jourVu = jour;
+async function rafraichir() {
+  try {
+    const j = await (await fetch("matchs.json", { cache: "no-store" })).json();
+    if (j.saison) saisons[j.saison] = j;
+    if (data.saison && data.saison !== j.saison || j.maj <= data.maj) return;  // ancienne saison affichée, ou rien de neuf
+    data = j; modele = null; delete joueursP[j.saison];
+    if (jour === jourVu) jour = cleJour(new Date());  // on était sur « aujourd'hui » : on y reste le lendemain
+    jourVu = cleJour(new Date());
+    remplirEntete();
+    if (document.activeElement?.tagName !== "INPUT" && !["match", "comparer"].includes(route()[0])) afficher();
+  } catch (e) { /* hors connexion : on garde ce qu'on a */ }
+}
+setInterval(rafraichir, 10 * 60e3);
+document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && rafraichir());
+
+majBoutonAlertes();
+if (alertes && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+fetch("matchs.json", { cache: "no-store" }).then(r => r.json()).then(async j => {
+  data = j;
+  if (j.saison) saisons[j.saison] = j;
+  // lien partagé vers une ancienne saison : ?saison=2025
+  const sp = +new URLSearchParams(location.search).get("saison");
+  if (sp && sp !== j.saison && j.saisons?.includes(sp)) {
+    try { data = saisons[sp] = await lireJson(`matchs-${sp}.json`);
+      jour = cleJour(data.matchs.filter(fini).at(-1)?.date_utc || new Date()); } catch (e) { data = j; }
+  }
+  remplirEntete();
+  afficher();
+  direct();
+}).catch(() => $("maj").textContent = "Impossible de charger les données.");
+</script>
+</body>
+</html>
